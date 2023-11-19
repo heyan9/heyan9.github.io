@@ -69,6 +69,11 @@
       position: relative;
       bottom: 0;
     }
+     #clock {
+            font-size: 24px;
+            text-align: center;
+            margin-top: 50px;
+        }
   </style>
 </head>
 <body>
@@ -101,7 +106,29 @@
       <a href="https://mail.google.com/mail/u/0/#inbox" class="navLink"><font size="2">Gmail</font></a>
       <a href="https://fanyi.youdao.com/index.html#/" class="navLink"><font size="2">翻译</font></a>
       
-       
+        <script>
+        function updateClock() {
+            var now = new Date();
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            var seconds = now.getSeconds();
+            var timeString = zeroPadding(hours, 2) + ':' + zeroPadding(minutes, 2) + ':' + zeroPadding(seconds, 2);
+            document.getElementById('clock').textContent = timeString;
+        }
+
+        function zeroPadding(num, digit) {
+            var zero = '';
+            for (var i = 0; i < digit; i++) {
+                zero += '0';
+            }
+            return (zero + num).slice(-digit);
+        }
+
+        window.onload = function() {
+            updateClock();
+            setInterval(updateClock, 1000);
+        };
+    </script>
      
    
       <!-- 添加更多的链接直到20个 -->
