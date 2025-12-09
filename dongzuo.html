@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级人像摆拍指南 | 何岩搜索站</title>
+    <style>
+        :root {
+            --zhihu-blue: #0084FF;
+            --zhihu-dark: #002a52;
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            --text-main: #1a1a1a;
+            --text-sub: #646464;
+            --accent-gold: #bfa57d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #eef6fc 100%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-main);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 背景装饰球：为了凸显毛玻璃效果 */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.6;
+            animation: float 10s infinite ease-in-out;
+        }
+        .orb-1 {
+            width: 300px;
+            height: 300px;
+            background: #dbeafe;
+            top: -50px;
+            left: -100px;
+        }
+        .orb-2 {
+            width: 250px;
+            height: 250px;
+            background: #e0e7ff;
+            bottom: 100px;
+            right: -80px;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(30px, 50px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            height: 90vh; /* 适配屏幕高度 */
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            margin-top: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: var(--text-main);
+            margin: 0 0 8px 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        p.subtitle {
+            font-size: 13px;
+            color: var(--zhihu-blue);
+            margin: 0;
+            font-weight: 500;
+            opacity: 0.9;
+            background: rgba(0, 132, 255, 0.08);
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        /* 毛玻璃卡片核心样式 */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 24px;
+            flex-grow: 1; /* 让卡片占据中间主要空间 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+        }
+
+        .tag {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--zhihu-blue);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: rgba(255,255,255,0.8);
+            padding: 4px 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        }
+
+        .wedding-tag .tag {
+            color: var(--accent-gold);
+        }
+
+        .content-group {
+            margin-top: 15px;
+        }
+
+        .label {
+            font-size: 11px;
+            color: #8c98a4;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .main-text {
+            font-size: 18px;
+            color: var(--text-main);
+            line-height: 1.6;
+            margin-bottom: 25px;
+            font-weight: 600;
+            background: linear-gradient(180deg, rgba(0, 132, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 3px solid var(--zhihu-blue);
+        }
+        
+        .sub-text {
+            font-size: 15px;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .tips-container {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 13px;
+            color: var(--text-sub);
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        .tips-title {
+            font-weight: 700;
+            color: var(--zhihu-blue);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        /* 按钮组 */
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.3;
+        }
+
+        /* 主按钮：知乎蓝渐变 */
+        .btn-primary {
+            background: linear-gradient(135deg, #0084FF 0%, #0060fa 100%);
+            color: white;
+            box-shadow: 0 10px 20px rgba(0, 132, 255, 0.25);
+        }
+        
+        .btn-primary:hover {
+            box-shadow: 0 15px 30px rgba(0, 132, 255, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary small {
+            font-size: 10px;
+            opacity: 0.8;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        /* 次按钮：毛玻璃描边 */
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(0, 132, 255, 0.3);
+            color: var(--zhihu-blue);
+            backdrop-filter: blur(5px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: var(--zhihu-blue);
+        }
+
+        /* 底部版权 */
+        footer {
+            margin-top: auto;
+            text-align: center;
+            padding-bottom: 10px;
+        }
+
+        .footer-text {
+            font-size: 12px;
+            color: #999;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+        
+        .footer-brand {
+            font-weight: 600;
+            color: #ccc;
+        }
+
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); filter: blur(10px); }
+            to { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+
+        /* 默认占位符 */
+        .placeholder {
+            text-align: center;
+            color: #b0b0b0;
+        }
+        .placeholder-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+            opacity: 0.5;
+        }
+
+    </style>
+</head>
+<body>
+
+<!-- 背景装饰 -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+    <header>
+        <h1>Pose Generator</h1>
+        <p class="subtitle">自然 · 显瘦 · 氛围感</p>
+    </header>
+
+    <div class="glass-card" id="resultCard">
+        <div class="placeholder">
+            <span class="placeholder-icon">📷</span>
+            <div>准备好出片了吗？<br>点击下方按钮抽取灵感</div>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-primary" onclick="generateDaily()">
+            <span>✨ 抽取日常大片</span>
+            <small>50+ 显瘦姿势 / 旅游 / 探店</small>
+        </button>
+        <button class="btn-secondary" onclick="generateWedding()">
+            <span>💍 婚礼视频运镜</span>
+        </button>
+    </div>
+
+    <footer>
+        <div class="footer-text">DESIGNED BY</div>
+        <div class="footer-brand">何岩搜索站呈现</div>
+    </footer>
+</div>
+
+<script>
+    // --- 数据逻辑 (保持完整) ---
+
+    const bigActionList = [
+        "靠在墙上，一只脚向后踩墙根，另一只脚向前延伸，低头看鞋尖。",
+        "假装在整理鬓角的碎发，手肘抬高过肩膀，眼神看向另一侧。",
+        "背对镜头，上半身猛然向后转90度回眸，下巴去够肩膀。",
+        "双手插在风衣/外套口袋里，稍微耸肩，身体歪向一侧，自然微笑。",
+        "假装被阳光刺眼，单手举起挡在额头前，形成自然阴影。",
+        "身体正对墙壁，脸侧过来贴在墙上，双手自然垂下，眼神放空。",
+        "走路抓拍：大步迈开，回头看后面的人，头发被风吹乱的瞬间。",
+        "假装在看路边的橱窗/招牌，只给镜头一个专注的侧颜。",
+        "双手举高伸大大的懒腰，闭眼享受，让身体呈X型拉伸。",
+        "单手扶着栏杆/墙壁，身体重心全部后移，前腿脚尖点地。",
+        "蹲下，单腿膝盖跪地，另一条腿向斜前方伸直，手托腮。",
+        "坐在楼梯/台阶上，身体前倾，手肘撑在大腿上，双手捧脸。",
+        "坐在椅子上，双腿并拢斜向一侧，上半身向相反方向扭转。",
+        "盘腿坐下，双手抓着脚踝，身体向后仰大笑。",
+        "坐在高脚凳或栏杆上，一条腿自然垂下，另一条腿弯曲踩在横杠上。",
+        "蹲着看地上的蚂蚁/花草，背部拱起，只露出半张侧脸。",
+        "坐在地上，抱住双膝，下巴抵在膝盖上，眼神无辜。",
+        "一只手假装牙痛（托腮），另一只手假装头痛（扶额）。",
+        "用手把衣领拉高遮住嘴巴和鼻子，只露出一双眼睛看镜头。",
+        "双手比‘V’放在眼睛旁边，但是手背向外。",
+        "假装在看手表/手环，低头含胸，营造不经意感。",
+        "用手去摸头顶并不存在的帽子，腋下打开，制造上半身倒三角。",
+        "双手背在身后，身体前倾凑近镜头（广角大头照）。",
+        "食指放在嘴唇上做“嘘”的动作，眼神俏皮。",
+        "咬嘴唇（轻咬），眼神向下看，手自然下垂。",
+        "用手拨弄耳环/项链，视线落在饰品上，侧脸微抬。",
+        "假装听到有人叫你，发丝甩动的一瞬间抓拍。",
+        "手里虽然没东西，但假装拿着咖啡，低头吹气。",
+        "在原地转圈，裙摆/衣角飞起来，脸盲拍（不看镜头）。",
+        "像企鹅一样张开双手保持平衡，走在马路沿/花坛边上。",
+        "大笑时用手捂住嘴巴，身体后仰。",
+        "假装在拍前面的人（拿出手机对拍），挡住半张脸。",
+        "假装在系鞋带，蹲下侧身，显出身材曲线。",
+        "对着镜头整理衣领/袖口，眼神专注在衣服上。",
+        "把头发全部拨到一侧，露出脖颈线条，头向反方向歪。",
+        "双手提着裙边/裤缝，轻轻晃动身体。",
+        "（商场扶梯）侧身站立，手搭在扶手带上，回头看下行的扶梯。",
+        "（玻璃窗）脸贴近玻璃，甚至把脸压扁一点点，搞怪可爱。",
+        "（斑马线）快速走过，手指向马路对面的红绿灯。",
+        "（逆光）背对太阳，用身体挡住光，头发边缘发光。",
+        "（墙角）躲在墙角后面，探出半个身子和脑袋偷看。",
+        "（长椅）整个人躺在长椅上，腿翘二郎腿，手枕在头后。",
+        "（栏杆）背靠栏杆，手肘向后撑，仰头晒太阳，下颌线绷紧。",
+        "（空旷街道）张开双臂像在拥抱风，背面拍摄。",
+        "（台阶）坐在最高级，腿伸向最低级，镜头从下往上拍。",
+        "（门框/柱子）抱住柱子转圈圈，探头出来笑。",
+        "哪里痛摸哪里（脖子痛、肩膀痛、腰痛），形成几何构图。",
+        "用手掌遮住镜头的一半，只露出一只眼睛，神秘感。",
+        "假装在扎头发，双手抬起，整个人向上拔高。",
+        "把外套脱一半，卡在肩膀处，营造慵懒感。",
+        "身体侧对镜头，只转头看镜头，肩膀抬高挡住双下巴。"
+    ];
+
+    const locations = [
+        "商场透明玻璃栏杆旁", "商场自动扶梯上（下行）", "旅游景点的一面干净墙壁前", 
+        "空旷的街道/马路边", "商场休息区的沙发", "旅游时的逆光夕阳下", 
+        "楼梯转角处", "商场巨大的落地窗前", "斑马线上（注意安全）", 
+        "旅游景点的长椅上", "咖啡店门口", "景区的指示路牌下", "纯色的卷帘门前"
+    ];
+
+    const angles = [
+        "3倍长焦（人像模式）：背景压缩，最显瘦。",
+        "仰拍20度（广角）：手机倒拿，脚贴底边，拉长腿。",
+        "平视半身特写：切到胸口，重点在表情。",
+        "俯拍45度：手机举高，下巴瞬间变尖。",
+        "侧后方跟拍：摄影师在斜后方，拍侧背影。",
+        "借位拍摄：找前景虚化，增加层次感。"
+    ];
+
+    const slimTips = [
+        "舌头全程顶住上颚，消除双下巴。",
+        "侧光或逆光会让脸看起来小一半。",
+        "嘴巴微微张开，保持呼吸感。",
+        "胳膊粗侧身拍，肚子肉多找东西遮。",
+        "头顶留白30%-40%，显人修长。",
+        "自信的眼神比什么修图都管用。",
+        "穿V领拍正侧面，穿圆领多拍侧颜。"
+    ];
+
+    const weddingScenarios = [
+        {
+            who: "👰 新娘独角戏",
+            scene: "婚房晨袍/化妆",
+            action: "坐在床上整理头纱，手轻轻抚摸婚纱纹理，低头微笑。",
+            camera: "从手部特写缓慢上移到侧颜，大光圈虚化。",
+            vibe: "温柔、期待"
+        },
+        {
+            who: "🤵 新郎独角戏",
+            scene: "婚房/窗前",
+            action: "看着窗外深呼吸，转身看向镜头整理西装。",
+            camera: "背影定格 -> 环绕到正面，低角度仰拍。",
+            vibe: "帅气、沉稳"
+        },
+        {
+            who: "👫 新人合体",
+            scene: "婚礼现场/草坪",
+            action: "牵手背对镜头奔跑，新郎拉住新娘，新娘回眸大笑。",
+            camera: "跟拍模式，慢动作定格回眸瞬间。",
+            vibe: "活泼、电影感"
+        },
+        {
+            who: "👫 新人合体",
+            scene: "仪式台/光影处",
+            action: "额头抵着额头，闭眼，感受彼此呼吸。",
+            camera: "360度缓慢环绕拍摄，配合逆光光晕。",
+            vibe: "唯美、深情"
+        },
+        {
+            who: "👰 新娘 + 👯 伴娘",
+            scene: "婚房床上",
+            action: "一起把喜糖或花瓣抛向空中，对着镜头尖叫。",
+            camera: "广角仰拍（上帝视角）或慢动作。",
+            vibe: "热闹、喜庆"
+        },
+        {
+            who: "👫 新人合体",
+            scene: "走廊/门框",
+            action: "剪影风格。在亮处做亲吻动作的剪影。",
+            camera: "固定机位，降低曝光，强调轮廓。",
+            vibe: "艺术、极简"
+        },
+        {
+            who: "👰 新娘/新郎",
+            scene: "接亲互动",
+            action: "对着镜头做鬼脸或比个大大的爱心。",
+            camera: "手持镜头快速推进，Vlog既视感。",
+            vibe: "搞怪、真实"
+        }
+    ];
+
+    function getRandom(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generateDaily() {
+        const location = getRandom(locations);
+        const angle = getRandom(angles);
+        const action = getRandom(bigActionList);
+        const tip = getRandom(slimTips);
+        const randomNum = Math.floor(Math.random() * 999) + 1;
+
+        const html = `
+            <div class="tag">日常模式 No.${randomNum}</div>
+            <div class="content-group fade-in">
+                <span class="label">SCENE / 场景</span>
+                <div class="sub-text" style="color:var(--text-main); font-weight:500;">${location}</div>
+                
+                <span class="label">POSE / 动作指导</span>
+                <div class="main-text">${action}</div>
+                
+                <span class="label">ANGLE / 建议机位</span>
+                <div class="sub-text">${angle}</div>
+                
+                <div class="tips-container">
+                    <span class="tips-title">💡 显瘦 Típs</span>
+                    ${tip}
+                </div>
+            </div>
+        `;
+        renderCard(html);
+    }
+
+    function generateWedding() {
+        const item = getRandom(weddingScenarios);
+
+        const html = `
+            <div class="tag" style="color: #bfa57d;">婚礼运镜</div>
+            <div class="content-group fade-in">
+                <span class="label">SUBJECT / 主角</span>
+                <div class="sub-text" style="color:var(--text-main); font-weight:500;">${item.who} @ ${item.scene}</div>
+                
+                <span class="label">ACTION / 动作</span>
+                <div class="main-text" style="border-left-color: #bfa57d; background: linear-gradient(180deg, rgba(191, 165, 125, 0.1) 0%, rgba(255, 255, 255, 0) 100%);">${item.action}</div>
+                
+                <span class="label">CAMERA / 运镜手法</span>
+                <div class="sub-text">${item.camera}</div>
+                
+                <div class="tips-container" style="border-color: rgba(191, 165, 125, 0.3);">
+                    <span class="tips-title" style="color: #bfa57d;">✨ Vibe</span>
+                    ${item.vibe}
+                </div>
+            </div>
+        `;
+        renderCard(html);
+    }
+
+    function renderCard(html) {
+        const card = document.getElementById('resultCard');
+        card.style.opacity = 0;
+        card.style.transform = 'scale(0.98) translateY(10px)';
+        
+        setTimeout(() => {
+            card.innerHTML = html;
+            card.style.opacity = 1;
+            card.style.transform = 'scale(1) translateY(0)';
+        }, 300);
+    }
+</script>
+
+</body>
+</html>
