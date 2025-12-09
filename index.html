@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>何岩搜索站 | Heyan Search</title>
+  <meta name="baidu-site-verification" content="codeva-GrG7zLUc9B" />
+  <meta name="description" content="探索Furry摄影和绘画作品，发现独特而有趣的人兽角色设计，以及Furry文化中的创意表现。">
+  <meta name="keywords" content="Furry, 摄影, 绘画, 搜索, 导航, 工具">
+  
+  <!-- 引入图标库 (可选) -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-color: #333;
+      --accent-color: #007bff;
+      --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      --card-bg: rgba(255, 255, 255, 0.7);
+      --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      --text-color: #2d3436;
+      --radius: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    /* 天气组件容器 */
+    .weather-widget {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 100;
+      opacity: 0.9;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 40px;
+      flex: 1;
+    }
+
+    /* Logo 和 时钟 */
+    .header-section {
+      text-align: center;
+      margin-bottom: 30px;
+      animation: fadeIn 1s ease;
+    }
+
+    .logo {
+      max-width: 220px;
+      height: auto;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+      margin-bottom: 10px;
+      transition: transform 0.3s;
+    }
+    
+    .logo:hover { transform: scale(1.05); }
+
+    #clock {
+      font-size: 1.2rem;
+      font-weight: 300;
+      color: #555;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 2px;
+    }
+
+    /* 搜索框 */
+    .search-box {
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .search-form {
+      display: flex;
+      box-shadow: var(--card-shadow);
+      border-radius: 30px;
+      overflow: hidden;
+      background: white;
+      transition: box-shadow 0.3s;
+    }
+
+    .search-form:hover, .search-form:focus-within {
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    #searchInput {
+      flex: 1;
+      padding: 15px 25px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      background: transparent;
+    }
+
+    #searchButton {
+      padding: 15px 30px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    #searchButton:hover { background-color: #000; }
+
+    /* 本周工作 - 重点展示 */
+    .featured-link {
+      margin-bottom: 25px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .work-btn {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: var(--radius);
+      font-weight: bold;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 15px rgba(0, 242, 254, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .work-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 242, 254, 0.6);
+    }
+
+    /* 链接网格 */
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 15px;
+      width: 100%;
+      padding: 20px;
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    .nav-link {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.6);
+      padding: 12px 5px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--text-color);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .nav-link:hover {
+      background: white;
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+      color: var(--accent-color);
+      border-color: rgba(0,0,0,0.05);
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 40px;
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      padding-bottom: 20px;
+    }
+
+    .footer a {
+      color: #666;
+      text-decoration: none;
+      border-bottom: 1px dashed #999;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .weather-widget { position: relative; top: 0; right: 0; margin-bottom: 15px; }
+      .logo { max-width: 180px; }
+      .nav-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
+      .nav-link { font-size: 13px; padding: 10px 2px; }
+      #searchButton { padding: 15px 20px; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+
+  <script>
+    // 时钟逻辑
+    function updateClock() {
+      var now = new Date();
+      var timeString = now.toLocaleTimeString('zh-CN', { hour12: false });
+      document.getElementById('clock').textContent = timeString;
+    }
+
+    window.onload = function() {
+      updateClock();
+      setInterval(updateClock, 1000);
+    };
+
+    // 和风天气插件配置
+    window.WIDGET = {
+      "CONFIG": {
+        "layout": "2",
+        "width": 260,
+        "height": "auto",
+        "background": "1",
+        "dataColor": "333333",
+        "borderRadius": "10",
+        "key": "29906103328e4697a5146c1920808269", // 这里使用的是免费公用Key，如果失效建议去和风天气申请一个免费的
+        "city": "101250104" // 湘阴的天气代码
+      }
+    }
+  </script>
+  <!-- 引入和风天气脚本 -->
+  <script src="https://widget.qweather.net/standard/static/js/he-standard-common.js?v=2.0"></script>
+</head>
+<body>
+
+  <!-- 顶部区域：Logo、天气、时钟 -->
+  <div class="weather-widget">
+    <div id="he-plugin-standard"></div>
+  </div>
+
+  <div class="container">
+    <div class="header-section">
+      <!-- 请确保 img/logo1.png 存在，或者替换为文字 -->
+      <img src="img/logo1.png" alt="HeYan Logo" class="logo" onerror="this.style.display='none';document.getElementById('text-logo').style.display='block'">
+      <h1 id="text-logo" style="display:none; font-size:2rem; margin-bottom:10px;">HE YAN</h1>
+      <div id="clock">00:00:00</div>
+    </div>
+
+    <!-- 搜索框 -->
+    <div class="search-box">
+      <form action="https://www.baidu.com/s" method="get" class="search-form" target="_blank">
+        <input type="text" id="searchInput" name="wd" placeholder="搜你想搜的..." required autocomplete="off">
+        <button type="submit" id="searchButton">搜索</button>
+      </form>
+    </div>
+
+    <!-- 本周工作（重点高亮） -->
+    <div class="featured-link">
+      <a href="https://docs.qq.com/doc/DZk1VVktsdkRyZkVF" target="_blank" class="work-btn">
+        <i class="fas fa-briefcase" style="margin-right:8px;"></i> 查看本周工作
+      </a>
+    </div>
+
+    <!-- 导航链接网格 -->
+    <div class="nav-grid">
+      <a href="https://heyan9.github.io/heyanzuocai.html" class="nav-link">做菜助手</a>
+      <a href="https://www.yikm.net/" class="nav-link">在线游戏</a>
+      <a href="https://www.doubao.com/chat/" class="nav-link">豆包 AI</a>
+      <a href="https://www.52pojie.cn/" class="nav-link">吾爱破解</a>
+      <a href="https://www.toutiao.com/" class="nav-link">今日头条</a>
+      <a href="https://www.google.com.hk/" class="nav-link">Google</a>
+      <a href="https://www.88mv.org/?ref=88ys.cn" class="nav-link">88影视</a>
+      <a href="http://m.dodoge.me/" class="nav-link">M站</a>
+      <a href="https://www.66yingshi.com/" class="nav-link">视频BT</a>
+      <a href="https://waifu2x.udp.jp/" class="nav-link">Waifu2x</a>
+      <a href="https://www.dxomark.com/" class="nav-link">DXOmark</a>
+      <a href="https://bbs.fengniao.com/forum/forum_125.html" class="nav-link">蜂鸟摄影</a>
+      <a href="https://clipdrop.co/uncrop" class="nav-link">AI 拓图</a>
+      <a href="https://500px.com.cn/heyanw" class="nav-link">摄影展示</a>
+      <a href="https://github.com/" class="nav-link">Github</a>
+      <a href="https://pc.woozooo.com/" class="nav-link">蓝奏云</a>
+      <a href="https://www.123pan.com/" class="nav-link">123云盘</a>
+      <a href="https://fanyi.youdao.com/index.html#/" class="nav-link">在线翻译</a>
+      <a href="https://tv.cctv.com/live/index.shtml" class="nav-link">CCTV直播</a>
+      <a href="http://www.2t58.com/" class="nav-link">无损音乐</a>
+      <a href="https://cn.uptodown.com/" class="nav-link">安卓应用</a>
+      <a href="https://mail.google.com/" class="nav-link">Gmail</a>
+      <a href="https://heyan9.github.io/pose/" class="nav-link">随机动作</a>
+      <a href="https://ttsmaker.cn/" class="nav-link">文本转语音</a>
+      <a href="https://xn--4gq62f52gdss.com/#/dashboard" class="nav-link">一元机场</a>
+      <a href="https://bento.me/freecloud" class="nav-link">免费机场</a>
+      <a href="https://tianqi.moji.com/weather/china/hunan/miluo" class="nav-link">墨迹天气</a>
+      <a href="https://wallpapercave.com/" class="nav-link">壁纸下载</a>
+      <a href="https://chat.chat826.com/#/home" class="nav-link">Chat8</a>
+      <a href="https://weread.qq.com/web/shelf" class="nav-link">微信读书</a>
+      <a href="https://www.ilovepdf.com/" class="nav-link">PDF转换</a>
+      <a href="https://ucnrbg5e0s07.feishu.cn/minutes/home" class="nav-link">飞书妙记</a>
+      <a href="https://pdftoword.55.la/" class="nav-link">转转大师</a>
+      <a href="https://koodo.960960.xyz/zh" class="nav-link">Koodo</a>
+      <a href="https://zh.z-library.se/" class="nav-link">Z-Library</a>
+      <a href="https://www.hzlib.net/szzyxsyj/364.htm" class="nav-link">知网下载</a>
+      <a href="https://onlinecamscanner.com/zh-Hans/" class="nav-link">在线扫描</a>
+      <a href="https://vocalremover.org/zh/" class="nav-link">分离人声</a>
+      <a href="https://xvideos.com/" class="nav-link">XVideos</a>
+      <a href="https://note.youdao.com/s/NuYFD6yL" class="nav-link">游戏盒</a>
+    </div>
+  </div>
+  
+  <div class="footer">
+    Designed by <a href="https://furryheyan.top/">Heyan</a> | Optimized by AI
+  </div>
+
+</body>
+</html>
