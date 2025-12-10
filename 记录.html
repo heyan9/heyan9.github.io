@@ -593,13 +593,7 @@
     function changeBackground() {
         const wallpaper = document.getElementById('wallpaper-layer');
         // 预加载下一张图，避免闪烁（简单处理：直接设）
-        wallpaper.style.backgroundImage = `url('img/beijin${bgIndex}.png')`;
-        wallpaper.style.opacity = 1;
-        
-        // 索引+1，超过15归1
-        bgIndex++;
-        if(bgIndex > 15) bgIndex = 1;
-    }
+        wallpaper.style.backgroundImage = `url('img/beijin.png')`;
 
     // 7. 时间更新
     function updateTime() {
