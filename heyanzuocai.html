@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>大厨烹饪助手 | KFC风格版</title>
+    <style>
+        :root {
+            /* KFC 风格配色 */
+            --kfc-red: #C41230;       
+            --kfc-red-hover: #a00f28; 
+            --bg-body: #f7f7f7;       
+            --glass-bg: rgba(255, 255, 255, 0.95); 
+            --text-main: #333333;     
+            --text-sub: #666666;      
+            --shadow-red: 0 8px 20px rgba(196, 18, 48, 0.15);
+            --radius-box: 16px;
+            --star-gold: #ffc107;
+        }
+
+        body {
+            font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at top right, rgba(196, 18, 48, 0.05), transparent 40%),
+                        linear-gradient(to bottom, #ffffff, #f2f2f2);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px 15px;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding-bottom: 120px; /* 底部留空给悬浮栏 */
+        }
+
+        /* 顶部 Logo 栏 */
+        .header-box {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .brand-img {
+            height: 60px; /* 控制Logo高度 */
+            width: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        /* 备用文字Logo（防止图片加载失败） */
+        .brand-text-fallback {
+            display: none;
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--kfc-red);
+            font-style: italic;
+        }
+
+        /* 毛玻璃主容器 */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 1);
+            border-radius: var(--radius-box);
+            padding: 25px 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+            min-height: 60vh;
+        }
+
+        /* 页面切换动画 */
+        .page { display: none; animation: fadeIn 0.3s ease-out; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 {
+            font-size: 18px;
+            color: #000;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        
+        /* --- 排行榜卡片 --- */
+        .rank-card {
+            background: #fff;
+            border: 1px solid #ffebeb;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(196, 18, 48, 0.05);
+        }
+        .rank-title {
+            font-size: 14px;
+            color: var(--kfc-red);
+            font-weight: 900;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .rank-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .rank-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+            font-size: 13px;
+        }
+        .rank-item:last-child { border-bottom: none; }
+        .rank-badge {
+            background: var(--kfc-red);
+            color: white;
+            width: 18px;
+            height: 18px;
+            line-height: 18px;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-right: 8px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .rank-score { color: var(--star-gold); font-weight: bold; }
+
+        /* --- 选菜/人数/清单 样式保持一致 --- */
+        .people-btn {
+            background: #fff;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .people-btn::after {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0; width: 6px;
+            background: var(--kfc-red);
+            transform: scaleY(0);
+            transition: transform 0.2s;
+        }
+        .people-btn:hover, .people-btn.selected {
+            border-color: var(--kfc-red);
+            background: #fff5f6;
+            box-shadow: var(--shadow-red);
+        }
+        .people-btn.selected::after { transform: scaleY(1); }
+        .people-btn strong { font-size: 18px; color: #333; }
+        .people-btn.selected strong { color: var(--kfc-red); }
+
+        .dish-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            padding-bottom: 20px;
+        }
+        .dish-check { display: none; }
+        .dish-card {
+            background: #fff;
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            padding: 15px 10px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: 600;
+            color: #444;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+            position: relative;
+        }
+        .dish-check:checked + .dish-card {
+            border-color: var(--kfc-red);
+            color: var(--kfc-red);
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(196, 18, 48, 0.15);
+        }
+        .dish-check:checked + .dish-card::before {
+            content: '✔';
+            position: absolute;
+            top: -1px; right: -1px;
+            background: var(--kfc-red);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-bottom-left-radius: 8px;
+            border-top-right-radius: 10px;
+        }
+
+        .shop-list li {
+            background: #fff;
+            border-bottom: 1px dashed #ddd;
+            padding: 15px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dish-label { font-size: 12px; background: #333; color: #fff; padding: 2px 6px; border-radius: 4px; margin-right: 8px;}
+        .ing-amount { color: var(--kfc-red); font-weight: bold; font-family: Arial, sans-serif; font-size: 16px; }
+        
+        .pantry-box { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #666; color: #666; font-size: 13px; }
+
+        .recipe-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #eee; }
+        .recipe-header { border-bottom: 2px solid var(--kfc-red); padding-bottom: 10px; margin-bottom: 15px; font-size: 18px; font-weight: 900; color: #000; }
+        .step-row { display: flex; margin-bottom: 15px; font-size: 15px; color: #333; }
+        .step-idx { min-width: 24px; height: 24px; background: var(--kfc-red); color: #fff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: bold; margin-right: 12px; margin-top: 2px; flex-shrink: 0; }
+        .time-mark { color: var(--kfc-red); font-weight: 800; background: #fff0f2; padding: 0 4px; border-radius: 4px; }
+
+        /* --- 打分系统 --- */
+        .rating-section {
+            margin-top: 30px;
+            border-top: 1px dashed #ddd;
+            padding-top: 20px;
+        }
+        .rating-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            background: #fdfdfd;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .rating-name { font-weight: bold; font-size: 14px; }
+        .stars-container { display: flex; gap: 5px; }
+        .star-btn { 
+            font-size: 20px; 
+            color: #ddd; 
+            cursor: pointer; 
+            transition: color 0.2s; 
+        }
+        .star-btn.active { color: var(--star-gold); }
+
+        /* --- 底部上次记录条 --- */
+        .last-record-bar {
+            position: fixed;
+            bottom: 85px; /* 在按钮栏上方 */
+            left: 0;
+            width: 100%;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            font-size: 12px;
+            padding: 8px;
+            text-align: center;
+            z-index: 900;
+            backdrop-filter: blur(5px);
+            display: none; /* 默认隐藏，有记录才显示 */
+        }
+
+        /* --- 底部悬浮按钮栏 --- */
+        .fixed-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px 25px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+            z-index: 999;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn { border: none; border-radius: 50px; padding: 14px 20px; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.1s; text-align: center; white-space: nowrap; }
+        .btn:active { transform: scale(0.96); }
+        .btn-main { background: var(--kfc-red); color: #fff; flex: 2; box-shadow: 0 4px 15px rgba(196, 18, 48, 0.3); }
+        .btn-main:hover { background: var(--kfc-red-hover); }
+        .btn-sub { background: #fff; border: 1px solid #ccc; color: #333; flex: 1; }
+        .btn-copy { background: #333; color: #fff; flex: 1; }
+
+        .footer-group { display: none; width: 100%; max-width: 600px; gap: 15px; }
+        .footer-group.active { display: flex; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Logo -->
+    <div class="header-box">
+        <img src="img/logo1.png" alt="COOKING MASTER" class="brand-img" onerror="this.style.display='none';document.getElementById('fallback-logo').style.display='block'">
+        <!-- 图片加载失败时的备用文字 -->
+        <div id="fallback-logo" class="brand-text-fallback">COOKING MASTER</div>
+    </div>
+
+<div class="container">
+
+    <!-- 1. 人数选择页 -->
+    <div id="page-people" class="page active">
+        <h2>请选择用餐人数</h2>
+        
+        <div onclick="selectPeople(1)" class="people-btn">
+            <div><strong>👤 1 - 2 人</strong><span style="font-size:12px;color:#999;margin-left:10px;">精致小份量</span></div>
+            <span style="color:#ddd; font-size:20px;">➜</span>
+        </div>
+        <div onclick="selectPeople(2)" class="people-btn">
+            <div><strong>👥 3 - 4 人</strong><span style="font-size:12px;color:#999;margin-left:10px;">标准家庭餐</span></div>
+            <span style="color:#ddd; font-size:20px;">➜</span>
+        </div>
+        <div onclick="selectPeople(3)" class="people-btn">
+            <div><strong>👨‍👩‍👧‍👦 4 - 8 人</strong><span style="font-size:12px;color:#999;margin-left:10px;">朋友聚会大餐</span></div>
+            <span style="color:#ddd; font-size:20px;">➜</span>
+        </div>
+    </div>
+
+    <!-- 2. 选菜页 (包含排行榜) -->
+    <div id="page-menu" class="page">
+        <!-- 排行榜框 -->
+        <div class="rank-card" id="ranking-box" style="display:none;">
+            <div class="rank-title">⭐ 大厨热门榜 Top 5</div>
+            <ul class="rank-list" id="rank-list-content">
+                <!-- JS 填充 -->
+            </ul>
+        </div>
+
+        <h2>今天想吃什么？</h2>
+        <p id="people-display-text" style="text-align:center; color:#C41230; font-weight:bold; margin-bottom:20px; font-size:14px;"></p>
+        
+        <div class="dish-grid" id="menu-grid">
+            <!-- JS 生成 -->
+        </div>
+        <div style="height: 60px;"></div>
+    </div>
+
+    <!-- 3. 购物清单页 -->
+    <div id="page-shop" class="page">
+        <h2>采购清单</h2>
+        <ul class="shop-list" id="shop-main-list"></ul>
+        <div class="pantry-box">
+            <strong>💡 家中常备:</strong>
+            <p id="shop-seasoning-list" style="margin:5px 0 0 0"></p>
+        </div>
+        <div style="height: 60px;"></div>
+    </div>
+
+    <!-- 4. 烹饪步骤页 (含打分) -->
+    <div id="page-cook" class="page">
+        <h2>烹饪开始</h2>
+        <div id="recipe-container"></div>
+        
+        <!-- 打分区域 -->
+        <div class="rating-section" id="rating-area">
+            <h3 style="text-align:center; font-size:16px;">✨ 完成了？来打个分吧</h3>
+            <div id="rating-list"></div>
+        </div>
+
+        <div style="height: 60px;"></div>
+    </div>
+
+</div>
+
+<!-- 底部上次记录 -->
+<div id="last-record-bar" class="last-record-bar"></div>
+
+<!-- 底部悬浮按钮区 -->
+<div class="fixed-footer">
+    <div id="footer-menu" class="footer-group">
+        <button class="btn btn-sub" onclick="gotoPage('page-people')">返回</button>
+        <button class="btn btn-main" onclick="gotoShop()">选好了，下一步 ➜</button>
+    </div>
+    <div id="footer-shop" class="footer-group">
+        <button class="btn btn-sub" onclick="gotoPage('page-menu')">修改</button>
+        <button class="btn btn-copy" onclick="copyShoppingList()">复制清单</button>
+        <button class="btn btn-main" onclick="gotoCook()">开始做菜 ➜</button>
+    </div>
+    <div id="footer-cook" class="footer-group">
+        <button class="btn btn-sub" onclick="gotoPage('page-shop')">看清单</button>
+        <button class="btn btn-main" onclick="finishAndSave()">保存记录并重置</button>
+    </div>
+</div>
+
+<script>
+    // === 数据逻辑 ===
+    let multiplier = 1; 
+    let selectedDishIds = [];
+    
+    // 模拟云端：本地存储Key
+    const STORAGE_KEY_RATINGS = 'chef_pro_ratings'; 
+    const STORAGE_KEY_LAST = 'chef_pro_last_record';
+
+    // 41道菜品完整数据
+    const dishes = [
+        { id: 1, name: "土豆烧排骨", main: [{n:"排骨",q:400,u:"g"}, {n:"土豆",q:2,u:"个"}], season: "姜,生抽,料酒,冰糖,盐", steps: ["排骨冷水下锅焯水3分钟捞出", "锅热油化冰糖，下排骨炒糖色2分钟", "加生抽料酒水没过食材，炖30分钟", "加土豆块再炖15分钟", "加盐大火收汁2分钟"] },
+        { id: 2, name: "辣椒炒肉", main: [{n:"五花肉",q:200,u:"g"}, {n:"螺丝椒",q:4,u:"个"}], season: "蒜,生抽,老抽,豆豉", steps: ["青椒切块干锅煸炒至虎皮状(约2分钟)盛出", "热油炒肉片至出油卷曲(约3分钟)", "放蒜和豆豉爆香30秒", "倒入青椒，加酱油大火混炒1分钟"] },
+        { id: 3, name: "酸辣土豆丝", main: [{n:"土豆",q:2,u:"个"}], season: "干辣椒,花椒,蒜,白醋", steps: ["土豆切丝泡水5分钟洗掉淀粉", "热油爆香花椒干辣椒蒜20秒", "大火倒入土豆丝快炒2分钟", "淋入白醋和盐翻炒30秒出锅"] },
+        { id: 4, name: "奶黄包", main: [{n:"速冻奶黄包",q:1,u:"包"}], season: "水", steps: ["无需解冻，直接放入蒸笼", "水开后中火蒸9分钟", "关火焖2分钟再揭盖"] },
+        { id: 5, name: "老姜炒鸡", main: [{n:"鸡肉",q:500,u:"g"}, {n:"老姜",q:150,u:"g"}], season: "蒜,生抽,料酒,盐", steps: ["鸡块加盐料酒腌制10分钟", "热油炸炒鸡块至金黄(约5分钟)盛出", "原锅爆香大量姜片2分钟", "回锅鸡肉，加生抽大火翻炒3分钟"] },
+        { id: 6, name: "小炒黄牛肉", main: [{n:"牛肉",q:300,u:"g"}, {n:"小米辣",q:5,u:"个"}], season: "香菜,蒜,生抽,蚝油,淀粉", steps: ["牛肉切片加蚝油淀粉腌制10分钟", "热油滑炒牛肉30秒变色即捞出", "爆香蒜辣30秒，下牛肉和香菜", "大火猛炒20秒出锅"] },
+        { id: 7, name: "小炒猪耳朵", main: [{n:"熟猪耳",q:200,u:"g"}, {n:"青椒",q:2,u:"个"}], season: "蒜,生抽", steps: ["猪耳切丝，青椒切丝", "热油爆蒜10秒，下青椒炒1分钟", "下猪耳大火翻炒2分钟", "加生抽调味出锅"] },
+        { id: 8, name: "焖猪手", main: [{n:"猪蹄",q:2,u:"只"}], season: "姜,八角,生抽,冰糖", steps: ["猪蹄焯水5分钟捞出", "炒糖色后下猪蹄翻炒3分钟", "加调料和足量水", "小火焖煮80分钟(或高压锅20分钟)", "大火收汁5分钟"] },
+        { id: 9, name: "去骨鸭掌", main: [{n:"去骨鸭掌",q:300,u:"g"}, {n:"酸萝卜",q:100,u:"g"}], season: "蒜,生抽,蚝油,干辣椒", steps: ["鸭掌煮熟捞出沥干", "热油炒香酸萝卜和辣椒2分钟", "倒入鸭掌大火炒3分钟", "加蚝油调味出锅"] },
+        { id: 10, name: "砂锅嫩豆腐", main: [{n:"嫩豆腐",q:1,u:"盒"}, {n:"肉末",q:50,u:"g"}], season: "豆瓣酱,蒜,水淀粉,葱", steps: ["炒香肉末和豆瓣酱1分钟", "加水煮开，放入豆腐煮5分钟", "淋入水淀粉勾芡", "撒葱花出锅"] },
+        { id: 11, name: "湘辣脆笋", main: [{n:"烟笋/脆笋",q:300,u:"g"}, {n:"五花肉片",q:50,u:"g"}], season: "小米辣,蒜,生抽,盐", steps: ["笋片焯水2分钟沥干", "煸炒肉片出油，放蒜辣爆香30秒", "倒入笋片大火爆炒3分钟", "加生抽盐调味"] },
+        { id: 12, name: "丝瓜汤", main: [{n:"丝瓜",q:1,u:"根"}, {n:"鸡蛋",q:2,u:"个"}], season: "姜丝,盐,油", steps: ["煎荷包蛋2分钟盛出", "锅底油炒软丝瓜1分钟", "加开水煮沸3分钟汤变白", "放入蛋和姜丝煮2分钟"] },
+        { id: 13, name: "小炒香干", main: [{n:"香干",q:6,u:"片"}, {n:"芹菜",q:50,u:"g"}], season: "红椒,蒜,生抽", steps: ["香干切条，芹菜切段", "热油煎炒香干2分钟", "加芹菜红椒大火炒2分钟", "加生抽盐出锅"] },
+        { id: 14, name: "炒豆芽菜", main: [{n:"绿豆芽",q:400,u:"g"}], season: "蒜,干辣椒,香醋,葱", steps: ["热油爆香蒜辣10秒", "大火倒入豆芽快炒1分钟", "淋醋加盐撒葱段", "翻匀立马出锅(防出水)"] },
+        { id: 15, name: "煎鸡蛋/炒蛋", main: [{n:"鸡蛋",q:3,u:"个"}], season: "油,盐", steps: ["鸡蛋打散加盐", "热油大火倒入蛋液", "快速划散炒熟约40秒", "喜欢老的可以煎1分钟"] },
+        { id: 16, name: "小炒白菜", main: [{n:"小白菜",q:500,u:"g"}], season: "蒜,干辣椒,猪油,醋", steps: ["猪油融化爆香蒜辣", "先炒菜帮1分钟", "再放菜叶大火炒1分钟", "软塌后淋醋加盐"] },
+        { id: 17, name: "小酥肉", main: [{n:"五花肉/里脊",q:300,u:"g"}, {n:"红薯淀粉",q:100,u:"g"}], season: "花椒,盐,鸡蛋,油", steps: ["肉切条加花椒盐蛋液淀粉拌匀", "油温6成热下锅炸3分钟定型", "升高油温复炸40秒至金黄"] },
+        { id: 18, name: "炒花菜", main: [{n:"有机花菜",q:350,u:"g"}, {n:"五花肉片",q:50,u:"g"}], season: "干辣椒,蒜,生抽", steps: ["花菜切小朵焯水1分钟", "煸炒肉片出油加蒜辣", "倒入花菜大火翻炒3分钟", "淋生抽焦边出锅"] },
+        { id: 19, name: "干锅包菜", main: [{n:"包菜",q:0.5,u:"个"}, {n:"五花肉片",q:50,u:"g"}], season: "干辣椒,蒜,蒸鱼豉油", steps: ["包菜手撕，肉片煸炒出油", "下蒜辣爆香", "下包菜大火炒至变软约3分钟", "淋豉油调味，最好用酒精炉保温"] },
+        { id: 20, name: "海带汤", main: [{n:"干海带/鲜海带",q:100,u:"g"}, {n:"排骨/肉片",q:100,u:"g"}], season: "姜,盐,葱", steps: ["排骨焯水", "加水姜片煮30分钟", "加入海带再煮15分钟", "撒葱花加盐"] },
+        { id: 21, name: "肉丸汤", main: [{n:"猪肉馅",q:200,u:"g"}, {n:"青菜",q:100,u:"g"}], season: "姜,淀粉,白胡椒,盐", steps: ["肉馅加淀粉盐水顺时针搅打上劲", "水微开时虎口挤入肉丸", "煮至浮起(约4分钟)", "下青菜煮1分钟加盐胡椒"] },
+        { id: 22, name: "粉丝煲", main: [{n:"龙口粉丝",q:2,u:"把"}, {n:"肉末",q:50,u:"g"}], season: "蒜蓉,豆瓣酱,生抽,砂锅", steps: ["粉丝泡软垫在砂锅底", "炒香肉末豆瓣酱蒜蓉加水煮开", "汤汁倒入砂锅", "中小火煲5分钟收汁"] },
+        { id: 23, name: "炒豆沫/肉末豆角", main: [{n:"四季豆/酸豆角",q:300,u:"g"}, {n:"肉末",q:100,u:"g"}], season: "蒜,干辣椒,生抽", steps: ["豆角切碎末", "炒熟肉末盛出", "底油炒豆角末至表皮起皱(3-4分钟)", "倒入肉末混炒加盐"] },
+        { id: 24, name: "炒粉皮", main: [{n:"鲜粉皮",q:300,u:"g"}, {n:"鸡蛋",q:2,u:"个"}], season: "韭菜/菠菜,蒜,生抽", steps: ["粉皮切宽条，鸡蛋炒熟盛出", "热油炒蒜下粉皮(如果太干加点水)", "炒透明后下配菜和蛋", "大火翻炒1分钟"] },
+        { id: 25, name: "蛋炒饭", main: [{n:"隔夜米饭",q:1,u:"碗"}, {n:"鸡蛋",q:2,u:"个"}], season: "葱花,盐,油", steps: ["热锅冷油滑散鸡蛋", "倒入米饭铲碎按压", "大火不停翻炒3分钟至粒粒分明", "撒葱花盐出锅"] },
+        { id: 26, name: "蛋炒米粉", main: [{n:"干米粉",q:150,u:"g"}, {n:"鸡蛋",q:1,u:"个"}], season: "青菜,生抽,老抽", steps: ["米粉提前泡软煮熟沥干", "炒鸡蛋和青菜", "下米粉加生抽老抽调色", "大火快炒2分钟(防止粘锅)"] },
+        { id: 27, name: "酸辣粉", main: [{n:"红薯粉条",q:100,u:"g"}, {n:"花生米",q:20,u:"g"}], season: "陈醋,辣椒油,生抽,榨菜", steps: ["粉条煮软捞入碗中", "碗底放醋、酱油、辣椒油、汤", "加入粉条", "撒榨菜花生葱花"] },
+        { id: 28, name: "螺蛳粉", main: [{n:"袋装螺蛳粉",q:1,u:"包"}], season: "水", steps: ["米粉冷水下锅煮10分钟捞出", "另烧水放入汤料包", "加入米粉煮2分钟", "放入花生腐竹辣油"] },
+        { id: 29, name: "意面", main: [{n:"意大利面",q:150,u:"g"}, {n:"肉酱包/番茄肉末",q:1,u:"份"}], season: "盐,油,黑胡椒", steps: ["水开加盐油煮意面8-10分钟", "捞出沥干", "拌入加热的肉酱", "撒黑胡椒拌匀"] },
+        { id: 30, name: "牛排", main: [{n:"牛排",q:1,u:"块"}], season: "黄油,黑胡椒,海盐", steps: ["牛排解冻吸干水份", "热锅融化黄油", "大火每面煎2分钟(视厚度)", "静置醒肉3分钟再吃"] },
+        { id: 31, name: "咖喱饭", main: [{n:"咖喱块",q:2,u:"块"}, {n:"鸡肉/牛肉",q:200,u:"g"}, {n:"土豆胡萝卜",q:1,u:"份"}], season: "洋葱,油", steps: ["炒香洋葱和肉块", "加土豆胡萝卜块翻炒", "加水没过食材炖10分钟", "关火加咖喱块融化", "开小火煮浓稠"] },
+        { id: 32, name: "盐酥鸡", main: [{n:"鸡胸肉",q:300,u:"g"}], season: "椒盐粉,淀粉,五香粉,九层塔(可选)", steps: ["鸡肉切块加五香粉酱油腌制", "裹地瓜粉静置", "油温160度炸3分钟", "复炸30秒撒椒盐"] },
+        { id: 33, name: "香辣鸡翅", main: [{n:"鸡翅中",q:6,u:"个"}], season: "干辣椒,花椒,姜蒜,熟芝麻", steps: ["鸡翅对半切，炸熟(约6分钟)", "锅留底油爆香大量花椒辣椒", "倒入鸡翅翻炒2分钟", "撒芝麻出锅"] },
+        { id: 34, name: "蛋挞", main: [{n:"速冻蛋挞皮",q:6,u:"个"}, {n:"蛋挞液",q:1,u:"盒"}], season: "无", steps: ["烤箱预热200度", "蛋挞液倒入皮中(8分满)", "中层烤20-25分钟", "表面出现焦糖斑点即可"] },
+        { id: 35, name: "烤肠", main: [{n:"火山石烤肠",q:4,u:"根"}], season: "油", steps: ["香肠解冻划刀花", "平底锅少油小火慢煎", "不停翻动约6-8分钟", "表皮爆开焦黄即可"] },
+        { id: 36, name: "家常炒面", main: [{n:"鲜面条",q:200,u:"g"}, {n:"青菜/火腿",q:1,u:"份"}], season: "老抽,生抽,蚝油,油", steps: ["水开下面条煮2分钟(八分熟)捞出过凉水沥干", "面条淋少许油拌匀防粘", "热油炒香火腿青菜1分钟", "倒入面条，加生抽老抽蚝油，大火快炒2分钟均匀上色"] },
+        { id: 37, name: "清汤面", main: [{n:"挂面",q:100,u:"g"}, {n:"青菜",q:2,u:"颗"}], season: "猪油,生抽,葱花,盐", steps: ["碗底放猪油、生抽、盐、葱花，加一勺开水冲开汤底", "水开下挂面煮4分钟", "放入青菜烫1分钟", "捞出面和菜放入汤碗即可"] },
+        { id: 38, name: "汤粉", main: [{n:"米粉(干)",q:150,u:"g"}, {n:"肉末",q:50,u:"g"}], season: "葱,姜,盐,生抽", steps: ["干米粉提前冷水泡软1小时(或煮10分钟)", "热油炒香肉末和姜末2分钟，加水煮沸", "放入泡软的米粉煮3分钟", "加盐生抽调味，撒葱花出锅"] },
+        { id: 39, name: "水饺", main: [{n:"速冻水饺",q:1,u:"袋"}], season: "醋,辣椒油", steps: ["宽水煮沸，下入饺子", "保持中大火，水沸后点一次凉水，重复3次(约煮8分钟)", "饺子全部浮起且鼓胀即可捞出"] },
+        { id: 40, name: "大馄饨", main: [{n:"生馄饨",q:12,u:"个"}, {n:"紫菜虾皮",q:1,u:"份"}], season: "香油,生抽,盐", steps: ["碗中放紫菜、虾皮、盐、香油", "水开下馄饨，中小火煮5分钟", "中途点一次凉水，待馄饨皮透明浮起", "先舀热汤冲开碗底调料，再捞入馄饨"] },
+        { id: 41, name: "现磨豆浆", main: [{n:"黄豆",q:50,u:"g"}, {n:"水",q:800,u:"ml"}], season: "糖(可选)", steps: ["黄豆提前冷水浸泡8小时", "将泡好的豆子和水倒入破壁机", "选择豆浆模式，运行约25分钟", "倒出过滤（如需），加糖搅拌即可"] }
+    ];
+
+    // === 系统初始化 ===
+    
+    // 加载时读取排行榜和上次记录
+    window.onload = function() {
+        updateRankingBox();
+        showLastRecord();
+    };
+
+    // 切换底部按钮组
+    function switchFooter(pageId) {
+        document.querySelectorAll('.footer-group').forEach(el => el.classList.remove('active'));
+        if(pageId === 'page-menu') document.getElementById('footer-menu').classList.add('active');
+        if(pageId === 'page-shop') document.getElementById('footer-shop').classList.add('active');
+        if(pageId === 'page-cook') document.getElementById('footer-cook').classList.add('active');
+    }
+
+    function gotoPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        switchFooter(pageId);
+        window.scrollTo(0,0);
+        
+        // 每次回到首页，刷新排行榜
+        if(pageId === 'page-menu') {
+            updateRankingBox();
+        }
+    }
+
+    // === 业务逻辑 ===
+
+    function selectPeople(type) {
+        document.querySelectorAll('.people-btn').forEach(b => b.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+        
+        let text = "";
+        if(type === 1) { multiplier = 1; text = "当前模式：1-2 人餐"; }
+        if(type === 2) { multiplier = 1.8; text = "当前模式：3-4 人餐"; }
+        if(type === 3) { multiplier = 3.2; text = "当前模式：4-8 人餐"; }
+        
+        document.getElementById('people-display-text').innerText = text;
+        renderMenu();
+        gotoPage('page-menu');
+    }
+
+    function renderMenu() {
+        const grid = document.getElementById('menu-grid');
+        grid.innerHTML = '';
+        dishes.forEach(dish => {
+            const div = document.createElement('div');
+            const checkedStr = selectedDishIds.includes(dish.id) ? 'checked' : '';
+            div.innerHTML = `
+                <input type="checkbox" id="d-${dish.id}" class="dish-check" value="${dish.id}" ${checkedStr}>
+                <label for="d-${dish.id}" class="dish-card">${dish.name}</label>
+            `;
+            grid.appendChild(div);
+        });
+    }
+
+    function gotoShop() {
+        const checks = document.querySelectorAll('.dish-check:checked');
+        if (checks.length === 0) { alert('请至少选择一道菜！'); return; }
+        
+        selectedDishIds = Array.from(checks).map(c => parseInt(c.value));
+        renderShopList();
+        gotoPage('page-shop');
+    }
+
+    function renderShopList() {
+        const listEl = document.getElementById('shop-main-list');
+        const seasonEl = document.getElementById('shop-seasoning-list');
+        listEl.innerHTML = '';
+        let allSeasons = new Set();
+
+        selectedDishIds.forEach(id => {
+            const dish = dishes.find(d => d.id === id);
+            dish.main.forEach(m => {
+                let finalQ = Math.ceil(m.q * multiplier);
+                const li = document.createElement('li');
+                li.innerHTML = `<div><span class="dish-label">${dish.name}</span><span>${m.n}</span></div><span class="ing-amount">${finalQ}${m.u}</span>`;
+                listEl.appendChild(li);
+            });
+            if(dish.season && dish.season !== "无") {
+                dish.season.split(/[,，]/).forEach(s => allSeasons.add(s.trim()));
+            }
+        });
+        seasonEl.innerText = Array.from(allSeasons).join(' / ') || "无需额外调料";
+    }
+
+    function copyShoppingList() {
+        let copyText = "🛒 采购清单:\n";
+        selectedDishIds.forEach(id => {
+            const dish = dishes.find(d => d.id === id);
+            copyText += `▪️ ${dish.name}\n`;
+            dish.main.forEach(m => {
+                let finalQ = Math.ceil(m.q * multiplier);
+                copyText += `   ${m.n}: ${finalQ}${m.u}\n`;
+            });
+            copyText += "\n";
+        });
+        navigator.clipboard.writeText(copyText).then(() => alert("📋 已复制")).catch(() => alert("复制失败"));
+    }
+
+    // === 烹饪 & 打分逻辑 ===
+
+    let tempRatings = {}; // 临时存储本次打分
+
+    function gotoCook() {
+        const container = document.getElementById('recipe-container');
+        const ratingList = document.getElementById('rating-list');
+        container.innerHTML = '';
+        ratingList.innerHTML = '';
+        tempRatings = {}; // 重置本次打分
+
+        selectedDishIds.forEach(id => {
+            const dish = dishes.find(d => d.id === id);
+            tempRatings[id] = 5; // 默认5星
+
+            // 1. 渲染菜谱
+            const card = document.createElement('div');
+            card.className = 'recipe-card';
+            let stepsHtml = '';
+            dish.steps.forEach((step, index) => {
+                const highlightedStep = step.replace(/(\d+(?:-\d+)?\s*(?:分钟|秒|小时|分))/g, '<span class="time-mark">$1</span>');
+                stepsHtml += `<div class="step-row"><div class="step-idx">${index + 1}</div><div>${highlightedStep}</div></div>`;
+            });
+            card.innerHTML = `<div class="recipe-header">${dish.name}</div><div>${stepsHtml}</div>`;
+            container.appendChild(card);
+
+            // 2. 渲染打分条
+            const rateItem = document.createElement('div');
+            rateItem.className = 'rating-item';
+            rateItem.innerHTML = `
+                <span class="rating-name">${dish.name}</span>
+                <div class="stars-container" id="stars-${id}">
+                    ${renderStars(id, 5)}
+                </div>
+            `;
+            ratingList.appendChild(rateItem);
+        });
+
+        gotoPage('page-cook');
+    }
+
+    // 渲染星星HTML
+    function renderStars(dishId, currentScore) {
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+            const activeClass = i <= currentScore ? 'active' : '';
+            html += `<span class="star-btn ${activeClass}" onclick="setRating(${dishId}, ${i})">★</span>`;
+        }
+        return html;
+    }
+
+    // 点击星星
+    window.setRating = function(dishId, score) {
+        tempRatings[dishId] = score;
+        document.getElementById(`stars-${dishId}`).innerHTML = renderStars(dishId, score);
+    }
+
+    // 完成并保存
+    window.finishAndSave = function() {
+        // 1. 保存打分记录到 LocalStorage
+        let allRatings = JSON.parse(localStorage.getItem(STORAGE_KEY_RATINGS)) || {};
+        
+        for (let id in tempRatings) {
+            if (!allRatings[id]) allRatings[id] = [];
+            allRatings[id].push(tempRatings[id]);
+        }
+        localStorage.setItem(STORAGE_KEY_RATINGS, JSON.stringify(allRatings));
+
+        // 2. 保存“上次记录”
+        const lastDishNames = selectedDishIds.map(id => dishes.find(d => d.id === id).name).join(', ');
+        // 计算本次平均分
+        let sum = 0, count = 0;
+        for (let id in tempRatings) { sum += tempRatings[id]; count++; }
+        const avg = count > 0 ? (sum / count).toFixed(1) : 5.0;
+        
+        const lastRecord = { names: lastDishNames, score: avg };
+        localStorage.setItem(STORAGE_KEY_LAST, JSON.stringify(lastRecord));
+
+        alert("🎉 记录已保存！下次继续加油！");
+        location.reload();
+    }
+
+    // === 排行榜 & 上次记录 ===
+
+    function updateRankingBox() {
+        const box = document.getElementById('ranking-box');
+        const list = document.getElementById('rank-list-content');
+        const allRatings = JSON.parse(localStorage.getItem(STORAGE_KEY_RATINGS));
+
+        if (!allRatings || Object.keys(allRatings).length === 0) {
+            box.style.display = 'none';
+            return;
+        }
+
+        // 计算平均分并排序
+        let ranked = [];
+        for (let idStr in allRatings) {
+            const id = parseInt(idStr);
+            const scores = allRatings[id];
+            const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+            const dish = dishes.find(d => d.id === id);
+            if (dish) {
+                ranked.push({ name: dish.name, avg: avg, count: scores.length });
+            }
+        }
+
+        // 排序：平均分高 > 次数多
+        ranked.sort((a, b) => {
+            if (b.avg !== a.avg) return b.avg - a.avg;
+            return b.count - a.count;
+        });
+
+        // 取前5
+        const top5 = ranked.slice(0, 5);
+        if (top5.length > 0) {
+            box.style.display = 'block';
+            list.innerHTML = top5.map((item, i) => `
+                <li class="rank-item">
+                    <span><span class="rank-badge">${i + 1}</span>${item.name}</span>
+                    <span class="rank-score">★ ${item.avg.toFixed(1)}</span>
+                </li>
+            `).join('');
+        }
+    }
+
+    function showLastRecord() {
+        const record = JSON.parse(localStorage.getItem(STORAGE_KEY_LAST));
+        const bar = document.getElementById('last-record-bar');
+        
+        if (record) {
+            bar.style.display = 'block';
+            bar.innerHTML = `🕒 上次做菜: ${record.names} <span style="color:#ffc107; margin-left:5px;">★ ${record.score}</span>`;
+        }
+    }
+
+</script>
+
+</body>
+</html>
