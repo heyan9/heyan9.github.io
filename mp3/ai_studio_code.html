@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>何岩搜索站</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-blue: #0084ff;
+      --bg-color: #ffffff;
+      --text-main: #222;
+      --text-sub: #666;
+      --border-color: #f0f0f0;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg-color);
+      /* 淡雅背景，增强毛玻璃质感 */
+      background-image: radial-gradient(circle at 10% 20%, rgba(0, 132, 255, 0.05) 0%, transparent 20%), 
+                        radial-gradient(circle at 90% 80%, rgba(0, 132, 255, 0.05) 0%, transparent 20%);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* --- 垂直居中核心包装器 --- */
+    .content-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      max-width: 1000px;
+      padding-bottom: 50px;
+    }
+
+    /* --- 1. Logo --- */
+    .logo-container {
+      margin-bottom: 40px;
+      text-align: center;
+      width: 100%;
+    }
+
+    .logo {
+      width: 80%;
+      max-width: 300px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    
+    .logo-text {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--primary-blue);
+      display: none;
+    }
+
+    /* --- 2. 搜索框 --- */
+    .search-container {
+      width: 100%;
+      max-width: 650px;
+      margin-bottom: 30px;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 50px;
+      padding: 5px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      transition: all 0.3s;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--primary-blue);
+      box-shadow: 0 4px 15px rgba(0, 132, 255, 0.15);
+    }
+
+    #searchInput {
+      flex: 1;
+      height: 44px;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 16px;
+      padding: 0 20px;
+      color: var(--text-main);
+    }
+
+    #searchButton {
+      background-color: var(--primary-blue);
+      color: white;
+      border: none;
+      height: 44px;
+      padding: 0 32px;
+      border-radius: 40px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    #searchButton:hover {
+      background-color: #0066cc;
+    }
+
+    /* --- 3. 核心入口 --- */
+    .quick-nav {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 40px;
+      width: 100%;
+      max-width: 850px;
+      flex-wrap: wrap;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      color: var(--text-sub);
+      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: all 0.2s;
+      background: transparent;
+      white-space: nowrap;
+    }
+
+    .nav-item i {
+      font-size: 16px;
+      margin-right: 8px;
+      color: #999;
+      transition: color 0.2s;
+    }
+
+    .nav-item:hover {
+      background: #f7f9fc;
+      color: var(--primary-blue);
+      transform: translateY(-2px);
+    }
+    .nav-item:hover i { color: var(--primary-blue); }
+
+    /* 动态文字淡入淡出动画 */
+    .fade-anim { animation: fadeIn 0.5s ease-in-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* --- 4. 统一控制栏 (网址、音乐、热搜) --- */
+    .toggle-section {
+      width: 100%;
+      text-align: center;
+      display: flex;
+      justify-content: center;
+      gap: 25px; /* 按钮间距 */
+    }
+
+    .toggle-btn {
+      background: #fff;
+      border: 1px solid #eee;
+      color: #999;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      outline: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toggle-btn:hover {
+      color: var(--primary-blue);
+      border-color: var(--primary-blue);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 132, 255, 0.2);
+    }
+
+    /* 激活状态通用样式 */
+    .toggle-btn.active {
+      background: var(--primary-blue);
+      border-color: var(--primary-blue);
+      color: white;
+    }
+
+    /* 特殊动画：箭头旋转 */
+    #btnTools.active {
+      transform: rotate(180deg);
+    }
+    
+    /* 特殊动画：图标放大 */
+    #btnMusic.active, #btnHot.active {
+      transform: scale(1.1);
+    }
+
+    /* --- 5. 通用隐藏容器动画逻辑 --- */
+    .hidden-wrapper {
+      width: 100%;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-top: 0;
+    }
+
+    .hidden-wrapper.open {
+      opacity: 1;
+      margin-top: 30px;
+    }
+
+    /* --- A. 网址导航网格 --- */
+    .grid-limit {
+      max-width: 900px;
+    }
+    .grid-limit.open { max-height: 1000px; } /* 足够的高度 */
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+      gap: 12px;
+    }
+
+    .tool-item {
+      background: #fff;
+      color: var(--text-sub);
+      text-decoration: none;
+      text-align: center;
+      padding: 15px 5px;
+      font-size: 13px;
+      transition: all 0.2s;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    .tool-item:hover {
+      border-color: var(--primary-blue);
+      color: var(--primary-blue);
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    /* --- B. 音乐播放器 (玻璃拟态) --- */
+    .music-limit {
+      max-width: 500px;
+      /* 允许阴影溢出容器 */
+      overflow: visible; 
+    }
+    .music-limit.open { max-height: 400px; }
+
+    .music-player {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 
+        0 10px 40px -10px rgba(0, 132, 255, 0.15),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+      
+      display: flex;
+      align-items: center;
+      gap: 25px;
+    }
+
+    .album-art {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      overflow: hidden;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .album-art img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      animation: rotateArt 10s linear infinite; 
+      animation-play-state: paused;
+    }
+    
+    .album-art::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 15px; height: 15px;
+      background: #f0f0f0;
+      border-radius: 50%;
+      border: 2px solid #fff;
+    }
+
+    @keyframes rotateArt {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .player-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .song-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .artist-name {
+      font-size: 13px;
+      color: var(--primary-blue);
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 4px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 4px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--primary-blue);
+      border-radius: 4px;
+      width: 0%;
+      position: relative;
+      transition: width 0.1s linear;
+    }
+    
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      right: -5px; top: -3px;
+      width: 10px; height: 10px;
+      background: var(--primary-blue);
+      border-radius: 50%;
+      box-shadow: 0 2px 5px rgba(0, 132, 255, 0.4);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .progress-container:hover .progress-bar::after { opacity: 1; }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .ctrl-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #ccc;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+
+    .ctrl-btn:hover { color: var(--primary-blue); }
+
+    .play-pause-btn {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--primary-blue);
+      color: #fff;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0, 132, 255, 0.3);
+      cursor: pointer;
+    }
+
+    .play-pause-btn:hover {
+      background: #0066cc;
+      transform: scale(1.05);
+    }
+
+    /* --- C. 微博热搜框 --- */
+    .hot-limit {
+      max-width: 600px;
+      width: 100%;
+    }
+    .hot-limit.open { max-height: 500px; }
+
+    .hot-box {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      height: 400px; /* 固定高度 */
+    }
+
+    .hot-header {
+      padding: 10px 15px;
+      background: #fdfdfd;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: #e91e63; /* 微博红 */
+    }
+
+    .hot-header a {
+      font-size: 12px;
+      color: #666;
+      text-decoration: none;
+      font-weight: normal;
+    }
+    .hot-header a:hover { color: var(--primary-blue); }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+    }
+
+    .footer {
+      font-size: 12px;
+      color: #ccc;
+      margin-top: auto;
+      padding-top: 20px;
+      text-align: center;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 600px) {
+      .quick-nav { gap: 10px; justify-content: space-between; }
+      .nav-item { font-size: 12px; padding: 8px 4px; }
+      .tools-grid { grid-template-columns: repeat(3, 1fr); }
+      
+      .music-player { padding: 15px; gap: 15px; }
+      .album-art { width: 80px; height: 80px; }
+      .song-title { font-size: 16px; }
+      
+      .hot-box { height: 350px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 垂直居中容器：包含所有主要内容 -->
+  <div class="content-wrapper">
+    
+    <!-- 1. Logo -->
+    <div class="logo-container">
+      <img src="img/logo1.png" alt="Logo" class="logo" onerror="this.style.display='none';document.querySelector('.logo-text').style.display='inline-block'">
+      <div class="logo-text">HE YAN</div>
+    </div>
+
+    <!-- 2. 搜索框 -->
+    <div class="search-container">
+      <form action="https://www.baidu.com/s" method="get" class="search-box" target="_blank">
+        <input type="text" id="searchInput" name="wd" placeholder="有问题，就会有答案..." required autocomplete="off">
+        <button type="submit" id="searchButton">搜索</button>
+      </form>
+    </div>
+
+    <!-- 3. 核心入口 -->
+    <div class="quick-nav">
+      
+      <!-- 动态信息 -->
+      <a href="https://mp.weixin.qq.com/s?__biz=MzkyODM5OTgzMg==&mid=2247488236&idx=1&sn=b40d9af805b779de05b372b43a05c094&chksm=c3dae80cedc157acd9474474101f612a452e40999f5d31614c95de1bb6ca75ad754b0acac780&scene=27" target="_blank" class="nav-item">
+        <i class="far fa-clock"></i> 
+        <span id="dynamic-info" class="fade-anim">Loading...</span>
+      </a>
+
+      <a href="https://heyan9.github.io/记录.html" target="_blank" class="nav-item">
+        <i class="fas fa-briefcase"></i> 记录
+      </a>
+
+      <a href="https://500px.com.cn/heyanw" target="_blank" class="nav-item">
+        <i class="fas fa-camera"></i> 摄影展示
+      </a>
+
+      <a href="https://docs.qq.com/doc/DZmNacUVkT1NxRm9V" target="_blank" class="nav-item">
+        <i class="fas fa-book-open"></i> 读书笔记
+      </a>
+    </div>
+
+    <!-- 4. 工具栏控制区 (三个按钮) -->
+    <div class="toggle-section">
+      <!-- 常用网址按钮 (还原为下箭头) -->
+      <button class="toggle-btn" id="btnTools" onclick="toggleSection('tools')" title="展开网址">
+        <i class="fas fa-chevron-down"></i>
+      </button>
+      
+      <!-- 音乐播放器按钮 -->
+      <button class="toggle-btn" id="btnMusic" onclick="toggleSection('music')" title="音乐播放器">
+        <i class="fas fa-music"></i>
+      </button>
+      
+      <!-- 微博热搜按钮 -->
+      <button class="toggle-btn" id="btnHot" onclick="toggleSection('hot')" title="微博热搜">
+        <i class="fab fa-weibo"></i>
+      </button>
+    </div>
+
+    <!-- 5A. 隐藏的工具网格 -->
+    <div class="hidden-wrapper grid-limit" id="toolsWrapper">
+      <div class="tools-grid">
+        <a href="https://heyan9.github.io/heyanzuocai.html" class="tool-item">做菜助手</a>
+        <a href="https://www.yikm.net/" class="tool-item">在线游戏</a>
+        <a href="https://aistudio.google.com/" class="tool-item">谷歌编程ai</a>
+        <a href="https://www.doubao.com/chat/" class="tool-item">豆包 AI</a>
+        <a href="https://www.52pojie.cn/" class="tool-item">吾爱破解</a>
+        <a href="https://www.toutiao.com/" class="tool-item">今日头条</a>
+        <a href="https://www.google.com.hk/" class="tool-item">Google</a>
+        <a href="https://www.88mv.org/?ref=88ys.cn" class="tool-item">88影视</a>
+        <a href="http://m.dodoge.me/" class="tool-item">M站</a>
+        <a href="https://www.66yingshi.com/" class="tool-item">视频BT</a>
+        <a href="https://waifu2x.udp.jp/" class="tool-item">Waifu2x</a>
+        <a href="https://www.dxomark.com/" class="tool-item">DXOmark</a>
+        <a href="https://bbs.fengniao.com/forum/forum_125.html" class="tool-item">蜂鸟摄影</a>
+        <a href="https://clipdrop.co/uncrop" class="tool-item">AI 拓图</a>
+        <a href="https://github.com/" class="tool-item">Github</a>
+        <a href="https://pc.woozooo.com/" class="tool-item">蓝奏云</a>
+        <a href="https://www.123pan.com/" class="tool-item">123云盘</a>
+        <a href="https://fanyi.youdao.com/index.html#/" class="tool-item">在线翻译</a>
+        <a href="https://tv.cctv.com/live/index.shtml" class="tool-item">CCTV直播</a>
+        <a href="http://www.2t58.com/" class="tool-item">无损音乐</a>
+        <a href="https://cn.uptodown.com/" class="tool-item">安卓应用</a>
+        <a href="https://mail.google.com/" class="tool-item">Gmail</a>
+        <a href="https://heyan9.github.io/dongzuo.html" class="tool-item">随机动作</a>
+        <a href="https://ttsmaker.cn/" class="tool-item">文本转语音</a>
+        <a href="https://bento.me/freecloud" class="tool-item">免费机场</a>
+        <a href="https://tianqi.moji.com/weather/china/hunan/miluo" class="tool-item">墨迹天气</a>
+        <a href="https://wallpapercave.com/" class="tool-item">壁纸下载</a>
+        <a href="https://chat.chat826.com/#/home" class="tool-item">Chat8</a>
+        <a href="https://weread.qq.com/web/shelf" class="tool-item">微信读书</a>
+        <a href="https://www.ilovepdf.com/" class="tool-item">PDF转换</a>
+        <a href="https://ucnrbg5e0s07.feishu.cn/minutes/home" class="tool-item">飞书妙记</a>
+        <a href="https://pdftoword.55.la/" class="tool-item">转转大师</a>
+        <a href="https://koodo.960960.xyz/zh" class="tool-item">Koodo</a>
+        <a href="https://zh.z-library.se/" class="tool-item">Z-Library</a>
+        <a href="https://www.hzlib.net/szzyxsyj/364.htm" class="tool-item">知网下载</a>
+        <a href="https://onlinecamscanner.com/zh-Hans/" class="tool-item">在线扫描</a>
+        <a href="https://vocalremover.org/zh/" class="tool-item">分离人声</a>
+        <a href="https://xvideos.com/" class="tool-item">XVideos</a>
+        <a href="https://note.youdao.com/s/NuYFD6yL" class="tool-item">游戏盒</a>
+      </div>
+    </div>
+
+    <!-- 5B. 隐藏的音乐播放器 -->
+    <div class="hidden-wrapper music-limit" id="musicWrapper">
+      <div class="music-player">
+        <div class="album-art">
+          <!-- 封面图 -->
+          <img src="" alt="Album Art" id="musicCover">
+        </div>
+        
+        <div class="player-info">
+          <div class="song-title" id="musicTitle"></div>
+          <div class="artist-name" id="musicArtist"></div>
+          
+          <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+
+          <div class="controls">
+            <button class="ctrl-btn" onclick="prevSong()"><i class="fas fa-step-backward"></i></button>
+            <button class="play-pause-btn" onclick="togglePlay()">
+              <i class="fas fa-play" id="playIcon"></i>
+            </button>
+            <button class="ctrl-btn" onclick="nextSong()"><i class="fas fa-step-forward"></i></button>
+          </div>
+        </div>
+        
+        <audio id="audioPlayer"></audio>
+      </div>
+    </div>
+
+    <!-- 5C. 隐藏的微博热搜框 -->
+    <div class="hidden-wrapper hot-limit" id="hotWrapper">
+      <div class="hot-box">
+        <div class="hot-header">
+          <span><i class="fab fa-weibo" style="color:#e91e63; margin-right:5px;"></i> 实时热搜榜</span>
+          <a href="https://s.weibo.com/top/summary?cate=realtimehot" target="_blank" title="如果下方无法加载，请点此跳转">
+            全屏查看 <i class="fas fa-external-link-alt"></i>
+          </a>
+        </div>
+        <!-- 注意：如果微博拒绝连接，请点击上方的全屏查看 -->
+        <iframe src="https://s.weibo.com/top/summary?cate=realtimehot" title="Weibo Hot Search"></iframe>
+      </div>
+    </div>
+
+  </div> <!-- End content-wrapper -->
+
+  <div class="footer">
+    Created by He Yan | © 2025 12
+  </div>
+
+<script>
+  // -----------------------------------------------------
+  // 1. 区域展开控制逻辑 (三选一互斥)
+  // -----------------------------------------------------
+  function toggleSection(type) {
+    const sections = {
+      tools: { wrapper: document.getElementById('toolsWrapper'), btn: document.getElementById('btnTools') },
+      music: { wrapper: document.getElementById('musicWrapper'), btn: document.getElementById('btnMusic') },
+      hot:   { wrapper: document.getElementById('hotWrapper'),   btn: document.getElementById('btnHot') }
+    };
+
+    // 获取当前点击目标的当前状态
+    const isCurrentlyOpen = sections[type].wrapper.classList.contains('open');
+
+    // 第一步：关闭所有区域
+    for (let key in sections) {
+      sections[key].wrapper.classList.remove('open');
+      sections[key].btn.classList.remove('active');
+    }
+
+    // 第二步：如果之前不是打开的，则打开当前点击的区域
+    if (!isCurrentlyOpen) {
+      sections[type].wrapper.classList.add('open');
+      sections[type].btn.classList.add('active');
+    }
+  }
+
+  // -----------------------------------------------------
+  // 2. 音乐播放器逻辑 (已修正歌单)
+  // -----------------------------------------------------
+  const playlist = [
+    {
+      title: "在水一方",
+      artist: "李健",
+      src: "mp3/在水一方.mp3",
+      cover: "mp3/2.jpg"
+    },
+    {
+      title: "西界",
+      artist: "林俊杰",
+      src: "mp3/西界.mp3",  // 请确保文件名正确
+      cover: "mp3/1.jpg"
+    }
+  ];
+
+  let currentSongIndex = 0;
+  const audio = document.getElementById('audioPlayer');
+  const playIcon = document.getElementById('playIcon');
+  const coverImg = document.getElementById('musicCover');
+  const titleText = document.getElementById('musicTitle');
+  const artistText = document.getElementById('musicArtist');
+  const progressBar = document.getElementById('progressBar');
+  const progressContainer = document.getElementById('progressContainer');
+
+  // 初始化
+  loadSong(playlist[currentSongIndex]);
+
+  function loadSong(song) {
+    titleText.innerText = song.title;
+    artistText.innerText = song.artist; // 更新歌手名
+    audio.src = song.src;
+    coverImg.src = song.cover;
+  }
+
+  function togglePlay() {
+    if (audio.paused) {
+      playSong();
+    } else {
+      pauseSong();
+    }
+  }
+
+  function playSong() {
+    audio.play();
+    playIcon.classList.remove('fa-play');
+    playIcon.classList.add('fa-pause');
+    coverImg.style.animationPlayState = 'running';
+  }
+
+  function pauseSong() {
+    audio.pause();
+    playIcon.classList.remove('fa-pause');
+    playIcon.classList.add('fa-play');
+    coverImg.style.animationPlayState = 'paused';
+  }
+
+  function prevSong() {
+    currentSongIndex--;
+    if (currentSongIndex < 0) {
+      currentSongIndex = playlist.length - 1;
+    }
+    loadSong(playlist[currentSongIndex]);
+    playSong();
+  }
+
+  function nextSong() {
+    currentSongIndex++;
+    if (currentSongIndex > playlist.length - 1) {
+      currentSongIndex = 0;
+    }
+    loadSong(playlist[currentSongIndex]);
+    playSong();
+  }
+
+  // 进度条更新
+  audio.addEventListener('timeupdate', (e) => {
+    const { duration, currentTime } = e.srcElement;
+    if(duration) {
+      const progressPercent = (currentTime / duration) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+    }
+  });
+
+  // 点击跳转
+  progressContainer.addEventListener('click', function(e) {
+    const width = this.clientWidth;
+    const clickX = e.offsetX;
+    const duration = audio.duration;
+    audio.currentTime = (clickX / width) * duration;
+  });
+
+  audio.addEventListener('ended', nextSong);
+
+
+  // -----------------------------------------------------
+  // 3. 动态轮播逻辑 (时间 <-> 天数)
+  // -----------------------------------------------------
+  const infoEl = document.getElementById('dynamic-info');
+  let step = 0; 
+  
+  function getTimeString() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const days = ['日', '一', '二', '三', '四', '五', '六'];
+    const week = days[now.getDay()];
+    const hour = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    return `${month}月${day}日 周${week} ${hour}:${min}`;
+  }
+
+  function getDaysCount() {
+    const targetDate = new Date('2025-08-16');
+    const today = new Date();
+    const diff = today - targetDate; 
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days >= 0) {
+      return `距25年8月16日已过${days}天`;
+    } else {
+      return `距25年8月16日还有${Math.abs(days)}天`;
+    }
+  }
+
+  function updateDisplay() {
+    infoEl.classList.remove('fade-anim');
+    void infoEl.offsetWidth; 
+    infoEl.classList.add('fade-anim');
+
+    if (step === 0) {
+      infoEl.innerText = getTimeString();
+    } else {
+      infoEl.innerText = getDaysCount();
+    }
+    step = (step + 1) % 2; 
+  }
+
+  updateDisplay();
+  setInterval(updateDisplay, 4000);
+
+</script>
+
+</body>
+</html>
