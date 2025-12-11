@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <base target="_blank">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>何岩搜索站 - 完美修复版</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://code.bdstatic.com/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
+  
+  <style>
+    :root {
+      --primary-blue: #0084ff;
+      --bg-color: #ffffff;
+      --text-main: #222;
+      --text-sub: #666;
+      --border-color: #f0f0f0;
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.5);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg-color);
+      background-image: radial-gradient(circle at 10% 20%, rgba(0, 132, 255, 0.05) 0%, transparent 20%), 
+                        radial-gradient(circle at 90% 80%, rgba(0, 132, 255, 0.05) 0%, transparent 20%);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* --- 用户栏 (含退出按钮) --- */
+    .user-bar {
+      position: absolute; top: 20px; right: 20px;
+      display: flex; align-items: center; gap: 15px;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 8px 15px; border-radius: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      font-size: 13px; z-index: 100;
+    }
+    .rank-display { display: flex; align-items: center; gap: 5px; color: #f1c40f; font-size: 14px; }
+    .time-tracker { color: #666; font-variant-numeric: tabular-nums; }
+    
+    .auth-btn {
+      background: var(--primary-blue); color: white; border: none;
+      padding: 5px 15px; border-radius: 20px; cursor: pointer;
+      font-size: 12px; transition: all 0.2s;
+    }
+    .auth-btn:hover { background: #0066cc; }
+
+    /* 用户信息区域 */
+    #userInfo { display: none; display: flex; align-items: center; gap: 10px; }
+    .user-name { font-weight: bold; color: var(--primary-blue); }
+    .logout-btn { 
+      color: #ff5252; cursor: pointer; font-size: 12px; text-decoration: underline; 
+      margin-left: 5px;
+    }
+    .logout-btn:hover { color: #d32f2f; }
+
+    /* --- 登录模态框 --- */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4); z-index: 1000;
+      justify-content: center; align-items: center; backdrop-filter: blur(3px);
+    }
+    .modal-box {
+      background: #fff; padding: 30px; border-radius: 16px; width: 300px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center;
+    }
+    .modal-input {
+      width: 100%; padding: 10px; margin-bottom: 15px;
+      border: 1px solid #ddd; border-radius: 8px; outline: none;
+    }
+    .modal-box button {
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      cursor: pointer; margin-top: 5px; font-weight: bold;
+    }
+    .btn-login { background: var(--primary-blue); color: #fff; margin-bottom: 10px; }
+
+    /* --- 主布局 --- */
+    .content-wrapper {
+      flex: 1; display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      width: 100%; max-width: 1000px; padding-bottom: 50px; margin-top: 60px;
+    }
+
+    .logo-container { margin-bottom: 40px; text-align: center; width: 100%; }
+    .logo { width: 80%; max-width: 300px; height: auto; display: block; margin: 0 auto; }
+    .logo-text { font-size: 36px; font-weight: 800; color: var(--primary-blue); display: none; }
+
+    .search-container { width: 100%; max-width: 650px; margin-bottom: 30px; }
+    .search-box {
+      display: flex; align-items: center; background: #fff;
+      border: 1px solid #e0e0e0; border-radius: 50px; padding: 5px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.3s;
+    }
+    .search-box:focus-within { border-color: var(--primary-blue); box-shadow: 0 4px 15px rgba(0, 132, 255, 0.15); }
+    #searchInput { flex: 1; height: 44px; border: none; background: transparent; outline: none; font-size: 16px; padding: 0 20px; color: var(--text-main); }
+    #searchButton {
+      background-color: var(--primary-blue); color: white; border: none;
+      height: 44px; padding: 0 32px; border-radius: 40px; cursor: pointer;
+      font-size: 15px; font-weight: bold; transition: background 0.2s;
+    }
+
+    .quick-nav { display: flex; justify-content: center; gap: 30px; margin-bottom: 40px; width: 100%; max-width: 850px; flex-wrap: wrap; }
+    .nav-item {
+      display: flex; align-items: center; text-decoration: none; color: var(--text-sub);
+      font-size: 14px; padding: 8px 12px; border-radius: 8px; transition: all 0.2s;
+    }
+    .nav-item:hover { background: #f7f9fc; color: var(--primary-blue); transform: translateY(-2px); }
+    .nav-item i { margin-right: 8px; color: #999; }
+    .nav-item:hover i { color: var(--primary-blue); }
+
+    /* --- 工具栏控制区 --- */
+    .toggle-section { width: 100%; text-align: center; display: flex; justify-content: center; gap: 20px; }
+    .toggle-btn {
+      background: #fff; border: 1px solid #eee; color: #999;
+      width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+      font-size: 16px; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .toggle-btn:hover { color: var(--primary-blue); border-color: var(--primary-blue); transform: translateY(-2px); }
+    .toggle-btn.active { background: var(--primary-blue); border-color: var(--primary-blue); color: white; }
+    #btnTools.active { transform: rotate(180deg); }
+    #btnMusic.active, #btnHot.active, #btnTasks.active, #btnMemo.active { transform: scale(1.1); }
+
+    /* --- 通用隐藏容器 --- */
+    .hidden-wrapper {
+      width: 100%; max-height: 0; overflow: hidden; opacity: 0;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 0;
+    }
+    .hidden-wrapper.open { opacity: 1; margin-top: 30px; }
+
+    /* 1. 网址导航 */
+    .grid-limit { max-width: 900px; }
+    .grid-limit.open { max-height: 1000px; }
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; }
+    .tool-item {
+      background: #fff; color: var(--text-sub); text-decoration: none;
+      text-align: center; padding: 15px 5px; font-size: 13px;
+      border: 1px solid var(--border-color); border-radius: 6px; transition: all 0.2s;
+    }
+    .tool-item:hover { border-color: var(--primary-blue); color: var(--primary-blue); transform: translateY(-3px); }
+
+    /* 2. 音乐播放器 */
+    .music-limit { max-width: 500px; overflow: visible; }
+    .music-limit.open { max-height: 400px; }
+    .music-player {
+      background: var(--glass-bg); backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border); border-radius: 20px; padding: 25px;
+      display: flex; align-items: center; gap: 25px;
+      box-shadow: 0 10px 40px -10px rgba(0, 132, 255, 0.15);
+    }
+    .album-art { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; border: 4px solid #fff; }
+    .album-art img { width: 100%; height: 100%; object-fit: cover; animation: rotateArt 10s linear infinite; animation-play-state: paused; }
+    @keyframes rotateArt { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .player-info { flex: 1; }
+    .song-title { font-weight: 700; color: #333; }
+    .artist-name { font-size: 13px; color: var(--primary-blue); margin-bottom: 10px; }
+    .progress-container { width: 100%; height: 4px; background: rgba(0,0,0,0.05); margin-bottom: 15px; cursor: pointer; }
+    .progress-bar { height: 100%; background: var(--primary-blue); width: 0%; }
+    .controls { display: flex; align-items: center; gap: 20px; }
+    .play-pause-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-blue); color: #fff; border: none; cursor: pointer; }
+
+    /* 3. 微博热搜 */
+    .hot-limit { max-width: 600px; }
+    .hot-limit.open { max-height: 500px; }
+    .hot-box {
+      background: var(--glass-bg); backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border); border-radius: 16px;
+      overflow: hidden; height: 400px; display: flex; flex-direction: column;
+    }
+    .hot-header { padding: 10px 15px; background: #fdfdfd; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-weight: bold; color: #e91e63; font-size: 14px; }
+    iframe { width: 100%; height: 100%; border: none; }
+
+    /* --- 4. 任务清单 (修复版) --- */
+    .task-limit { max-width: 650px; width: 100%; }
+    .task-limit.open { max-height: 800px; } 
+
+    .task-container {
+      background: var(--glass-bg); backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border); border-radius: 20px;
+      padding: 25px; box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .task-input-group { display: flex; gap: 10px; align-items: center; }
+    .task-input { flex: 1; padding: 10px 15px; border: 1px solid #ddd; border-radius: 10px; outline: none; transition: border 0.2s; }
+    .task-input:focus { border-color: var(--primary-blue); }
+    
+    .star-select { display: flex; gap: 5px; cursor: pointer; user-select: none; }
+    .star-select i { color: #ddd; font-size: 18px; padding: 2px; transition: color 0.1s; }
+    .star-select i.selected { color: #f1c40f; }
+    .star-select:hover i { color: #f1c40f; } /* 默认全亮 */
+    /* 核心修复：实现悬停时后面的星星变灰，前面的变亮 */
+    .star-select i:hover ~ i { color: #ddd; }
+
+    .btn-add-task { background: var(--primary-blue); color: white; border: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; font-size: 16px; flex-shrink: 0; }
+    .btn-add-task:hover { background: #0066cc; }
+
+    .task-list { max-height: 350px; overflow-y: auto; padding-right: 5px; }
+    .task-list::-webkit-scrollbar { width: 4px; }
+    .task-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+    .task-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255,255,255,0.6);
+      border: 1px solid #eee; border-radius: 12px;
+      padding: 12px 15px; margin-bottom: 10px;
+      transition: all 0.3s;
+    }
+    .task-item:hover { transform: translateX(2px); border-color: var(--primary-blue); background: #fff; }
+    
+    /* 运行状态样式：淡蓝呼吸 */
+    .task-item.active-running {
+      border-color: var(--primary-blue);
+      background: rgba(0, 132, 255, 0.06);
+      box-shadow: 0 0 10px rgba(0, 132, 255, 0.1);
+    }
+
+    .t-info { flex: 1; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+    .t-title { font-size: 14px; font-weight: 600; color: #333; }
+    .t-stars { font-size: 12px; color: #f1c40f; }
+    .t-timer { font-family: monospace; font-size: 14px; color: #555; margin: 0 15px; min-width: 70px; text-align: right; }
+
+    .t-actions { display: flex; gap: 8px; }
+    .btn-icon { width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 12px; }
+    
+    .btn-play { background: #e3f2fd; color: var(--primary-blue); }
+    .btn-play:hover { background: var(--primary-blue); color: #fff; }
+    
+    .btn-pause { background: var(--primary-blue); color: #fff; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 132, 255, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(0, 132, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 132, 255, 0); } }
+
+    .btn-del { background: transparent; color: #ccc; }
+    .btn-del:hover { color: #ff5252; background: #fff0f0; }
+
+    /* --- 5. 备忘录 --- */
+    .memo-limit { max-width: 650px; width: 100%; }
+    .memo-limit.open { max-height: 800px; }
+    
+    .memo-container {
+      background: var(--glass-bg); backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border); border-radius: 20px;
+      padding: 20px; height: 400px; display: flex; flex-direction: column;
+      position: relative;
+    }
+    
+    .memo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; color: #666; }
+    .memo-status { font-size: 12px; color: #999; display: flex; align-items: center; gap: 5px; }
+    .memo-status.saving { color: var(--primary-blue); }
+    
+    .memo-area {
+      flex: 1; width: 100%; border: none; background: transparent;
+      resize: none; outline: none; font-size: 15px; line-height: 1.6;
+      color: #333; font-family: inherit;
+    }
+    .memo-area::placeholder { color: #ccc; }
+
+    .empty-tip { text-align: center; color: #999; font-size: 13px; margin-top: 20px; }
+
+    .footer { font-size: 12px; color: #ccc; margin-top: auto; padding-top: 20px; text-align: center; }
+
+    @media (max-width: 600px) {
+      .quick-nav { gap: 10px; }
+      .tools-grid { grid-template-columns: repeat(3, 1fr); }
+      .user-bar { top: 10px; right: 10px; flex-direction: column; align-items: flex-end; gap: 5px; }
+      .task-item { padding: 10px; }
+      .t-timer { margin: 0 5px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 用户状态栏 -->
+  <div class="user-bar">
+    <div class="time-tracker">
+      本次在线: <span id="sessionTime">00:00</span>
+    </div>
+    <div class="rank-display" id="rankDisplay" title="每10分钟增加1颗星">
+      <span id="rankIcons"><i class="far fa-star"></i></span>
+    </div>
+    
+    <!-- 登录按钮 -->
+    <button class="auth-btn" id="loginBtn" onclick="showAuthModal()">登录/注册</button>
+    
+    <!-- 登录后的用户信息 (包含退出按钮) -->
+    <div id="userInfo" style="display:none;">
+      <span id="userNameDisplay" class="user-name"></span>
+      <span class="logout-btn" onclick="handleLogout()">[退出]</span>
+    </div>
+  </div>
+
+  <!-- 登录注册模态框 -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-box">
+      <h3>何岩通行证</h3>
+      <input type="text" id="username" class="modal-input" placeholder="用户名" autocomplete="off">
+      <input type="password" id="password" class="modal-input" placeholder="密码">
+      <button class="btn-login" onclick="handleLogin()">登录 / 注册</button>
+      <button style="background:#f0f0f0; color:#666;" onclick="closeAuthModal()">关闭</button>
+      <div style="font-size:12px; color:#999; margin-top:10px;">首次输入即为自动注册</div>
+    </div>
+  </div>
+
+  <div class="content-wrapper">
+    <!-- 1. Logo -->
+    <div class="logo-container">
+      <img src="img/logo1.png" alt="Logo" class="logo" onerror="this.style.display='none';document.querySelector('.logo-text').style.display='inline-block'">
+      <div class="logo-text">HE YAN</div>
+    </div>
+
+    <!-- 2. 搜索框 -->
+    <div class="search-container">
+      <form action="https://www.baidu.com/s" method="get" class="search-box">
+        <input type="text" id="searchInput" name="wd" placeholder="有问题，就会有答案..." required autocomplete="off">
+        <button type="submit" id="searchButton">搜索</button>
+      </form>
+    </div>
+
+    <!-- 3. 核心入口 -->
+    <div class="quick-nav">
+      <a href="https://mp.weixin.qq.com/s?__biz=MzkyODM5OTgzMg==&mid=2247488236&idx=1&sn=b40d9af805b779de05b372b43a05c094&chksm=c3dae80cedc157acd9474474101f612a452e40999f5d31614c95de1bb6ca75ad754b0acac780&scene=27" class="nav-item">
+        <i class="far fa-clock"></i> <span id="dynamic-info" class="fade-anim">Loading...</span>
+      </a>
+      <a href="https://heyan9.github.io/记录.html" class="nav-item"><i class="fas fa-briefcase"></i> 记录</a>
+      <a href="https://500px.com.cn/heyanw" class="nav-item"><i class="fas fa-camera"></i> 摄影展示</a>
+      <a href="https://docs.qq.com/doc/DZmNacUVkT1NxRm9V" class="nav-item"><i class="fas fa-book-open"></i> 读书笔记</a>
+    </div>
+
+    <!-- 4. 工具栏控制区 -->
+    <div class="toggle-section">
+      <button class="toggle-btn" id="btnTools" onclick="toggleSection('tools')" title="展开网址"><i class="fas fa-chevron-down"></i></button>
+      <button class="toggle-btn" id="btnMusic" onclick="toggleSection('music')" title="音乐播放器"><i class="fas fa-music"></i></button>
+      <button class="toggle-btn" id="btnTasks" onclick="toggleSection('tasks')" title="任务清单"><i class="fas fa-tasks"></i></button>
+      <button class="toggle-btn" id="btnMemo" onclick="toggleSection('memo')" title="云端备忘录"><i class="fas fa-pen-alt"></i></button>
+      <button class="toggle-btn" id="btnHot" onclick="toggleSection('hot')" title="微博热搜"><i class="fab fa-weibo"></i></button>
+    </div>
+
+    <!-- 5A. 网址导航 -->
+    <div class="hidden-wrapper grid-limit" id="toolsWrapper">
+      <div class="tools-grid">
+        <a href="https://heyan9.github.io/heyanzuocai.html" class="tool-item">做菜助手</a>
+        <a href="https://www.yikm.net/" class="tool-item">在线游戏</a>
+        <a href="https://aistudio.google.com/" class="tool-item">谷歌编程ai</a>
+        <a href="https://www.doubao.com/chat/" class="tool-item">豆包 AI</a>
+        <a href="https://www.52pojie.cn/" class="tool-item">吾爱破解</a>
+        <a href="https://www.toutiao.com/" class="tool-item">今日头条</a>
+        <a href="https://www.google.com.hk/" class="tool-item">Google</a>
+        <a href="https://www.88mv.org/?ref=88ys.cn" class="tool-item">88影视</a>
+        <a href="http://m.dodoge.me/" class="tool-item">M站</a>
+        <a href="https://www.66yingshi.com/" class="tool-item">视频BT</a>
+        <a href="https://waifu2x.udp.jp/" class="tool-item">Waifu2x</a>
+        <a href="https://www.dxomark.com/" class="tool-item">DXOmark</a>
+        <a href="https://bbs.fengniao.com/forum/forum_125.html" class="tool-item">蜂鸟摄影</a>
+        <a href="https://clipdrop.co/uncrop" class="tool-item">AI 拓图</a>
+        <a href="https://github.com/" class="tool-item">Github</a>
+        <a href="https://pc.woozooo.com/" class="tool-item">蓝奏云</a>
+        <a href="https://www.123pan.com/" class="tool-item">123云盘</a>
+        <a href="https://fanyi.youdao.com/index.html#/" class="tool-item">在线翻译</a>
+        <a href="https://tv.cctv.com/live/index.shtml" class="tool-item">CCTV直播</a>
+        <a href="http://www.2t58.com/" class="tool-item">无损音乐</a>
+        <a href="https://cn.uptodown.com/" class="tool-item">安卓应用</a>
+        <a href="https://mail.google.com/" class="tool-item">Gmail</a>
+        <a href="https://heyan9.github.io/dongzuo.html" class="tool-item">随机动作</a>
+        <a href="https://ttsmaker.cn/" class="tool-item">文本转语音</a>
+        <a href="https://bento.me/freecloud" class="tool-item">免费机场</a>
+        <a href="https://tianqi.moji.com/weather/china/hunan/miluo" class="tool-item">墨迹天气</a>
+        <a href="https://wallpapercave.com/" class="tool-item">壁纸下载</a>
+        <a href="https://chat.chat826.com/#/home" class="tool-item">Chat8</a>
+        <a href="https://weread.qq.com/web/shelf" class="tool-item">微信读书</a>
+        <a href="https://www.ilovepdf.com/" class="tool-item">PDF转换</a>
+        <a href="https://ucnrbg5e0s07.feishu.cn/minutes/home" class="tool-item">飞书妙记</a>
+        <a href="https://pdftoword.55.la/" class="tool-item">转转大师</a>
+        <a href="https://koodo.960960.xyz/zh" class="tool-item">Koodo</a>
+        <a href="https://zh.z-library.se/" class="tool-item">Z-Library</a>
+        <a href="https://www.hzlib.net/szzyxsyj/364.htm" class="tool-item">知网下载</a>
+        <a href="https://onlinecamscanner.com/zh-Hans/" class="tool-item">在线扫描</a>
+        <a href="https://vocalremover.org/zh/" class="tool-item">分离人声</a>
+        <a href="https://xvideos.com/" class="tool-item">XVideos</a>
+        <a href="https://note.youdao.com/s/NuYFD6yL" class="tool-item">游戏盒</a>
+      </div>
+    </div>
+
+    <!-- 5B. 音乐播放器 -->
+    <div class="hidden-wrapper music-limit" id="musicWrapper">
+      <div class="music-player">
+        <div class="album-art"><img src="" alt="Cover" id="musicCover"></div>
+        <div class="player-info">
+          <div class="song-title" id="musicTitle"></div>
+          <div class="artist-name" id="musicArtist"></div>
+          <div class="progress-container" id="progressContainer"><div class="progress-bar" id="progressBar"></div></div>
+          <div class="controls">
+            <button class="ctrl-btn" onclick="prevSong()"><i class="fas fa-step-backward"></i></button>
+            <button class="play-pause-btn" onclick="togglePlay()"><i class="fas fa-play" id="playIcon"></i></button>
+            <button class="ctrl-btn" onclick="nextSong()"><i class="fas fa-step-forward"></i></button>
+          </div>
+        </div>
+        <audio id="audioPlayer"></audio>
+      </div>
+    </div>
+
+    <!-- 5C. 任务管理 -->
+    <div class="hidden-wrapper task-limit" id="tasksWrapper">
+      <div class="task-container">
+        <!-- 输入区域 -->
+        <div class="task-input-group">
+          <input type="text" id="newTaskInput" class="task-input" placeholder="输入新任务 (登录后可同步)...">
+          
+          <!-- 核心修复：直接点击单个星星 -->
+          <div class="star-select" id="newStarSelect">
+            <i class="fas fa-star selected" onclick="setStar(1)"></i>
+            <i class="fas fa-star selected" onclick="setStar(2)"></i>
+            <i class="fas fa-star selected" onclick="setStar(3)"></i>
+            <i class="fas fa-star" onclick="setStar(4)"></i>
+            <i class="fas fa-star" onclick="setStar(5)"></i>
+          </div>
+          
+          <button class="btn-add-task" onclick="addNewTask()"><i class="fas fa-plus"></i></button>
+        </div>
+        <!-- 任务列表 -->
+        <div class="task-list" id="taskListContainer">
+          <div class="empty-tip">暂无任务，请在上方添加</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5D. 备忘录 -->
+    <div class="hidden-wrapper memo-limit" id="memoWrapper">
+      <div class="memo-container">
+        <div class="memo-header">
+          <span><i class="fas fa-pen-fancy" style="color:var(--primary-blue)"></i> 随心记 (自动同步)</span>
+          <span class="memo-status" id="memoStatus">云端就绪</span>
+        </div>
+        <textarea id="memoArea" class="memo-area" placeholder="在这里写下你的想法、备忘或灵感... (停止打字后自动保存)"></textarea>
+      </div>
+    </div>
+
+    <!-- 5E. 微博热搜 -->
+    <div class="hidden-wrapper hot-limit" id="hotWrapper">
+      <div class="hot-box">
+        <div class="hot-header">
+          <span><i class="fab fa-weibo" style="color:#e91e63; margin-right:5px;"></i> 实时热搜榜</span>
+          <a href="https://s.weibo.com/top/summary?cate=realtimehot" title="全屏查看">全屏 <i class="fas fa-external-link-alt"></i></a>
+        </div>
+        <iframe src="https://s.weibo.com/top/summary?cate=realtimehot"></iframe>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    Created by He Yan | © 2025 12 | <span id="syncStatus">云端未连接</span>
+  </div>
+
+<script>
+  // =========================================================
+  // 0. LeanCloud 配置
+  // =========================================================
+  const APP_ID = "vcJyhwqg1HpbKXiLUvLHzFIh-gzGzoHsz";
+  const APP_KEY = "hknbmRcwH2bJDcqxRvLR67mk";
+  const SERVER_URL = "https://vcjyhwqg.lc-cn-n1-shared.com";
+
+  let isCloudEnabled = false;
+  if (APP_ID && APP_KEY) {
+    try {
+      AV.init({ appId: APP_ID, appKey: APP_KEY, serverURL: SERVER_URL });
+      isCloudEnabled = true;
+      document.getElementById('syncStatus').innerText = "云端已连接";
+      document.getElementById('syncStatus').style.color = "#4caf50";
+    } catch (e) { console.error("LeanCloud Init Error", e); }
+  }
+
+  // =========================================================
+  // 1. 用户系统 & 核心逻辑
+  // =========================================================
+  let currentUser = null;
+  let globalTotalMinutes = 0; 
+  let sessionSeconds = 0;
+
+  if (isCloudEnabled) {
+    currentUser = AV.User.current();
+    if (currentUser) {
+      updateUIForLogin(currentUser);
+      syncGlobalTime();
+      loadTasksFromCloud(); 
+      loadMemoFromCloud();
+    }
+  }
+
+  function showAuthModal() { document.getElementById('authModal').style.display = 'flex'; }
+  function closeAuthModal() { document.getElementById('authModal').style.display = 'none'; }
+
+  async function handleLogin() {
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value.trim();
+    if(!u || !p) return alert("请输入账号和密码");
+    try {
+      currentUser = await AV.User.logIn(u, p);
+      closeAuthModal(); updateUIForLogin(currentUser);
+      syncGlobalTime(); 
+      loadTasksFromCloud(); 
+      loadMemoFromCloud(); 
+      alert("登录成功！");
+    } catch (error) {
+      if (error.code === 211 || error.code === 210) {
+        try {
+          const user = new AV.User();
+          user.setUsername(u); user.setPassword(p); user.set('totalMinutes', 0);
+          currentUser = await user.signUp();
+          closeAuthModal(); updateUIForLogin(currentUser);
+          alert("注册成功并已登录！");
+        } catch (regError) { alert("注册失败：" + regError.message); }
+      } else { alert("错误：" + error.message); }
+    }
+  }
+
+  // 核心修复：退出登录逻辑
+  function handleLogout() {
+    if(confirm("确定要退出登录吗？")) {
+      AV.User.logOut();
+      window.location.reload(); // 刷新页面重置状态
+    }
+  }
+
+  function updateUIForLogin(user) {
+    document.getElementById('loginBtn').style.display = 'none';
+    const info = document.getElementById('userInfo');
+    info.style.display = 'flex'; // changed from block to flex
+    document.getElementById('userNameDisplay').innerText = `Hi, ${user.getUsername()}`;
+  }
+
+  async function syncGlobalTime() {
+    if (!currentUser) return;
+    await currentUser.fetch();
+    globalTotalMinutes = currentUser.get('totalMinutes') || 0;
+    updateRankDisplay();
+  }
+
+  setInterval(() => {
+    sessionSeconds++;
+    const m = Math.floor(sessionSeconds / 60).toString().padStart(2, '0');
+    const s = (sessionSeconds % 60).toString().padStart(2, '0');
+    document.getElementById('sessionTime').innerText = `${m}:${s}`;
+    if (sessionSeconds > 0 && sessionSeconds % 600 === 0) {
+      globalTotalMinutes += 10;
+      updateRankDisplay();
+      if (currentUser) {
+        currentUser.set('totalMinutes', globalTotalMinutes);
+        currentUser.save();
+      }
+    }
+  }, 1000);
+
+  function updateRankDisplay() {
+    let stars = Math.floor(globalTotalMinutes / 10);
+    let cups = Math.floor(stars / 625); let rem = stars % 625;
+    let crowns = Math.floor(rem / 125); rem = rem % 125;
+    let suns = Math.floor(rem / 25); rem = rem % 25;
+    let moons = Math.floor(rem / 5); let starCount = rem % 5;
+    let html = '';
+    if(stars===0) html='<span style="font-size:12px;color:#999">暂无等级</span>';
+    for(let i=0;i<cups;i++) html+='<i class="fas fa-trophy"></i> ';
+    for(let i=0;i<crowns;i++) html+='<i class="fas fa-crown"></i> ';
+    for(let i=0;i<suns;i++) html+='<i class="fas fa-sun"></i> ';
+    for(let i=0;i<moons;i++) html+='<i class="fas fa-moon"></i> ';
+    for(let i=0;i<starCount;i++) html+='<i class="fas fa-star"></i> ';
+    document.getElementById('rankIcons').innerHTML = html;
+  }
+
+  // =========================================================
+  // 2. 任务清单 (修复星级选择 + 删除)
+  // =========================================================
+  const TodoItem = AV.Object.extend('TodoItem');
+  let tasks = []; 
+  let currentTaskNewStars = 3; 
+  let activeTaskId = null; 
+  let taskTimerInterval = null; 
+  let taskStartTime = 0; 
+
+  // 核心修复：直接设置星级
+  function setStar(val) {
+    currentTaskNewStars = val;
+    const stars = document.getElementById('newStarSelect').children;
+    for(let i=0; i<5; i++) {
+      if(i < val) stars[i].classList.add('selected');
+      else stars[i].classList.remove('selected');
+    }
+  }
+
+  async function loadTasksFromCloud() {
+    if(!currentUser) {
+      document.getElementById('taskListContainer').innerHTML = '<div class="empty-tip">请先登录以使用任务同步功能</div>';
+      return;
+    }
+    const query = new AV.Query('TodoItem');
+    query.equalTo('user', currentUser);
+    query.descending('stars');
+    try {
+      const results = await query.find();
+      tasks = results.map(item => ({
+        id: item.id,
+        title: item.get('title'),
+        stars: item.get('stars'),
+        totalSeconds: item.get('totalSeconds') || 0,
+        obj: item 
+      }));
+      renderTasks();
+    } catch(e) { console.error("Load Tasks Error", e); }
+  }
+
+  async function addNewTask() {
+    if(!currentUser) return alert("请先登录！");
+    const input = document.getElementById('newTaskInput');
+    const title = input.value.trim();
+    if(!title) return;
+
+    const todo = new TodoItem();
+    todo.set('title', title);
+    todo.set('stars', currentTaskNewStars);
+    todo.set('totalSeconds', 0);
+    todo.set('user', currentUser);
+    
+    try {
+      const saved = await todo.save();
+      tasks.unshift({ 
+        id: saved.id,
+        title: title,
+        stars: currentTaskNewStars,
+        totalSeconds: 0,
+        obj: saved
+      });
+      tasks.sort((a,b) => b.stars - a.stars);
+      renderTasks();
+      input.value = '';
+    } catch(e) { alert("添加失败: " + e.message); }
+  }
+
+  // 核心修复：确保 ID 传递正确，防止点击穿透
+  async function deleteTask(event, id) {
+    event.stopPropagation(); // 阻止事件冒泡
+    if(!confirm("确定删除此任务？")) return;
+    
+    if(activeTaskId === id) toggleTaskTimer(id);
+    
+    const taskIndex = tasks.findIndex(t => t.id === id);
+    if(taskIndex > -1) {
+      const taskObj = tasks[taskIndex].obj;
+      tasks.splice(taskIndex, 1);
+      renderTasks(); // 乐观更新
+      try { await taskObj.destroy(); } catch(e) { console.error("Delete Error", e); }
+    }
+  }
+
+  function toggleTaskTimer(id) {
+    const task = tasks.find(t => t.id === id);
+    if(!task) return;
+    if(activeTaskId && activeTaskId !== id) {
+      stopTaskTimer(activeTaskId);
+    }
+    if(activeTaskId === id) {
+      stopTaskTimer(id);
+    } else {
+      startTaskTimer(id);
+    }
+  }
+
+  function startTaskTimer(id) {
+    activeTaskId = id;
+    taskStartTime = Date.now();
+    renderTasks(); 
+    taskTimerInterval = setInterval(() => {
+      const el = document.getElementById(`timer-${id}`);
+      if(el) {
+        const currentSessionSecs = Math.floor((Date.now() - taskStartTime) / 1000);
+        const task = tasks.find(t => t.id === id);
+        el.innerText = formatTime(task.totalSeconds + currentSessionSecs);
+      }
+    }, 1000);
+  }
+
+  function stopTaskTimer(id) {
+    clearInterval(taskTimerInterval);
+    const task = tasks.find(t => t.id === id);
+    const sessionSecs = Math.floor((Date.now() - taskStartTime) / 1000);
+    task.totalSeconds += sessionSecs;
+    task.obj.set('totalSeconds', task.totalSeconds);
+    task.obj.save();
+    activeTaskId = null;
+    renderTasks();
+  }
+
+  function formatTime(totalSeconds) {
+    const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  }
+
+  function renderTasks() {
+    const container = document.getElementById('taskListContainer');
+    if(tasks.length === 0) {
+      container.innerHTML = '<div class="empty-tip">暂无任务，请在上方添加</div>';
+      return;
+    }
+    let html = '';
+    tasks.forEach(t => {
+      const isRunning = (t.id === activeTaskId);
+      const starsStr = '★'.repeat(t.stars);
+      const btnClass = isRunning ? 'btn-pause' : 'btn-play';
+      const btnIcon = isRunning ? 'fa-pause' : 'fa-play';
+      const activeClass = isRunning ? 'active-running' : '';
+      
+      // 注意：deleteTask 传入了 event 参数
+      html += `
+        <div class="task-item ${activeClass}">
+          <div class="t-info">
+            <div class="t-title" title="${t.title}">${t.title}</div>
+            <div class="t-stars">${starsStr}</div>
+          </div>
+          <div class="t-timer" id="timer-${t.id}">${formatTime(t.totalSeconds)}</div>
+          <div class="t-actions">
+            <button class="btn-icon ${btnClass}" onclick="toggleTaskTimer('${t.id}')">
+              <i class="fas ${btnIcon}"></i>
+            </button>
+            <button class="btn-icon btn-del" onclick="deleteTask(event, '${t.id}')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  }
+
+  // =========================================================
+  // 3. 备忘录逻辑
+  // =========================================================
+  const Memo = AV.Object.extend('Memo');
+  let userMemoObj = null;
+  let saveTimer = null;
+
+  async function loadMemoFromCloud() {
+    if(!currentUser) {
+      document.getElementById('memoArea').placeholder = "请先登录以使用云端同步功能...";
+      document.getElementById('memoArea').disabled = true;
+      return;
+    }
+    document.getElementById('memoArea').disabled = false;
+    
+    const query = new AV.Query('Memo');
+    query.equalTo('user', currentUser);
+    query.limit(1);
+    try {
+      const results = await query.find();
+      if(results.length > 0) {
+        userMemoObj = results[0];
+        document.getElementById('memoArea').value = userMemoObj.get('content') || '';
+      } else {
+        userMemoObj = new Memo();
+        userMemoObj.set('user', currentUser);
+        userMemoObj.set('content', '');
+      }
+    } catch(e) { console.error("Memo Load Error", e); }
+  }
+
+  document.getElementById('memoArea').addEventListener('input', function(e) {
+    if(!currentUser) return;
+    const val = e.target.value;
+    const statusEl = document.getElementById('memoStatus');
+    
+    statusEl.innerText = "正在输入...";
+    statusEl.className = "memo-status"; 
+
+    if(saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      statusEl.innerText = "同步中...";
+      statusEl.className = "memo-status saving";
+      try {
+        userMemoObj.set('content', val);
+        await userMemoObj.save();
+        statusEl.innerText = "已保存至云端";
+        statusEl.className = "memo-status";
+      } catch(err) {
+        statusEl.innerText = "保存失败";
+      }
+    }, 1000); 
+  });
+
+  // =========================================================
+  // 4. 基础页面交互
+  // =========================================================
+  function toggleSection(type) {
+    const sections = {
+      tools: { el: document.getElementById('toolsWrapper'), btn: document.getElementById('btnTools') },
+      music: { el: document.getElementById('musicWrapper'), btn: document.getElementById('btnMusic') },
+      tasks: { el: document.getElementById('tasksWrapper'), btn: document.getElementById('btnTasks') },
+      memo:  { el: document.getElementById('memoWrapper'),  btn: document.getElementById('btnMemo') },
+      hot:   { el: document.getElementById('hotWrapper'),   btn: document.getElementById('btnHot') }
+    };
+    const isOpen = sections[type].el.classList.contains('open');
+    for(let k in sections) {
+      sections[k].el.classList.remove('open');
+      sections[k].btn.classList.remove('active');
+    }
+    if(!isOpen) {
+      sections[type].el.classList.add('open');
+      sections[type].btn.classList.add('active');
+    }
+  }
+
+  const playlist = [
+    { title: "在水一方", artist: "李健", src: "mp3/在水一方.mp3", cover: "mp3/2.jpg" },
+    { title: "西界", artist: "林俊杰", src: "mp3/西界.mp3", cover: "mp3/1.jpg" }
+  ];
+  let curIdx = 0;
+  const audio = document.getElementById('audioPlayer');
+  function loadSong(s) { 
+    document.getElementById('musicTitle').innerText = s.title;
+    document.getElementById('musicArtist').innerText = s.artist;
+    audio.src = s.src; document.getElementById('musicCover').src = s.cover || 'img/logo1.png';
+  }
+  loadSong(playlist[curIdx]);
+  function togglePlay() { 
+    if(audio.paused) { audio.play(); document.getElementById('playIcon').className='fas fa-pause'; document.getElementById('musicCover').style.animationPlayState='running'; }
+    else { audio.pause(); document.getElementById('playIcon').className='fas fa-play'; document.getElementById('musicCover').style.animationPlayState='paused'; }
+  }
+  function prevSong() { curIdx--; if(curIdx<0) curIdx=playlist.length-1; loadSong(playlist[curIdx]); togglePlay(); }
+  function nextSong() { curIdx++; if(curIdx>playlist.length-1) curIdx=0; loadSong(playlist[curIdx]); togglePlay(); }
+  audio.addEventListener('ended', nextSong);
+  audio.addEventListener('timeupdate', (e)=>{ if(e.srcElement.duration) document.getElementById('progressBar').style.width = (e.srcElement.currentTime/e.srcElement.duration)*100+'%'; });
+  document.getElementById('progressContainer').addEventListener('click', function(e){ audio.currentTime = (e.offsetX/this.clientWidth)*audio.duration; });
+
+  const infoEl = document.getElementById('dynamic-info');
+  let step = 0;
+  setInterval(() => {
+    infoEl.classList.remove('fade-anim'); void infoEl.offsetWidth; infoEl.classList.add('fade-anim');
+    if(step===0) { const now=new Date(); infoEl.innerText=`${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`; }
+    else { const diff=Math.floor((new Date()-new Date('2025-08-16'))/86400000); infoEl.innerText=diff>=0?`距25年8月16日已过${diff}天`:`距25年8月16日还有${Math.abs(diff)}天`; }
+    step=(step+1)%2;
+  }, 4000);
+
+</script>
+</body>
+</html>
