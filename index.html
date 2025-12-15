@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <base target="_blank">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>何岩搜索站 - 完美修复版</title>
+  <title>何岩搜索站 - 尊享重制版</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <script src="https://code.bdstatic.com/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
   
@@ -16,6 +16,10 @@
       --border-color: #ebebeb;
       --text-main: #444;
       --text-sub: #8590a6;
+      --rare-common: #7f8c8d;
+      --rare-rare: #3498db;
+      --rare-epic: #9b59b6;
+      --rare-legend: #f1c40f;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -34,56 +38,40 @@
       font-weight: 400;
     }
 
-    /* --- 用户栏 (知乎极简风) --- */
+    /* --- 用户栏 --- */
     .user-bar {
       position: absolute; top: 20px; right: 20px;
       display: flex; align-items: center; 
-      height: 40px; 
-      padding: 0 4px 0 16px;
+      height: 40px; padding: 0 4px 0 16px;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
       border: 1px solid var(--border-color);
       border-radius: 20px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
       z-index: 100;
-      gap: 12px;
-      font-size: 13px;
+      gap: 12px; font-size: 13px;
     }
-
-    .fish-stats {
-      display: flex; align-items: center; gap: 6px;
-      color: var(--text-main); cursor: default; height: 100%;
-    }
-    .level-badge {
-      background: rgba(0, 132, 255, 0.1); color: var(--primary-blue);
-      padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 500;
-    }
-    #levelTitle { color: var(--text-sub); }
+    .fish-stats { display: flex; align-items: center; gap: 6px; color: var(--text-main); cursor: default; height: 100%; }
+    .level-badge { background: rgba(0, 132, 255, 0.1); color: var(--primary-blue); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .gold-badge { color: #f39c12; font-weight: bold; margin-left: 5px; }
     .divider { width: 1px; height: 14px; background: #e0e0e0; }
-    
     #authContainer { display: flex; align-items: center; height: 100%; }
-    .auth-btn {
-      background: var(--primary-blue); color: white; border: none;
-      padding: 0 16px; height: 28px; border-radius: 14px;
-      cursor: pointer; font-size: 12px; margin-right: 4px;
-    }
+    .auth-btn { background: var(--primary-blue); color: white; border: none; padding: 0 16px; height: 28px; border-radius: 14px; cursor: pointer; font-size: 12px; margin-right: 4px; }
     .auth-btn:hover { background: #0077e6; }
     .user-name { color: #121212; margin-right: 8px; }
     .logout-btn { color: var(--text-sub); cursor: pointer; margin-right: 10px; }
-    .logout-btn:hover { color: var(--text-main); }
 
     /* 移动端适配 */
     @media (max-width: 600px) {
-      .user-bar { position: relative; top: auto; right: auto; margin-bottom: 20px; width: auto; justify-content: center; flex-wrap: nowrap; }
+      .user-bar { position: relative; top: auto; right: auto; margin-bottom: 20px; width: auto; justify-content: center; flex-wrap: wrap; height: auto; padding: 10px; }
       .content-wrapper { margin-top: 10px; }
     }
 
-    /* --- 登录框 --- */
+    /* 登录框 */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
     .modal-box { background: #fff; padding: 30px; border-radius: 12px; width: 300px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; }
     .modal-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; outline: none; background: #f9f9f9; }
-    .modal-box button { width: 100%; padding: 10px; border: none; border-radius: 6px; cursor: pointer; margin-top: 5px; font-weight: 500; }
-    .btn-login { background: var(--primary-blue); color: #fff; margin-bottom: 10px; }
+    .btn-login { background: var(--primary-blue); color: #fff; width: 100%; padding: 10px; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 10px; }
 
     /* --- 主布局 --- */
     .content-wrapper { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; max-width: 1000px; padding-bottom: 50px; margin-top: 60px; }
@@ -103,7 +91,8 @@
     .nav-item i { margin-right: 8px; color: #999; }
     .nav-item:hover i { color: var(--primary-blue); }
 
-    .toggle-section { width: 100%; text-align: center; display: flex; justify-content: center; gap: 20px; }
+    /* 开关栏 */
+    .toggle-section { width: 100%; text-align: center; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
     .toggle-btn { background: #fff; border: 1px solid #eee; color: #999; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 16px; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: inline-flex; align-items: center; justify-content: center; position: relative; }
     .toggle-btn:hover { color: var(--primary-blue); border-color: var(--primary-blue); transform: translateY(-2px); }
     .toggle-btn.active { background: var(--primary-blue); border-color: var(--primary-blue); color: white; }
@@ -112,73 +101,47 @@
     .hidden-wrapper { width: 100%; max-height: 0; overflow: hidden; opacity: 0; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 0; }
     .hidden-wrapper.open { opacity: 1; margin-top: 30px; }
 
-    /* 通用工具 & 音乐 & 游戏样式保持不变 */
+    /* --- 工具栏 --- */
     .grid-limit { max-width: 900px; } .grid-limit.open { max-height: 1000px; }
     .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; }
     .tool-item { background: #fff; color: #666; text-decoration: none; text-align: center; padding: 15px 5px; font-size: 13px; border: 1px solid #f0f0f0; border-radius: 6px; }
 
-    .music-limit { max-width: 500px; overflow: visible; } .music-limit.open { max-height: 400px; }
-    .music-player { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 20px; padding: 25px; display: flex; align-items: center; gap: 25px; box-shadow: 0 10px 40px -10px rgba(0, 132, 255, 0.15); }
-    .album-art { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; border: 4px solid #fff; }
-    .album-art img { width: 100%; height: 100%; object-fit: cover; animation: rotateArt 10s linear infinite; animation-play-state: paused; }
-    @keyframes rotateArt { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .player-info { flex: 1; }
-    .controls { display: flex; align-items: center; gap: 20px; margin-top: 10px; }
-    .play-pause-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-blue); color: #fff; border: none; cursor: pointer; }
+    /* --- 记账本 (新功能) --- */
+    .account-limit { max-width: 650px; width: 100%; } .account-limit.open { max-height: 800px; }
+    .account-container { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
+    .acc-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    .acc-month-title { font-size: 18px; font-weight: bold; color: var(--text-main); }
+    .acc-total { font-size: 14px; color: var(--text-sub); }
+    .acc-total span { font-size: 20px; color: #ff5252; font-weight: bold; font-family: monospace; }
+    .acc-input-group { display: flex; gap: 10px; }
+    .acc-input { padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; flex: 1; }
+    #accAmount { width: 100px; flex: none; }
+    .btn-add-acc { background: var(--primary-blue); color: white; border: none; padding: 0 20px; border-radius: 8px; cursor: pointer; }
+    .acc-list { max-height: 300px; overflow-y: auto; }
+    .acc-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f9f9f9; font-size: 14px; }
+    .acc-item:last-child { border-bottom: none; }
+    .acc-date { color: #ccc; font-size: 12px; margin-right: 10px; font-family: monospace; }
+    .acc-cost { color: #ff5252; font-weight: bold; }
 
-    .game-limit { max-width: 650px; width: 100%; } .game-limit.open { max-height: 800px; }
-    .game-container { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 20px; padding: 0; overflow: hidden; height: 320px; display: flex; position: relative; }
-    .game-scene { flex: 2; position: relative; background: linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 50%, #4FC3F7 50%, #0288D1 100%); border-right: 1px solid rgba(255,255,255,0.5); overflow: hidden; }
-    .game-cat { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); font-size: 60px; z-index: 10; cursor: pointer; transition: transform 0.2s; }
-    .fishing-line { position: absolute; top: 120px; left: calc(50% + 25px); width: 2px; height: 0; background: #555; transform-origin: top center; transition: height 0.5s ease-out; }
-    .fishing-line.casting { height: 120px; }
-    .bobber { position: absolute; bottom: -10px; left: -4px; width: 10px; height: 10px; background: red; border-radius: 50%; display: none; }
-    .fishing-line.casting .bobber { display: block; animation: bobbing 1s infinite alternate; }
-    @keyframes bobbing { from { transform: translateY(0); } to { transform: translateY(5px); } }
-    .alert-icon { position: absolute; top: 60px; left: calc(50% + 40px); font-size: 30px; color: #ff5252; font-weight: bold; opacity: 0; transition: opacity 0.2s; }
-    .alert-icon.show { opacity: 1; animation: bounce 0.5s infinite; }
-    .game-log-panel { flex: 1; background: rgba(255,255,255,0.5); padding: 15px; display: flex; flex-direction: column; font-size: 13px; color: #555; }
-    .log-header { font-weight: bold; margin-bottom: 10px; color: var(--primary-blue); display: flex; flex-direction: column; gap: 8px; }
-    .game-controls { display: flex; gap: 5px; }
-    .btn-game-ctrl { flex: 1; padding: 6px 0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; color: white; transition: opacity 0.2s; }
-    .btn-start { background: #4caf50; }
-    .btn-stop { background: #ff9800; display: none; }
-    .log-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; font-family: monospace; border-top: 1px solid #eee; padding-top: 5px; }
-    .log-item { animation: fadeIn 0.3s; font-size: 12px; }
-    .log-item.rare { color: #e91e63; font-weight: bold; }
-    .game-status-text { margin-top: 5px; font-size: 12px; color: #888; text-align: center; }
+    /* --- 网易云音乐 (替换版) --- */
+    .music-limit { max-width: 500px; overflow: visible; } .music-limit.open { max-height: 500px; }
+    .netease-wrapper { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px -10px rgba(0, 132, 255, 0.15); }
 
-    /* --- 任务清单 (修复部分) --- */
-    .task-limit { max-width: 650px; width: 100%; } 
-    .task-limit.open { max-height: 800px; }
-    .task-container {
-      background: var(--glass-bg); backdrop-filter: blur(16px);
-      border: 1px solid var(--border-color); border-radius: 20px;
-      padding: 25px; box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
-      display: flex; flex-direction: column; gap: 20px;
-    }
+    /* --- 任务清单 --- */
+    .task-limit { max-width: 650px; width: 100%; } .task-limit.open { max-height: 800px; }
+    .task-container { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 20px; padding: 25px; box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column; gap: 20px; }
     .task-input-group { display: flex; gap: 10px; align-items: center; }
-    .task-input { flex: 1; padding: 10px 15px; border: 1px solid #ddd; border-radius: 10px; outline: none; transition: border 0.2s; }
+    .task-input { flex: 1; padding: 10px 15px; border: 1px solid #ddd; border-radius: 10px; outline: none; }
     .task-input:focus { border-color: var(--primary-blue); }
     .star-select { display: flex; gap: 5px; cursor: pointer; user-select: none; }
-    .star-select i { color: #ddd; font-size: 18px; padding: 2px; transition: color 0.1s; }
+    .star-select i { color: #ddd; font-size: 18px; padding: 2px; }
     .star-select i.selected { color: #f1c40f; }
-    .star-select:hover i { color: #f1c40f; } 
-    .star-select i:hover ~ i { color: #ddd; }
     .btn-add-task { background: var(--primary-blue); color: white; border: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; font-size: 16px; flex-shrink: 0; }
-    .btn-add-task:hover { background: #0066cc; }
     .task-list { max-height: 350px; overflow-y: auto; padding-right: 5px; }
-    .task-list::-webkit-scrollbar { width: 4px; }
-    .task-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
-    .task-item {
-      display: flex; align-items: center; justify-content: space-between;
-      background: rgba(255,255,255,0.6);
-      border: 1px solid #eee; border-radius: 12px;
-      padding: 12px 15px; margin-bottom: 10px; transition: all 0.3s;
-    }
+    .task-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.6); border: 1px solid #eee; border-radius: 12px; padding: 12px 15px; margin-bottom: 10px; transition: all 0.3s; }
     .task-item:hover { transform: translateX(2px); border-color: var(--primary-blue); background: #fff; }
     .task-item.active-running { border-color: var(--primary-blue); background: rgba(0, 132, 255, 0.06); }
-    .t-info { flex: 1; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+    .t-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
     .t-title { font-size: 14px; font-weight: 500; color: #333; }
     .t-stars { font-size: 12px; color: #f1c40f; }
     .t-timer { font-family: monospace; font-size: 14px; color: #555; margin: 0 15px; min-width: 70px; text-align: right; }
@@ -188,7 +151,52 @@
     .btn-pause { background: var(--primary-blue); color: #fff; }
     .btn-del { background: transparent; color: #ccc; }
     .btn-del:hover { color: #ff5252; background: #fff0f0; }
-    .empty-tip { text-align: center; color: #999; font-size: 13px; margin-top: 10px; }
+
+    /* --- 游戏系统 (大幅增强) --- */
+    .game-limit { max-width: 700px; width: 100%; } .game-limit.open { max-height: 1200px; }
+    .game-container { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+    
+    /* 游戏主画面 */
+    .game-main { height: 320px; display: flex; position: relative; border-bottom: 1px solid #eee; }
+    .game-scene { flex: 2; position: relative; background: linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 50%, #4FC3F7 50%, #0288D1 100%); border-right: 1px solid rgba(255,255,255,0.5); overflow: hidden; }
+    .game-cat { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); font-size: 60px; z-index: 10; }
+    .fishing-line { position: absolute; top: 120px; left: calc(50% + 25px); width: 2px; height: 0; background: #555; transform-origin: top center; transition: height 0.5s ease-out; }
+    .fishing-line.casting { height: 120px; }
+    .bobber { position: absolute; bottom: -10px; left: -4px; width: 10px; height: 10px; background: red; border-radius: 50%; display: none; }
+    .fishing-line.casting .bobber { display: block; animation: bobbing 1s infinite alternate; }
+    @keyframes bobbing { from { transform: translateY(0); } to { transform: translateY(5px); } }
+    .alert-icon { position: absolute; top: 60px; left: calc(50% + 40px); font-size: 30px; color: #ff5252; font-weight: bold; opacity: 0; }
+    .alert-icon.show { opacity: 1; animation: bounce 0.5s infinite; }
+    
+    /* 右侧控制与日志 */
+    .game-sidebar { flex: 1; background: rgba(255,255,255,0.5); padding: 15px; display: flex; flex-direction: column; font-size: 13px; }
+    .game-controls { display: flex; gap: 5px; margin-bottom: 10px; }
+    .btn-game-ctrl { flex: 1; padding: 6px 0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; color: white; }
+    .btn-start { background: #4caf50; }
+    .btn-stop { background: #ff9800; display: none; }
+    .btn-shop { background: var(--primary-blue); }
+    .log-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; font-family: monospace; border-top: 1px solid #eee; padding-top: 5px; height: 200px; }
+    .log-item { font-size: 12px; }
+    
+    /* 鱼获品质样式 */
+    .quality-common { color: var(--rare-common); }
+    .quality-rare { color: var(--rare-rare); font-weight: bold; }
+    .quality-epic { color: var(--rare-epic); font-weight: bold; text-shadow: 0 0 2px rgba(155, 89, 182, 0.2); }
+    .quality-legend { color: var(--rare-legend); font-weight: 800; text-shadow: 0 0 3px rgba(241, 196, 15, 0.4); animation: glow 2s infinite; }
+    @keyframes glow { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+    /* 商城面板 (隐藏/显示) */
+    .shop-panel { display: none; background: #fff; padding: 15px; border-top: 1px solid #eee; }
+    .shop-panel.active { display: block; }
+    .shop-header { font-weight: bold; margin-bottom: 10px; color: var(--primary-blue); display: flex; justify-content: space-between; }
+    .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .shop-item { border: 1px solid #eee; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+    .shop-item:hover { border-color: var(--primary-blue); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .s-icon { font-size: 24px; margin-bottom: 5px; display: block; }
+    .s-name { font-size: 12px; font-weight: bold; color: #333; display: block; }
+    .s-desc { font-size: 11px; color: #999; margin: 4px 0; display: block; }
+    .s-price { font-size: 12px; color: #f39c12; font-weight: bold; }
+    .buff-timer { background: #ffeaa7; color: #d35400; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-top: 5px; display: none; }
 
     .hot-limit { max-width: 600px; } .hot-limit.open { max-height: 500px; }
     .hot-box { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; height: 400px; display: flex; flex-direction: column; }
@@ -199,17 +207,18 @@
 </head>
 <body>
 
-  <!-- 用户状态栏 (知乎极简风) -->
+  <!-- 用户状态栏 -->
   <div class="user-bar">
-    <div class="fish-stats" title="钓鱼进度">
+    <div class="fish-stats" title="钓鱼等级与金币">
       <span id="levelBadge" class="level-badge">Lv.1</span>
-      <span id="levelTitle">菜鸟</span>
-      <i class="fas fa-fish" style="color:var(--primary-blue); font-size:12px;"></i>
-      <span id="userScore" style="font-family: monospace;">0</span>
+      <span id="levelTitle">小虾米</span>
+      <div class="divider"></div>
+      <i class="fas fa-coins" style="color:#f39c12; font-size:12px;"></i>
+      <span id="userGold" style="font-family: monospace; font-weight:bold;">0</span>
     </div>
     <div class="divider"></div>
     <div id="authContainer">
-      <button class="auth-btn" id="loginBtn" onclick="showAuthModal()">登录</button>
+      <button class="auth-btn" id="loginBtn" onclick="showAuthModal()">登录 / 存档</button>
       <div id="userInfo" style="display:none; align-items:center;">
         <span id="userNameDisplay" class="user-name"></span>
         <span class="logout-btn" onclick="handleLogout()">退出</span>
@@ -224,7 +233,7 @@
       <input type="text" id="username" class="modal-input" placeholder="用户名" autocomplete="off">
       <input type="password" id="password" class="modal-input" placeholder="密码">
       <button class="btn-login" onclick="handleLogin()">登录 / 注册</button>
-      <button style="background:transparent; color:#8590a6;" onclick="closeAuthModal()">取消</button>
+      <button style="background:transparent; color:#8590a6; border:none; cursor:pointer;" onclick="closeAuthModal()">取消</button>
     </div>
   </div>
 
@@ -248,18 +257,17 @@
       <a href="https://heyan9.github.io/记录.html" class="nav-item"><i class="fas fa-briefcase"></i> 记录</a>
       <a href="https://500px.com.cn/heyanw" class="nav-item"><i class="fas fa-camera"></i> 摄影展示</a>
       <a href="https://www.tboxn.com/1504.html" class="nav-item"><i class="fas fa-book-open"></i> 读书笔记</a>
-      
-      <!-- 随机骰子 -->
       <div class="nav-item" onclick="rollDice(this)" title="点击摇骰子">
         <i class="fas fa-dice"></i> <span id="diceText">随机骰子</span>
       </div>
     </div>
 
-    <!-- 工具栏 -->
+    <!-- 功能开关 -->
     <div class="toggle-section">
       <button class="toggle-btn" id="btnTools" onclick="toggleSection('tools')"><i class="fas fa-chevron-down"></i></button>
       <button class="toggle-btn" id="btnMusic" onclick="toggleSection('music')"><i class="fas fa-music"></i></button>
       <button class="toggle-btn" id="btnTasks" onclick="toggleSection('tasks')"><i class="fas fa-tasks"></i></button>
+      <button class="toggle-btn" id="btnAccount" onclick="toggleSection('account')"><i class="fas fa-wallet"></i></button>
       <button class="toggle-btn" id="btnGame" onclick="toggleSection('game')"><i class="fas fa-fish"></i></button>
       <button class="toggle-btn" id="btnHot" onclick="toggleSection('hot')"><i class="fab fa-weibo"></i></button>
     </div>
@@ -279,11 +287,9 @@
         <a href="https://www.66yingshi.com/" class="tool-item">视频BT</a>
         <a href="https://waifu2x.udp.jp/" class="tool-item">Waifu2x</a>
         <a href="https://www.dxomark.com/" class="tool-item">DXOmark</a>
-        <a href="https://bbs.fengniao.com/forum/forum_125.html" class="tool-item">蜂鸟摄影</a>
         <a href="https://clipdrop.co/uncrop" class="tool-item">AI 拓图</a>
         <a href="https://github.com/" class="tool-item">Github</a>
         <a href="https://pc.woozooo.com/" class="tool-item">蓝奏云</a>
-        <a href="https://www.123pan.com/" class="tool-item">123云盘</a>
         <a href="https://fanyi.youdao.com/index.html#/" class="tool-item">在线翻译</a>
         <a href="https://tv.cctv.com/live/index.shtml" class="tool-item">CCTV直播</a>
         <a href="http://www.2t58.com/" class="tool-item">无损音乐</a>
@@ -301,63 +307,42 @@
         <a href="https://pdftoword.55.la/" class="tool-item">转转大师</a>
         <a href="https://koodo.960960.xyz/zh" class="tool-item">Koodo</a>
         <a href="https://zh.z-library.se/" class="tool-item">Z-Library</a>
-        <a href="https://www.hzlib.net/szzyxsyj/364.htm" class="tool-item">知网下载</a>
         <a href="https://onlinecamscanner.com/zh-Hans/" class="tool-item">在线扫描</a>
         <a href="https://vocalremover.org/zh/" class="tool-item">分离人声</a>
-        <a href="https://xvideos.com/" class="tool-item">XV</a>
-        <a href="https://note.youdao.com/s/NuYFD6yL" class="tool-item">游戏盒</a>
       </div>
     </div>
 
-    <!-- 音乐播放器 -->
+    <!-- 记账本 -->
+    <div class="hidden-wrapper account-limit" id="accountWrapper">
+      <div class="account-container">
+        <div class="acc-header">
+          <div class="acc-month-title" id="accMonthTitle">...</div>
+          <div class="acc-total">本月支出: <span id="accTotalDisplay">0</span> 元</div>
+        </div>
+        <div class="acc-input-group">
+          <input type="text" id="accDesc" class="acc-input" placeholder="消费项目 (如: 早餐)">
+          <input type="number" id="accAmount" class="acc-input" placeholder="金额">
+          <button class="btn-add-acc" onclick="addExpense()">记一笔</button>
+        </div>
+        <div class="acc-list" id="accList">
+          <div style="text-align:center;color:#ccc;margin-top:20px;">加载中...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 音乐播放器 (网易云) -->
     <div class="hidden-wrapper music-limit" id="musicWrapper">
-      <div class="music-player">
-        <div class="album-art"><img src="" alt="Cover" id="musicCover"></div>
-        <div class="player-info">
-          <div class="song-title" id="musicTitle"></div>
-          <div class="artist-name" id="musicArtist"></div>
-          <div class="controls">
-            <button class="ctrl-btn" onclick="prevSong()"><i class="fas fa-step-backward"></i></button>
-            <button class="play-pause-btn" onclick="togglePlay()"><i class="fas fa-play" id="playIcon"></i></button>
-            <button class="ctrl-btn" onclick="nextSong()"><i class="fas fa-step-forward"></i></button>
-          </div>
-        </div>
-        <audio id="audioPlayer"></audio>
+      <div class="netease-wrapper">
+        <!-- 替换为你的网易云歌单外链ID，auto=1自动播放 -->
+        <iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width=330 height=450 src="//music.163.com/outchain/player?type=0&id=2083668800&auto=1&height=430"></iframe>
       </div>
     </div>
 
-    <!-- 小猫钓鱼 -->
-    <div class="hidden-wrapper game-limit" id="gameWrapper">
-      <div class="game-container">
-        <div class="game-scene">
-          <div class="alert-icon" id="gameAlert">!</div>
-          <div class="game-cat" id="catSprite">🐱</div>
-          <div class="fishing-line" id="fishingLine"><div class="bobber"></div></div>
-        </div>
-        <div class="game-log-panel">
-          <div class="log-header">
-            <span><i class="fas fa-history"></i> 挂机日志</span>
-            <div class="game-controls">
-              <button class="btn-game-ctrl btn-start" id="btnStartGame" onclick="userStartGame()"><i class="fas fa-play"></i> 开始挂机</button>
-              <button class="btn-game-ctrl btn-stop" id="btnStopGame" onclick="userStopGame()"><i class="fas fa-pause"></i> 暂停</button>
-            </div>
-          </div>
-          <div class="log-list" id="gameLog">
-            <div class="log-item">欢迎！点击[开始挂机]启动自动钓鱼。</div>
-            <div class="log-item">面板收起后游戏仍会在后台运行。</div>
-          </div>
-          <div class="game-status-text" id="gameStatus">状态: 休息中</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 任务清单 (已修复) -->
+    <!-- 任务清单 -->
     <div class="hidden-wrapper task-limit" id="tasksWrapper">
       <div class="task-container">
-        <!-- 输入区域 -->
         <div class="task-input-group">
-          <input type="text" id="newTaskInput" class="task-input" placeholder="输入新任务 (登录后可同步)...">
-          
+          <input type="text" id="newTaskInput" class="task-input" placeholder="输入新任务...">
           <div class="star-select" id="newStarSelect">
             <i class="fas fa-star selected" onclick="setStar(1)"></i>
             <i class="fas fa-star selected" onclick="setStar(2)"></i>
@@ -365,12 +350,75 @@
             <i class="fas fa-star" onclick="setStar(4)"></i>
             <i class="fas fa-star" onclick="setStar(5)"></i>
           </div>
-          
           <button class="btn-add-task" onclick="addNewTask()"><i class="fas fa-plus"></i></button>
         </div>
-        <!-- 任务列表 -->
         <div class="task-list" id="taskListContainer">
-          <div class="empty-tip">暂无任务，请在上方添加</div>
+          <div class="empty-tip" style="text-align:center;color:#999;margin-top:10px;">暂无任务</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 豪华钓鱼游戏 -->
+    <div class="hidden-wrapper game-limit" id="gameWrapper">
+      <div class="game-container">
+        <div class="game-main">
+          <div class="game-scene">
+            <div class="alert-icon" id="gameAlert">!</div>
+            <div class="game-cat" id="catSprite">🐱</div>
+            <div class="fishing-line" id="fishingLine"><div class="bobber"></div></div>
+            <div id="buffTimer" class="buff-timer" style="position:absolute;top:10px;left:10px;">金吊杆生效中...</div>
+          </div>
+          <div class="game-sidebar">
+            <div class="game-controls">
+              <button class="btn-game-ctrl btn-start" id="btnStartGame" onclick="userStartGame()">开始挂机</button>
+              <button class="btn-game-ctrl btn-stop" id="btnStopGame" onclick="userStopGame()">暂停</button>
+              <button class="btn-game-ctrl btn-shop" onclick="toggleShop()">渔具店</button>
+            </div>
+            <div class="log-list" id="gameLog">
+              <div class="log-item">欢迎！挂机可获得金币与经验。</div>
+              <div class="log-item">难度已提升，传说鱼极难上钩。</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 商店面板 -->
+        <div class="shop-panel" id="shopPanel">
+          <div class="shop-header">
+            <span><i class="fas fa-store"></i> 渔具商城</span>
+            <span style="font-size:12px;cursor:pointer;" onclick="toggleShop()">关闭 x</span>
+          </div>
+          <div class="shop-grid">
+            <div class="shop-item" onclick="buyItem('upgradeRod')">
+              <i class="fas fa-magic s-icon" style="color:#3498db;"></i>
+              <span class="s-name">升级鱼竿</span>
+              <span class="s-desc">提升高稀有度概率</span>
+              <span class="s-price" id="priceRod">1000 G</span>
+            </div>
+            <div class="shop-item" onclick="buyItem('upgradePond')">
+              <i class="fas fa-water s-icon" style="color:#2ecc71;"></i>
+              <span class="s-name">扩建鱼塘</span>
+              <span class="s-desc">加快上钩速度</span>
+              <span class="s-price" id="pricePond">2000 G</span>
+            </div>
+            <div class="shop-item" onclick="buyItem('goldChest')">
+              <i class="fas fa-box-open s-icon" style="color:#f1c40f;"></i>
+              <span class="s-name">金币宝箱</span>
+              <span class="s-desc">随机开出巨额金币</span>
+              <span class="s-price">999 G</span>
+            </div>
+            <div class="shop-item" onclick="buyItem('goldenRod')">
+              <i class="fas fa-star s-icon" style="color:#e67e22;"></i>
+              <span class="s-name">金吊杆 (10分)</span>
+              <span class="s-desc">必出宝箱类物品</span>
+              <span class="s-price">19999 G</span>
+            </div>
+            <div class="shop-item" onclick="buyItem('dogeCoin')">
+              <i class="fas fa-dog s-icon" style="color:#95a5a6;"></i>
+              <span class="s-name">狗狗币</span>
+              <span class="s-desc">提币至MetaMask</span>
+              <span class="s-price">199999 G</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -402,19 +450,26 @@
     }
   } catch (e) { console.error("LC Init", e); }
 
-  // User System
   let currentUser = null;
-  let userGameScore = 0;
+  // Game Stats
+  let userExp = 0;
+  let userGold = 0;
+  let rodLevel = 1;
+  let pondLevel = 1;
+  let goldenRodEndTime = 0; // Buff timestamp
 
+  // Init
   if (isCloudEnabled) {
     currentUser = AV.User.current();
     if (currentUser) {
       updateUIForLogin(currentUser);
       syncUserData();
       loadTasksFromCloud();
+      loadExpenses();
     }
   }
 
+  // --- Auth Logic ---
   function showAuthModal() { document.getElementById('authModal').style.display = 'flex'; }
   function closeAuthModal() { document.getElementById('authModal').style.display = 'none'; }
   function handleLogout() { if(confirm("退出登录？")) { AV.User.logOut(); window.location.reload(); } }
@@ -426,11 +481,11 @@
     try {
       currentUser = await AV.User.logIn(u, p);
       closeAuthModal(); updateUIForLogin(currentUser); 
-      syncUserData(); loadTasksFromCloud();
+      syncUserData(); loadTasksFromCloud(); loadExpenses();
     } catch (e) {
       if(e.code===211||e.code===210) {
         const user=new AV.User(); user.setUsername(u); user.setPassword(p);
-        user.set('gameScore',0);
+        user.set('exp',0); user.set('gold',0); user.set('rodLevel',1); user.set('pondLevel',1);
         try{ currentUser=await user.signUp(); closeAuthModal(); updateUIForLogin(currentUser); }
         catch(re){ alert(re.message); }
       } else alert(e.message);
@@ -443,278 +498,341 @@
     document.getElementById('userNameDisplay').innerText = user.getUsername();
   }
 
-  // Dice Logic
-  function rollDice(el) {
-    const val = Math.floor(Math.random() * 6) + 1;
-    const textSpan = el.querySelector('span');
-    textSpan.innerText = `点数: ${val}`;
-    const icon = el.querySelector('i');
-    const numWords = ['one', 'two', 'three', 'four', 'five', 'six'];
-    icon.className = `fas fa-dice-${numWords[val-1]}`;
-    el.style.color = "var(--primary-blue)";
-    setTimeout(() => { el.style.color = ""; }, 500);
-  }
-
-  // Level Logic
-  function calculateLevelInfo(score) {
-    const level = Math.floor(score / 50) + 1; 
-    let title = "菜鸟";
-    if (level > 500) title = "钓神";
-    else if (level > 100) title = "大师";
-    else if (level > 60) title = "老手";
-    else if (level > 30) title = "入门";
-    else if (level > 15) title = "新手";
-    return { level, title };
-  }
-  function updateScoreDisplay() {
-    const info = calculateLevelInfo(userGameScore);
-    document.getElementById('userScore').innerText = userGameScore;
-    document.getElementById('levelBadge').innerText = `Lv.${info.level}`;
-    document.getElementById('levelTitle').innerText = info.title;
-  }
   async function syncUserData() {
     if(!currentUser) return;
     await currentUser.fetch();
-    userGameScore = currentUser.get('gameScore') || 0;
-    updateScoreDisplay();
+    userExp = currentUser.get('exp') || 0;
+    userGold = currentUser.get('gold') || 0;
+    rodLevel = currentUser.get('rodLevel') || 1;
+    pondLevel = currentUser.get('pondLevel') || 1;
+    updateStatusDisplay();
+    updateShopPrices();
   }
 
-  // --- Task Logic (Restored) ---
-  const TodoItem = AV.Object.extend('TodoItem');
-  let tasks = []; 
-  let currentTaskNewStars = 3; 
-  let activeTaskId = null; 
-  let taskTimerInterval = null; 
-  let taskStartTime = 0; 
-
-  function setStar(val) {
-    currentTaskNewStars = val;
-    const stars = document.getElementById('newStarSelect').children;
-    for(let i=0; i<5; i++) {
-      if(i < val) stars[i].classList.add('selected');
-      else stars[i].classList.remove('selected');
-    }
-  }
-
-  async function loadTasksFromCloud() {
-    if(!currentUser) return;
-    const query = new AV.Query('TodoItem');
-    query.equalTo('user', currentUser);
-    query.descending('stars');
-    try {
-      const results = await query.find();
-      tasks = results.map(item => ({
-        id: item.id,
-        title: item.get('title'),
-        stars: item.get('stars'),
-        totalSeconds: item.get('totalSeconds') || 0,
-        obj: item 
-      }));
-      renderTasks();
-    } catch(e) { console.error("Load Tasks Error", e); }
-  }
-
-  async function addNewTask() {
-    if(!currentUser) return alert("请先登录！");
-    const input = document.getElementById('newTaskInput');
-    const title = input.value.trim();
-    if(!title) return;
-
-    const todo = new TodoItem();
-    todo.set('title', title);
-    todo.set('stars', currentTaskNewStars);
-    todo.set('totalSeconds', 0);
-    todo.set('user', currentUser);
-    
-    try {
-      const saved = await todo.save();
-      tasks.unshift({ 
-        id: saved.id, title: title, stars: currentTaskNewStars,
-        totalSeconds: 0, obj: saved
-      });
-      tasks.sort((a,b) => b.stars - a.stars);
-      renderTasks();
-      input.value = '';
-    } catch(e) { alert("添加失败: " + e.message); }
-  }
-
-  async function deleteTask(event, id) {
-    event.stopPropagation();
-    if(!confirm("确定删除此任务？")) return;
-    if(activeTaskId === id) toggleTaskTimer(id);
-    const taskIndex = tasks.findIndex(t => t.id === id);
-    if(taskIndex > -1) {
-      const taskObj = tasks[taskIndex].obj;
-      tasks.splice(taskIndex, 1);
-      renderTasks();
-      try { await taskObj.destroy(); } catch(e) { console.error("Delete Error", e); }
-    }
-  }
-
-  function toggleTaskTimer(id) {
-    const task = tasks.find(t => t.id === id);
-    if(!task) return;
-    if(activeTaskId && activeTaskId !== id) stopTaskTimer(activeTaskId);
-    if(activeTaskId === id) stopTaskTimer(id);
-    else startTaskTimer(id);
-  }
-
-  function startTaskTimer(id) {
-    activeTaskId = id;
-    taskStartTime = Date.now();
-    renderTasks(); 
-    taskTimerInterval = setInterval(() => {
-      const el = document.getElementById(`timer-${id}`);
-      if(el) {
-        const currentSessionSecs = Math.floor((Date.now() - taskStartTime) / 1000);
-        const task = tasks.find(t => t.id === id);
-        el.innerText = formatTime(task.totalSeconds + currentSessionSecs);
-      }
-    }, 1000);
-  }
-
-  function stopTaskTimer(id) {
-    clearInterval(taskTimerInterval);
-    const task = tasks.find(t => t.id === id);
-    if(task) {
-      const sessionSecs = Math.floor((Date.now() - taskStartTime) / 1000);
-      task.totalSeconds += sessionSecs;
-      task.obj.set('totalSeconds', task.totalSeconds);
-      task.obj.save();
-    }
-    activeTaskId = null;
-    renderTasks();
-  }
-
-  function formatTime(totalSeconds) {
-    const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
-    const s = (totalSeconds % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${s}`;
-  }
-
-  function renderTasks() {
-    const container = document.getElementById('taskListContainer');
-    if(tasks.length === 0) {
-      container.innerHTML = '<div class="empty-tip">暂无任务，请在上方添加</div>';
-      return;
-    }
-    let html = '';
-    tasks.forEach(t => {
-      const isRunning = (t.id === activeTaskId);
-      const starsStr = '★'.repeat(t.stars);
-      const btnClass = isRunning ? 'btn-pause' : 'btn-play';
-      const btnIcon = isRunning ? 'fa-pause' : 'fa-play';
-      const activeClass = isRunning ? 'active-running' : '';
-      html += `
-        <div class="task-item ${activeClass}">
-          <div class="t-info">
-            <div class="t-title" title="${t.title}">${t.title}</div>
-            <div class="t-stars">${starsStr}</div>
-          </div>
-          <div class="t-timer" id="timer-${t.id}">${formatTime(t.totalSeconds)}</div>
-          <div class="t-actions">
-            <button class="btn-icon ${btnClass}" onclick="toggleTaskTimer('${t.id}')">
-              <i class="fas ${btnIcon}"></i>
-            </button>
-            <button class="btn-icon btn-del" onclick="deleteTask(event, '${t.id}')">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    });
-    container.innerHTML = html;
-  }
-
-  // Game Logic
-  let isGameRunning = false;
-  let gameTimer = null;
-  const gameState = {
-    fishes: [
-      { name: "草鱼", prob: 0.45, score: 5 },
-      { name: "锦鲤", prob: 0.25, score: 12 },
-      { name: "金枪鱼", prob: 0.15, score: 30 },
-      { name: "神秘宝箱", prob: 0.05, score: 100 },
-      { name: "破靴子", prob: 0.10, score: 1 }
-    ]
-  };
-
-  function userStartGame() {
-    if(isGameRunning) return;
-    isGameRunning = true;
-    updateGameUIState();
-    updateGameStatus("挂机已启动...");
-    nextGameAction();
-  }
-  function userStopGame() {
-    isGameRunning = false;
-    clearTimeout(gameTimer);
-    updateGameUIState();
-    updateGameStatus("挂机已暂停");
-    document.getElementById('fishingLine').classList.remove('casting');
-    document.getElementById('gameAlert').classList.remove('show');
-  }
-  function updateGameUIState() {
-    const btnStart = document.getElementById('btnStartGame');
-    const btnStop = document.getElementById('btnStopGame');
-    const toggleBtn = document.getElementById('btnGame');
-    if(isGameRunning) {
-      btnStart.style.display = 'none'; btnStop.style.display = 'inline-block';
-      toggleBtn.classList.add('running');
-    } else {
-      btnStart.style.display = 'inline-block'; btnStop.style.display = 'none';
-      toggleBtn.classList.remove('running');
-    }
-  }
-  function updateGameStatus(text) { document.getElementById('gameStatus').innerText = `${text}`; }
-  function addGameLog(text, isRare) {
-    const logDiv = document.getElementById('gameLog');
-    const div = document.createElement('div');
-    div.className = 'log-item' + (isRare ? ' rare' : '');
-    const time = new Date().toLocaleTimeString('zh-CN', {hour12:false, minute:'2-digit', second:'2-digit'});
-    div.innerText = `[${time}] ${text}`;
-    logDiv.appendChild(div); logDiv.scrollTop = logDiv.scrollHeight;
-  }
-  function nextGameAction() { if (!isGameRunning) return; gameTimer = setTimeout(castLine, 2000 + Math.random() * 3000); }
-  function castLine() { if (!isGameRunning) return; updateGameStatus("抛竿中..."); document.getElementById('fishingLine').classList.add('casting'); gameTimer = setTimeout(fishBite, 3000 + Math.random() * 4000); }
-  function fishBite() { if (!isGameRunning) return; updateGameStatus("有鱼上钩！"); document.getElementById('gameAlert').classList.add('show'); gameTimer = setTimeout(reelIn, 1000); }
-  async function reelIn() {
-    if (!isGameRunning) return;
-    document.getElementById('fishingLine').classList.remove('casting');
-    document.getElementById('gameAlert').classList.remove('show');
-    const r = Math.random();
-    let acc = 0; let caught = gameState.fishes[0];
-    for (let f of gameState.fishes) { acc += f.prob; if (r < acc) { caught = f; break; } }
-    userGameScore += caught.score; updateScoreDisplay();
-    addGameLog(`钓到了 ${caught.name}! +${caught.score}分`, caught.score >= 30);
-    updateGameStatus(`收获: ${caught.name}`);
-    if (currentUser) { currentUser.increment('gameScore', caught.score); try { await currentUser.save(); } catch(e){ console.log("Save fail",e); } }
-    nextGameAction();
-  }
-
-  // UI Toggles
+  // --- Common UI ---
   function toggleSection(type) {
-    const ids = { tools: 'toolsWrapper', music: 'musicWrapper', tasks: 'tasksWrapper', game: 'gameWrapper', hot: 'hotWrapper' };
-    const btns = { tools: 'btnTools', music: 'btnMusic', tasks: 'btnTasks', game: 'btnGame', hot: 'btnHot' };
+    const ids = { tools: 'toolsWrapper', music: 'musicWrapper', tasks: 'tasksWrapper', game: 'gameWrapper', hot: 'hotWrapper', account: 'accountWrapper' };
+    const btns = { tools: 'btnTools', music: 'btnMusic', tasks: 'btnTasks', game: 'btnGame', hot: 'btnHot', account: 'btnAccount' };
     const targetEl = document.getElementById(ids[type]);
     const isOpen = targetEl.classList.contains('open');
     for(let k in ids) { document.getElementById(ids[k]).classList.remove('open'); document.getElementById(btns[k]).classList.remove('active'); }
     if(!isOpen) { targetEl.classList.add('open'); document.getElementById(btns[type]).classList.add('active'); }
   }
 
-  // Music & Info
-  const audio = document.getElementById('audioPlayer');
-  function togglePlay() { if(audio.paused) { audio.play(); document.getElementById('playIcon').className='fas fa-pause'; } else { audio.pause(); document.getElementById('playIcon').className='fas fa-play'; } }
+  function rollDice(el) {
+    const val = Math.floor(Math.random() * 6) + 1;
+    el.querySelector('span').innerText = `点数: ${val}`;
+    const icon = el.querySelector('i');
+    icon.className = `fas fa-dice-${['one','two','three','four','five','six'][val-1]}`;
+    el.style.color = "var(--primary-blue)";
+    setTimeout(() => { el.style.color = ""; }, 500);
+  }
+  
   const infoEl = document.getElementById('dynamic-info');
   setInterval(() => { const now=new Date(); infoEl.innerText = `${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`; }, 1000);
-  const playlist = [{ title: "在水一方", artist: "李健", src: "mp3/在水一方.mp3", cover: "mp3/2.jpg" }, { title: "西界", artist: "林俊杰", src: "mp3/西界.mp3", cover: "mp3/1.jpg" }];
-  let curIdx = 0;
-  function loadSong(s) { document.getElementById('musicTitle').innerText = s.title; document.getElementById('musicArtist').innerText = s.artist; audio.src = s.src; document.getElementById('musicCover').src = s.cover || 'img/logo1.png'; }
-  loadSong(playlist[curIdx]);
-  function prevSong() { curIdx--; if(curIdx<0) curIdx=playlist.length-1; loadSong(playlist[curIdx]); togglePlay(); }
-  function nextSong() { curIdx++; if(curIdx>playlist.length-1) curIdx=0; loadSong(playlist[curIdx]); togglePlay(); }
-  audio.addEventListener('ended', nextSong);
+
+  // --- Task System (简略版，功能保持) ---
+  const TodoItem = AV.Object.extend('TodoItem');
+  let tasks = []; let activeTaskId = null; let taskTimerInterval = null; let taskStartTime = 0; let curStars=3;
+  function setStar(n) { curStars=n; const s=document.getElementById('newStarSelect').children; for(let i=0;i<5;i++) s[i].className=i<n?'fas fa-star selected':'fas fa-star'; }
+  async function loadTasksFromCloud() {
+    if(!currentUser) return;
+    const q=new AV.Query('TodoItem'); q.equalTo('user', currentUser); q.descending('stars');
+    try { const r=await q.find(); tasks=r.map(i=>({id:i.id, title:i.get('title'), stars:i.get('stars'), totalSeconds:i.get('totalSeconds')||0, obj:i})); renderTasks(); } catch(e){}
+  }
+  async function addNewTask() {
+    if(!currentUser) return alert("请先登录");
+    const t=document.getElementById('newTaskInput').value.trim(); if(!t)return;
+    const obj=new TodoItem(); obj.set('title',t); obj.set('stars',curStars); obj.set('user',currentUser);
+    await obj.save();
+    tasks.unshift({id:obj.id, title:t, stars:curStars, totalSeconds:0, obj:obj}); renderTasks(); document.getElementById('newTaskInput').value='';
+  }
+  function renderTasks() {
+    const c=document.getElementById('taskListContainer');
+    if(!tasks.length) { c.innerHTML='<div class="empty-tip" style="text-align:center;color:#999">暂无任务</div>'; return; }
+    c.innerHTML = tasks.map(t => {
+      const run = t.id===activeTaskId;
+      return `<div class="task-item ${run?'active-running':''}">
+        <div class="t-info"><div class="t-title">${t.title}</div><div class="t-stars">${'★'.repeat(t.stars)}</div></div>
+        <div class="t-timer" id="timer-${t.id}">${formatTime(t.totalSeconds)}</div>
+        <div class="t-actions">
+          <button class="btn-icon ${run?'btn-pause':'btn-play'}" onclick="toggleTimer('${t.id}')"><i class="fas ${run?'fa-pause':'fa-play'}"></i></button>
+          <button class="btn-icon btn-del" onclick="delTask('${t.id}')"><i class="fas fa-trash"></i></button>
+        </div></div>`
+    }).join('');
+  }
+  function toggleTimer(id) { if(activeTaskId===id) stopTimer(id); else { if(activeTaskId) stopTimer(activeTaskId); startTimer(id); } }
+  function startTimer(id) { activeTaskId=id; taskStartTime=Date.now(); renderTasks(); taskTimerInterval=setInterval(()=>{ const el=document.getElementById('timer-'+id); if(el) el.innerText=formatTime(tasks.find(t=>t.id===id).totalSeconds + Math.floor((Date.now()-taskStartTime)/1000)); },1000); }
+  function stopTimer(id) { clearInterval(taskTimerInterval); const t=tasks.find(x=>x.id===id); if(t){ t.totalSeconds+=Math.floor((Date.now()-taskStartTime)/1000); t.obj.set('totalSeconds',t.totalSeconds); t.obj.save(); } activeTaskId=null; renderTasks(); }
+  async function delTask(id) { if(!confirm("删除?"))return; if(activeTaskId===id) stopTimer(id); const i=tasks.findIndex(t=>t.id===id); if(i>-1){ await tasks[i].obj.destroy(); tasks.splice(i,1); renderTasks(); } }
+  function formatTime(s) { return new Date(s*1000).toISOString().substr(11,8); }
+
+  // --- Accounting System (New) ---
+  const Expense = AV.Object.extend('Accounting');
+  async function loadExpenses() {
+    if (!currentUser) return;
+    const date = new Date();
+    const start = new Date(date.getFullYear(), date.getMonth(), 1);
+    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+    document.getElementById('accMonthTitle').innerText = `${date.getMonth()+1}月账单`;
+    
+    const q = new AV.Query('Accounting');
+    q.equalTo('user', currentUser);
+    q.greaterThanOrEqualTo('createdAt', start);
+    q.lessThanOrEqualTo('createdAt', end);
+    q.descending('createdAt');
+    
+    try {
+      const results = await q.find();
+      let total = 0;
+      const listHtml = results.map(e => {
+        const amt = e.get('amount');
+        total += amt;
+        const d = e.createdAt;
+        const dateStr = `${d.getDate()}日 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        return `<div class="acc-item">
+          <span><span class="acc-date">${dateStr}</span>${e.get('desc')}</span>
+          <span class="acc-cost">-${amt}</span>
+        </div>`;
+      }).join('');
+      document.getElementById('accList').innerHTML = listHtml || '<div style="text-align:center;color:#eee">本月无支出</div>';
+      document.getElementById('accTotalDisplay').innerText = total;
+    } catch(e) { console.error(e); }
+  }
+
+  async function addExpense() {
+    if(!currentUser) return alert("请登录后记账");
+    const d = document.getElementById('accDesc').value.trim();
+    const a = parseFloat(document.getElementById('accAmount').value);
+    if(!d || !a) return alert("请输入完整信息");
+    const exp = new Expense();
+    exp.set('desc', d); exp.set('amount', a); exp.set('user', currentUser);
+    try {
+      await exp.save();
+      document.getElementById('accDesc').value = '';
+      document.getElementById('accAmount').value = '';
+      loadExpenses();
+    } catch(e) { alert("保存失败"); }
+  }
+
+  // --- Game System (Overhauled) ---
+  let isGameRunning = false;
+  let gameTimer = null;
+  
+  // 鱼类数据库 (概率极低)
+  const FISH_DB = [
+    { name: "破靴子", type: "common", gold: 1, exp: 1, baseProb: 0.3 },
+    { name: "小草鱼", type: "common", gold: 5, exp: 5, baseProb: 0.3 },
+    { name: "鲫鱼", type: "common", gold: 8, exp: 8, baseProb: 0.2 },
+    { name: "虹鳟", type: "rare", gold: 25, exp: 30, baseProb: 0.1 },
+    { name: "蓝鳍金枪", type: "rare", gold: 50, exp: 60, baseProb: 0.05 },
+    { name: "经验宝箱", type: "epic", gold: 0, exp: 500, baseProb: 0.02 },
+    { name: "大白鲨", type: "epic", gold: 200, exp: 200, baseProb: 0.02 },
+    { name: "古代海怪", type: "legend", gold: 1000, exp: 1000, baseProb: 0.005 },
+    { name: "龙王宝藏", type: "legend", gold: 5000, exp: 0, baseProb: 0.005 }
+  ];
+
+  function calculateLevel() {
+    // 指数级难度: Level = sqrt(EXP) / 10.  100xp=Lv1, 10000xp=Lv10
+    return Math.floor(Math.sqrt(userExp) / 10) + 1;
+  }
+  
+  function getTitle(lv) {
+    if(lv < 5) return "小虾米";
+    if(lv < 10) return "见习钓手";
+    if(lv < 20) return "捕鱼达人";
+    if(lv < 40) return "海王";
+    if(lv < 60) return "传说钓神";
+    return "波塞冬";
+  }
+
+  function updateStatusDisplay() {
+    const lv = calculateLevel();
+    document.getElementById('levelBadge').innerText = `Lv.${lv}`;
+    document.getElementById('levelTitle').innerText = getTitle(lv);
+    document.getElementById('userGold').innerText = userGold;
+  }
+
+  function userStartGame() {
+    if(isGameRunning) return;
+    isGameRunning = true;
+    document.getElementById('btnStartGame').style.display='none';
+    document.getElementById('btnStopGame').style.display='inline-block';
+    document.getElementById('btnGame').classList.add('running');
+    addGameLog("挂机已开始...", "common");
+    loopGame();
+  }
+
+  function userStopGame() {
+    isGameRunning = false;
+    clearTimeout(gameTimer);
+    document.getElementById('btnStartGame').style.display='inline-block';
+    document.getElementById('btnStopGame').style.display='none';
+    document.getElementById('btnGame').classList.remove('running');
+    document.getElementById('fishingLine').classList.remove('casting');
+    document.getElementById('gameAlert').classList.remove('show');
+    addGameLog("挂机暂停。", "common");
+  }
+
+  function loopGame() {
+    if(!isGameRunning) return;
+    // 等待时间受鱼塘等级影响
+    const waitTime = Math.max(2000, 6000 - (pondLevel * 200)) + Math.random() * 2000;
+    gameTimer = setTimeout(() => {
+      document.getElementById('fishingLine').classList.add('casting');
+      // 咬钩时间
+      gameTimer = setTimeout(async () => {
+        document.getElementById('gameAlert').classList.add('show');
+        // 收杆延迟
+        await new Promise(r => setTimeout(r, 800));
+        
+        // 结算
+        processCatch();
+        
+        document.getElementById('fishingLine').classList.remove('casting');
+        document.getElementById('gameAlert').classList.remove('show');
+        
+        // 下一轮
+        loopGame();
+      }, 1500);
+    }, waitTime);
+  }
+
+  function processCatch() {
+    if(!isGameRunning) return;
+    
+    // 检查金吊杆Buff
+    const hasBuff = Date.now() < goldenRodEndTime;
+    if(hasBuff) document.getElementById('buffTimer').style.display = 'block';
+    else document.getElementById('buffTimer').style.display = 'none';
+
+    let caught = null;
+
+    if (hasBuff) {
+      // Buff生效：只出宝箱
+      const chests = FISH_DB.filter(f => f.name.includes('宝箱') || f.name.includes('宝藏'));
+      caught = chests[Math.floor(Math.random() * chests.length)];
+    } else {
+      // 正常概率，受鱼竿等级加成
+      const roll = Math.random();
+      let acc = 0;
+      // 鱼竿等级越高，稀有鱼概率加成 (简单算法)
+      const luckMultiplier = 1 + (rodLevel * 0.1); 
+      
+      // 重新计算权重分布
+      let pool = FISH_DB.map(f => ({ ...f, prob: f.baseProb * (f.type==='common'?1:luckMultiplier) }));
+      const totalProb = pool.reduce((a,b)=>a+b.prob,0);
+      const normalizedRoll = roll * totalProb;
+      
+      for(let f of pool) {
+        acc += f.prob;
+        if(normalizedRoll < acc) {
+          caught = f;
+          break;
+        }
+      }
+      if(!caught) caught = FISH_DB[0]; // 保底
+    }
+
+    // 奖励结算
+    userGold += caught.gold;
+    userExp += caught.exp;
+    updateStatusDisplay();
+    addGameLog(`钓到了 [${caught.name}] +${caught.gold}G +${caught.exp}XP`, caught.type);
+
+    // 云端同步 (非实时，每5次或获得大奖时存一次，这里简化为每次)
+    if(currentUser) {
+      currentUser.set('gold', userGold);
+      currentUser.set('exp', userExp);
+      currentUser.save().catch(e=>console.log('Autosave fail',e));
+    }
+  }
+
+  function addGameLog(text, type) {
+    const box = document.getElementById('gameLog');
+    const div = document.createElement('div');
+    div.className = `log-item quality-${type}`;
+    const time = new Date().toLocaleTimeString('zh-CN',{hour12:false, minute:'2-digit', second:'2-digit'});
+    div.innerHTML = `<span style="color:#ccc">[${time}]</span> ${text}`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // --- Shop System ---
+  function toggleShop() {
+    const p = document.getElementById('shopPanel');
+    p.classList.toggle('active');
+    updateShopPrices();
+  }
+
+  function updateShopPrices() {
+    const costRod = 1000 * Math.pow(2, rodLevel);
+    const costPond = 2000 * Math.pow(2, pondLevel);
+    document.getElementById('priceRod').innerText = `${costRod} G (当前Lv.${rodLevel})`;
+    document.getElementById('pricePond').innerText = `${costPond} G (当前Lv.${pondLevel})`;
+  }
+
+  async function buyItem(item) {
+    if(!currentUser) return alert("请先登录存档！");
+    
+    if(item === 'upgradeRod') {
+      const cost = 1000 * Math.pow(2, rodLevel);
+      if(userGold >= cost) {
+        if(confirm(`花费 ${cost}G 升级鱼竿?`)) {
+          userGold -= cost; rodLevel++;
+          finishPurchase("鱼竿升级成功！稀有率提升。");
+        }
+      } else alert("金币不足！");
+    }
+    else if(item === 'upgradePond') {
+      const cost = 2000 * Math.pow(2, pondLevel);
+      if(userGold >= cost) {
+        if(confirm(`花费 ${cost}G 扩建鱼塘?`)) {
+          userGold -= cost; pondLevel++;
+          finishPurchase("鱼塘扩建成功！上鱼速度加快。");
+        }
+      } else alert("金币不足！");
+    }
+    else if(item === 'goldChest') {
+      if(userGold >= 999) {
+        userGold -= 999;
+        const reward = Math.floor(Math.random() * 9999) + 1;
+        userGold += reward;
+        alert(`开启宝箱... 获得了 ${reward} 金币！`);
+        finishPurchase(`开启宝箱获得 ${reward} G`);
+      } else alert("金币不足 999");
+    }
+    else if(item === 'goldenRod') {
+      if(userGold >= 19999) {
+        if(confirm("购买限时金吊杆 (10分钟)?")) {
+          userGold -= 19999;
+          goldenRodEndTime = Date.now() + 10 * 60 * 1000;
+          document.getElementById('buffTimer').style.display = 'block';
+          finishPurchase("金吊杆已激活！接下来只出宝箱。");
+        }
+      } else alert("金币不足");
+    }
+    else if(item === 'dogeCoin') {
+      if(userGold >= 199999) {
+        const addr = prompt("请输入您的 MetaMask 钱包地址 (ERC-20):");
+        if(addr) {
+          userGold -= 199999;
+          finishPurchase("狗狗币购买成功！");
+          setTimeout(() => alert(`系统正在处理转账至 ${addr.substr(0,6)}... \n(这只是模拟功能)`), 500);
+        }
+      } else alert("金币不足 199999，快去钓传说鱼吧！");
+    }
+  }
+
+  function finishPurchase(msg) {
+    addGameLog(msg, 'legend');
+    updateStatusDisplay();
+    updateShopPrices();
+    currentUser.set('gold', userGold);
+    currentUser.set('rodLevel', rodLevel);
+    currentUser.set('pondLevel', pondLevel);
+    currentUser.save();
+  }
 
 </script>
 </body>
