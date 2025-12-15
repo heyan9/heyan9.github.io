@@ -6,6 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>何岩搜索站 - 尊享重制版</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <!-- 引入 APlayer 和 MetingJS (修复音乐播放的关键) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/meting/2.0.1/Meting.min.js"></script>
+
   <script src="https://code.bdstatic.com/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
   
   <style>
@@ -53,7 +59,6 @@
     }
     .fish-stats { display: flex; align-items: center; gap: 6px; color: var(--text-main); cursor: default; height: 100%; }
     .level-badge { background: rgba(0, 132, 255, 0.1); color: var(--primary-blue); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; }
-    .gold-badge { color: #f39c12; font-weight: bold; margin-left: 5px; }
     .divider { width: 1px; height: 14px; background: #e0e0e0; }
     #authContainer { display: flex; align-items: center; height: 100%; }
     .auth-btn { background: var(--primary-blue); color: white; border: none; padding: 0 16px; height: 28px; border-radius: 14px; cursor: pointer; font-size: 12px; margin-right: 4px; }
@@ -106,7 +111,7 @@
     .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; }
     .tool-item { background: #fff; color: #666; text-decoration: none; text-align: center; padding: 15px 5px; font-size: 13px; border: 1px solid #f0f0f0; border-radius: 6px; }
 
-    /* --- 记账本 (新功能) --- */
+    /* --- 记账本 --- */
     .account-limit { max-width: 650px; width: 100%; } .account-limit.open { max-height: 800px; }
     .account-container { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
     .acc-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #eee; padding-bottom: 10px; }
@@ -123,9 +128,25 @@
     .acc-date { color: #ccc; font-size: 12px; margin-right: 10px; font-family: monospace; }
     .acc-cost { color: #ff5252; font-weight: bold; }
 
-    /* --- 网易云音乐 (替换版) --- */
-    .music-limit { max-width: 500px; overflow: visible; } .music-limit.open { max-height: 500px; }
-    .netease-wrapper { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px -10px rgba(0, 132, 255, 0.15); }
+    /* --- 音乐播放器 (APlayer + MetingJS) --- */
+    /* 移除 iframe 限制，适配 APlayer */
+    .music-limit { max-width: 600px; width: 100%; } 
+    .music-limit.open { max-height: 600px; }
+    
+    /* APlayer 定制样式适配玻璃拟态 */
+    .aplayer {
+      background: var(--glass-bg) !important;
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 10px 40px -10px rgba(0, 132, 255, 0.1) !important;
+      margin: 0 !important;
+      font-family: inherit !important;
+    }
+    .aplayer .aplayer-body { background: transparent !important; }
+    .aplayer .aplayer-list { background: rgba(255,255,255,0.5) !important; }
+    .aplayer .aplayer-list ol li:hover { background: rgba(0,132,255,0.1) !important; }
+    .aplayer .aplayer-list ol li.aplayer-list-light { background: rgba(0,132,255,0.2) !important; }
 
     /* --- 任务清单 --- */
     .task-limit { max-width: 650px; width: 100%; } .task-limit.open { max-height: 800px; }
@@ -152,11 +173,10 @@
     .btn-del { background: transparent; color: #ccc; }
     .btn-del:hover { color: #ff5252; background: #fff0f0; }
 
-    /* --- 游戏系统 (大幅增强) --- */
+    /* --- 游戏系统 --- */
     .game-limit { max-width: 700px; width: 100%; } .game-limit.open { max-height: 1200px; }
     .game-container { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
     
-    /* 游戏主画面 */
     .game-main { height: 320px; display: flex; position: relative; border-bottom: 1px solid #eee; }
     .game-scene { flex: 2; position: relative; background: linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 50%, #4FC3F7 50%, #0288D1 100%); border-right: 1px solid rgba(255,255,255,0.5); overflow: hidden; }
     .game-cat { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); font-size: 60px; z-index: 10; }
@@ -168,7 +188,20 @@
     .alert-icon { position: absolute; top: 60px; left: calc(50% + 40px); font-size: 30px; color: #ff5252; font-weight: bold; opacity: 0; }
     .alert-icon.show { opacity: 1; animation: bounce 0.5s infinite; }
     
-    /* 右侧控制与日志 */
+    /* 猫抓老鼠小游戏层 */
+    .minigame-layer { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 50; flex-direction: column; align-items: center; justify-content: center; }
+    .minigame-layer.active { display: flex; }
+    .mg-info { color: #fff; margin-bottom: 15px; text-align: center; }
+    .mg-timer { font-size: 24px; font-weight: bold; color: #f1c40f; }
+    .mg-score { font-size: 18px; margin-top: 5px; }
+    .mg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 240px; height: 240px; }
+    .mg-hole { background: #5d4037; border-radius: 50%; border: 4px solid #8d6e63; position: relative; overflow: hidden; cursor: pointer; box-shadow: inset 0 5px 10px rgba(0,0,0,0.5); }
+    .mg-mouse { font-size: 40px; position: absolute; bottom: -50px; left: 50%; transform: translateX(-50%); transition: bottom 0.1s; pointer-events: none; }
+    .mg-mouse.up { bottom: 10px; }
+    .mg-hit { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px; display: none; }
+    .mg-hit.show { display: block; animation: fadeOut 0.5s forwards; }
+    @keyframes fadeOut { to { opacity: 0; transform: translate(-50%, -60%); } }
+
     .game-sidebar { flex: 1; background: rgba(255,255,255,0.5); padding: 15px; display: flex; flex-direction: column; font-size: 13px; }
     .game-controls { display: flex; gap: 5px; margin-bottom: 10px; }
     .btn-game-ctrl { flex: 1; padding: 6px 0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; color: white; }
@@ -178,14 +211,13 @@
     .log-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; font-family: monospace; border-top: 1px solid #eee; padding-top: 5px; height: 200px; }
     .log-item { font-size: 12px; }
     
-    /* 鱼获品质样式 */
     .quality-common { color: var(--rare-common); }
     .quality-rare { color: var(--rare-rare); font-weight: bold; }
     .quality-epic { color: var(--rare-epic); font-weight: bold; text-shadow: 0 0 2px rgba(155, 89, 182, 0.2); }
     .quality-legend { color: var(--rare-legend); font-weight: 800; text-shadow: 0 0 3px rgba(241, 196, 15, 0.4); animation: glow 2s infinite; }
     @keyframes glow { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
 
-    /* 商城面板 (隐藏/显示) */
+    /* 商城面板 */
     .shop-panel { display: none; background: #fff; padding: 15px; border-top: 1px solid #eee; }
     .shop-panel.active { display: block; }
     .shop-header { font-weight: bold; margin-bottom: 10px; color: var(--primary-blue); display: flex; justify-content: space-between; }
@@ -229,7 +261,7 @@
   <!-- 登录框 -->
   <div class="modal-overlay" id="authModal">
     <div class="modal-box">
-      <h3 style="margin-bottom:20px; color:#333;">何岩通行证</h3>
+      <h3 style="margin-bottom:20px; color:#333;">通行证</h3>
       <input type="text" id="username" class="modal-input" placeholder="用户名" autocomplete="off">
       <input type="password" id="password" class="modal-input" placeholder="密码">
       <button class="btn-login" onclick="handleLogin()">登录 / 注册</button>
@@ -262,7 +294,6 @@
       </div>
     </div>
 
-    <!-- 功能开关 -->
     <div class="toggle-section">
       <button class="toggle-btn" id="btnTools" onclick="toggleSection('tools')"><i class="fas fa-chevron-down"></i></button>
       <button class="toggle-btn" id="btnMusic" onclick="toggleSection('music')"><i class="fas fa-music"></i></button>
@@ -330,12 +361,27 @@
       </div>
     </div>
 
-    <!-- 音乐播放器 (网易云) -->
+    <!-- 音乐播放器 (APlayer + MetingJS 终极修复版) -->
     <div class="hidden-wrapper music-limit" id="musicWrapper">
-      <div class="netease-wrapper">
-        <!-- 替换为你的网易云歌单外链ID，auto=1自动播放 -->
-        <iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width=330 height=450 src="//music.163.com/outchain/player?type=0&id=2083668800&auto=1&height=430"></iframe>
-      </div>
+      <!-- 
+        server="netease" : 使用网易云源
+        type="playlist"  : 播放歌单
+        id="3778678"     : 网易云热歌榜ID
+      -->
+      <meting-js
+        server="netease"
+        type="playlist"
+        id="3778678"
+        fixed="false"
+        autoplay="false"
+        loop="all"
+        order="list"
+        preload="auto"
+        list-folded="false"
+        list-max-height="340px"
+        lrc-type="0"
+        theme="#0084ff">
+      </meting-js>
     </div>
 
     <!-- 任务清单 -->
@@ -358,7 +404,7 @@
       </div>
     </div>
 
-    <!-- 豪华钓鱼游戏 -->
+    <!-- 豪华钓鱼游戏 + 猫抓老鼠 -->
     <div class="hidden-wrapper game-limit" id="gameWrapper">
       <div class="game-container">
         <div class="game-main">
@@ -367,6 +413,27 @@
             <div class="game-cat" id="catSprite">🐱</div>
             <div class="fishing-line" id="fishingLine"><div class="bobber"></div></div>
             <div id="buffTimer" class="buff-timer" style="position:absolute;top:10px;left:10px;">金吊杆生效中...</div>
+            
+            <!-- 小游戏界面 (隐藏) -->
+            <div id="miniGamePanel" class="minigame-layer">
+               <div class="mg-info">
+                 <div class="mg-timer">时间: <span id="mgTime">60</span>s</div>
+                 <div class="mg-score">金币: <span id="mgScore">0</span></div>
+               </div>
+               <div class="mg-grid" id="mgGrid">
+                 <!-- 生成9个洞 -->
+                 <div class="mg-hole" onclick="whack(0)"><div class="mg-mouse" id="mouse-0">🐭</div><div class="mg-hit" id="hit-0">💥</div></div>
+                 <div class="mg-hole" onclick="whack(1)"><div class="mg-mouse" id="mouse-1">🐭</div><div class="mg-hit" id="hit-1">💥</div></div>
+                 <div class="mg-hole" onclick="whack(2)"><div class="mg-mouse" id="mouse-2">🐭</div><div class="mg-hit" id="hit-2">💥</div></div>
+                 <div class="mg-hole" onclick="whack(3)"><div class="mg-mouse" id="mouse-3">🐭</div><div class="mg-hit" id="hit-3">💥</div></div>
+                 <div class="mg-hole" onclick="whack(4)"><div class="mg-mouse" id="mouse-4">🐭</div><div class="mg-hit" id="hit-4">💥</div></div>
+                 <div class="mg-hole" onclick="whack(5)"><div class="mg-mouse" id="mouse-5">🐭</div><div class="mg-hit" id="hit-5">💥</div></div>
+                 <div class="mg-hole" onclick="whack(6)"><div class="mg-mouse" id="mouse-6">🐭</div><div class="mg-hit" id="hit-6">💥</div></div>
+                 <div class="mg-hole" onclick="whack(7)"><div class="mg-mouse" id="mouse-7">🐭</div><div class="mg-hit" id="hit-7">💥</div></div>
+                 <div class="mg-hole" onclick="whack(8)"><div class="mg-mouse" id="mouse-8">🐭</div><div class="mg-hit" id="hit-8">💥</div></div>
+               </div>
+            </div>
+
           </div>
           <div class="game-sidebar">
             <div class="game-controls">
@@ -401,10 +468,16 @@
               <span class="s-price" id="pricePond">2000 G</span>
             </div>
             <div class="shop-item" onclick="buyItem('goldChest')">
-              <i class="fas fa-box-open s-icon" style="color:#f1c40f;"></i>
-              <span class="s-name">金币宝箱</span>
-              <span class="s-desc">随机开出巨额金币</span>
-              <span class="s-price">999 G</span>
+              <i class="fas fa-box-open s-icon" style="color:#e74c3c;"></i>
+              <span class="s-name">风险宝箱</span>
+              <span class="s-desc">极高亏本率，博暴击</span>
+              <span class="s-price">5999 G</span>
+            </div>
+            <div class="shop-item" onclick="buyItem('gameConsole')">
+              <i class="fas fa-gamepad s-icon" style="color:#8e44ad;"></i>
+              <span class="s-name">猫捉老鼠</span>
+              <span class="s-desc">限时60s赢20000金</span>
+              <span class="s-price">3999 G</span>
             </div>
             <div class="shop-item" onclick="buyItem('goldenRod')">
               <i class="fas fa-star s-icon" style="color:#e67e22;"></i>
@@ -416,7 +489,7 @@
               <i class="fas fa-dog s-icon" style="color:#95a5a6;"></i>
               <span class="s-name">狗狗币</span>
               <span class="s-desc">提币至MetaMask</span>
-              <span class="s-price">199999 G</span>
+              <span class="s-price">999999 G</span>
             </div>
           </div>
         </div>
@@ -531,7 +604,7 @@
   const infoEl = document.getElementById('dynamic-info');
   setInterval(() => { const now=new Date(); infoEl.innerText = `${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`; }, 1000);
 
-  // --- Task System (简略版，功能保持) ---
+  // --- Task System ---
   const TodoItem = AV.Object.extend('TodoItem');
   let tasks = []; let activeTaskId = null; let taskTimerInterval = null; let taskStartTime = 0; let curStars=3;
   function setStar(n) { curStars=n; const s=document.getElementById('newStarSelect').children; for(let i=0;i<5;i++) s[i].className=i<n?'fas fa-star selected':'fas fa-star'; }
@@ -567,7 +640,7 @@
   async function delTask(id) { if(!confirm("删除?"))return; if(activeTaskId===id) stopTimer(id); const i=tasks.findIndex(t=>t.id===id); if(i>-1){ await tasks[i].obj.destroy(); tasks.splice(i,1); renderTasks(); } }
   function formatTime(s) { return new Date(s*1000).toISOString().substr(11,8); }
 
-  // --- Accounting System (New) ---
+  // --- Accounting System ---
   const Expense = AV.Object.extend('Accounting');
   async function loadExpenses() {
     if (!currentUser) return;
@@ -615,11 +688,9 @@
     } catch(e) { alert("保存失败"); }
   }
 
-  // --- Game System (Overhauled) ---
+  // --- Game System ---
   let isGameRunning = false;
   let gameTimer = null;
-  
-  // 鱼类数据库 (概率极低)
   const FISH_DB = [
     { name: "破靴子", type: "common", gold: 1, exp: 1, baseProb: 0.3 },
     { name: "小草鱼", type: "common", gold: 5, exp: 5, baseProb: 0.3 },
@@ -633,7 +704,6 @@
   ];
 
   function calculateLevel() {
-    // 指数级难度: Level = sqrt(EXP) / 10.  100xp=Lv1, 10000xp=Lv10
     return Math.floor(Math.sqrt(userExp) / 10) + 1;
   }
   
@@ -676,23 +746,15 @@
 
   function loopGame() {
     if(!isGameRunning) return;
-    // 等待时间受鱼塘等级影响
     const waitTime = Math.max(2000, 6000 - (pondLevel * 200)) + Math.random() * 2000;
     gameTimer = setTimeout(() => {
       document.getElementById('fishingLine').classList.add('casting');
-      // 咬钩时间
       gameTimer = setTimeout(async () => {
         document.getElementById('gameAlert').classList.add('show');
-        // 收杆延迟
         await new Promise(r => setTimeout(r, 800));
-        
-        // 结算
         processCatch();
-        
         document.getElementById('fishingLine').classList.remove('casting');
         document.getElementById('gameAlert').classList.remove('show');
-        
-        // 下一轮
         loopGame();
       }, 1500);
     }, waitTime);
@@ -700,50 +762,32 @@
 
   function processCatch() {
     if(!isGameRunning) return;
-    
-    // 检查金吊杆Buff
     const hasBuff = Date.now() < goldenRodEndTime;
     if(hasBuff) document.getElementById('buffTimer').style.display = 'block';
     else document.getElementById('buffTimer').style.display = 'none';
 
     let caught = null;
-
     if (hasBuff) {
-      // Buff生效：只出宝箱
       const chests = FISH_DB.filter(f => f.name.includes('宝箱') || f.name.includes('宝藏'));
       caught = chests[Math.floor(Math.random() * chests.length)];
     } else {
-      // 正常概率，受鱼竿等级加成
       const roll = Math.random();
       let acc = 0;
-      // 鱼竿等级越高，稀有鱼概率加成 (简单算法)
       const luckMultiplier = 1 + (rodLevel * 0.1); 
-      
-      // 重新计算权重分布
       let pool = FISH_DB.map(f => ({ ...f, prob: f.baseProb * (f.type==='common'?1:luckMultiplier) }));
       const totalProb = pool.reduce((a,b)=>a+b.prob,0);
       const normalizedRoll = roll * totalProb;
-      
       for(let f of pool) {
         acc += f.prob;
-        if(normalizedRoll < acc) {
-          caught = f;
-          break;
-        }
+        if(normalizedRoll < acc) { caught = f; break; }
       }
-      if(!caught) caught = FISH_DB[0]; // 保底
+      if(!caught) caught = FISH_DB[0];
     }
-
-    // 奖励结算
-    userGold += caught.gold;
-    userExp += caught.exp;
+    userGold += caught.gold; userExp += caught.exp;
     updateStatusDisplay();
     addGameLog(`钓到了 [${caught.name}] +${caught.gold}G +${caught.exp}XP`, caught.type);
-
-    // 云端同步 (非实时，每5次或获得大奖时存一次，这里简化为每次)
     if(currentUser) {
-      currentUser.set('gold', userGold);
-      currentUser.set('exp', userExp);
+      currentUser.set('gold', userGold); currentUser.set('exp', userExp);
       currentUser.save().catch(e=>console.log('Autosave fail',e));
     }
   }
@@ -752,11 +796,70 @@
     const box = document.getElementById('gameLog');
     const div = document.createElement('div');
     div.className = `log-item quality-${type}`;
-    const time = new Date().toLocaleTimeString('zh-CN',{hour12:false, minute:'2-digit', second:'2-digit'});
-    div.innerHTML = `<span style="color:#ccc">[${time}]</span> ${text}`;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
+    div.innerHTML = `<span style="color:#ccc">[${new Date().toLocaleTimeString('zh-CN',{hour12:false,minute:'2-digit',second:'2-digit'})}]</span> ${text}`;
+    box.appendChild(div); box.scrollTop = box.scrollHeight;
   }
+
+  // --- Mini Game: Whack-a-Mole ---
+  let mgTimer = null;
+  let mgSpawnTimer = null;
+  let mgScore = 0;
+  let mgTimeLeft = 60;
+  
+  function startMiniGame() {
+    if(userGameRunning()) userStopGame(); // Stop fishing if running
+    document.getElementById('miniGamePanel').classList.add('active');
+    mgScore = 0;
+    mgTimeLeft = 60;
+    document.getElementById('mgScore').innerText = mgScore;
+    document.getElementById('mgTime').innerText = mgTimeLeft;
+    
+    // Countdown
+    mgTimer = setInterval(() => {
+      mgTimeLeft--;
+      document.getElementById('mgTime').innerText = mgTimeLeft;
+      if(mgTimeLeft <= 0) endMiniGame();
+    }, 1000);
+    
+    // Spawner
+    mgSpawnTimer = setInterval(spawnMouse, 700);
+  }
+  
+  function spawnMouse() {
+    const holes = document.getElementsByClassName('mg-mouse');
+    for(let h of holes) h.classList.remove('up'); // clear old
+    const idx = Math.floor(Math.random() * 9);
+    const mouse = document.getElementById(`mouse-${idx}`);
+    mouse.classList.add('up');
+    setTimeout(() => { if(mouse.classList.contains('up')) mouse.classList.remove('up'); }, 600);
+  }
+  
+  function whack(idx) {
+    const mouse = document.getElementById(`mouse-${idx}`);
+    if(mouse.classList.contains('up')) {
+      mouse.classList.remove('up');
+      const hit = document.getElementById(`hit-${idx}`);
+      hit.classList.add('show');
+      setTimeout(() => hit.classList.remove('show'), 500);
+      mgScore += Math.floor(Math.random() * 50) + 50; // 50-100 gold per hit
+      document.getElementById('mgScore').innerText = mgScore;
+    }
+  }
+  
+  function endMiniGame() {
+    clearInterval(mgTimer);
+    clearInterval(mgSpawnTimer);
+    document.getElementById('miniGamePanel').classList.remove('active');
+    let reward = mgScore;
+    if(reward > 20000) reward = 20000;
+    userGold += reward;
+    updateStatusDisplay();
+    alert(`游戏结束！你捉到了价值 ${reward} 金币的老鼠！`);
+    addGameLog(`猫捉老鼠奖励: ${reward} G`, 'epic');
+    saveUser();
+  }
+  
+  function userGameRunning() { return isGameRunning; }
 
   // --- Shop System ---
   function toggleShop() {
@@ -768,8 +871,8 @@
   function updateShopPrices() {
     const costRod = 1000 * Math.pow(2, rodLevel);
     const costPond = 2000 * Math.pow(2, pondLevel);
-    document.getElementById('priceRod').innerText = `${costRod} G (当前Lv.${rodLevel})`;
-    document.getElementById('pricePond').innerText = `${costPond} G (当前Lv.${pondLevel})`;
+    document.getElementById('priceRod').innerText = `${costRod} G (Lv.${rodLevel})`;
+    document.getElementById('pricePond').innerText = `${costPond} G (Lv.${pondLevel})`;
   }
 
   async function buyItem(item) {
@@ -794,13 +897,32 @@
       } else alert("金币不足！");
     }
     else if(item === 'goldChest') {
-      if(userGold >= 999) {
-        userGold -= 999;
-        const reward = Math.floor(Math.random() * 9999) + 1;
+      if(userGold >= 5999) {
+        userGold -= 5999;
+        const roll = Math.random();
+        let reward = 0;
+        let msg = "";
+        let type = "common";
+        if (roll < 0.30) { 
+          if (Math.random() < 0.1) { reward = 20000; msg = "【欧皇降临】你从宝箱中发现了巨额财宝！"; type = "legend"; } 
+          else { reward = 6000 + Math.floor(Math.random() * 4000); msg = "运气不错，小赚一笔！"; type = "rare"; }
+        } else { 
+           reward = 100 + Math.floor(Math.random() * 4000); msg = "宝箱里装满了石头...";
+        }
         userGold += reward;
-        alert(`开启宝箱... 获得了 ${reward} 金币！`);
-        finishPurchase(`开启宝箱获得 ${reward} G`);
-      } else alert("金币不足 999");
+        alert(`${msg} 获得 ${reward} 金币`);
+        finishPurchase(`开启风险宝箱: ${reward} G`);
+      } else alert("金币不足 5999");
+    }
+    else if(item === 'gameConsole') {
+       if(userGold >= 3999) {
+         if(confirm("花费 3999G 玩一次猫捉老鼠？")) {
+           userGold -= 3999;
+           updateStatusDisplay();
+           toggleShop(); // close shop
+           startMiniGame();
+         }
+       } else alert("金币不足 3999");
     }
     else if(item === 'goldenRod') {
       if(userGold >= 19999) {
@@ -813,14 +935,14 @@
       } else alert("金币不足");
     }
     else if(item === 'dogeCoin') {
-      if(userGold >= 199999) {
+      if(userGold >= 999999) {
         const addr = prompt("请输入您的 MetaMask 钱包地址 (ERC-20):");
         if(addr) {
-          userGold -= 199999;
+          userGold -= 999999;
           finishPurchase("狗狗币购买成功！");
           setTimeout(() => alert(`系统正在处理转账至 ${addr.substr(0,6)}... \n(这只是模拟功能)`), 500);
         }
-      } else alert("金币不足 199999，快去钓传说鱼吧！");
+      } else alert("金币不足 999,999，快去钓传说鱼吧！");
     }
   }
 
@@ -828,10 +950,16 @@
     addGameLog(msg, 'legend');
     updateStatusDisplay();
     updateShopPrices();
-    currentUser.set('gold', userGold);
-    currentUser.set('rodLevel', rodLevel);
-    currentUser.set('pondLevel', pondLevel);
-    currentUser.save();
+    saveUser();
+  }
+  
+  function saveUser() {
+    if(currentUser) {
+      currentUser.set('gold', userGold);
+      currentUser.set('rodLevel', rodLevel);
+      currentUser.set('pondLevel', pondLevel);
+      currentUser.save();
+    }
   }
 
 </script>
