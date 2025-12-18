@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>何岩 AI 工坊 - 尊享版</title>
+  <title>何岩 AI 工坊 - 极速版</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://code.bdstatic.com/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
@@ -116,7 +116,6 @@
 
     <!-- 顶部状态栏 & Logo -->
     <div class="glass-card px-6 py-4 flex justify-between items-center">
-      <!-- 1. Logo 点击跳转 (新窗口打开) -->
       <a href="https://heyan9.github.io" target="_blank" class="flex items-center gap-3 hover:opacity-80 transition group" title="点击访问主页">
         <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md group-hover:bg-blue-500 transition">
           <i class="fas fa-layer-group"></i>
@@ -133,11 +132,11 @@
       </div>
     </div>
 
-    <!-- 实时翻译对比框 -->
+    <!-- 实时翻译对比框 (新引擎) -->
     <div class="glass-card p-6 relative">
         <div class="flex justify-between items-center mb-4">
             <h3 class="font-bold text-gray-800 flex items-center gap-2">
-                <i class="fas fa-language text-blue-500"></i> 双向实时翻译工坊
+                <i class="fas fa-language text-blue-500"></i> 双向实时翻译 (MyMemory 极速引擎)
             </h3>
             <div class="flex gap-2">
                 <button onclick="undoTrans()" class="btn-icon" title="撤销 (返回上一步)">
@@ -154,13 +153,13 @@
                 <i class="fas fa-exchange-alt text-xs"></i>
             </div>
             <div class="relative group">
-                <label class="block text-xs text-gray-400 mb-1 ml-1">中文 (Chinese) - 输入自动翻译</label>
+                <label class="block text-xs text-gray-400 mb-1 ml-1">中文 (Chinese)</label>
                 <textarea id="transCn" class="input-clean w-full h-32 resize-none" 
-                    placeholder="在此输入中文，右侧会自动变英文..." oninput="handleTransInput('cn')"></textarea>
+                    placeholder="在此输入中文，右侧秒变英文..." oninput="handleTransInput('cn')"></textarea>
                 <div id="loaderCn" class="absolute top-8 right-3 hidden"><div class="spinner"></div></div>
             </div>
             <div class="relative group">
-                <label class="block text-xs text-gray-400 mb-1 ml-1">英文 (English) - 修改反向同步</label>
+                <label class="block text-xs text-gray-400 mb-1 ml-1">英文 (English)</label>
                 <textarea id="transEn" class="input-clean w-full h-32 resize-none font-mono" 
                     placeholder="Type English here, left side updates..." oninput="handleTransInput('en')"></textarea>
                 <div id="loaderEn" class="absolute top-8 right-3 hidden"><div class="spinner"></div></div>
@@ -259,7 +258,6 @@
      <div>© 2025 AI Workshop</div>
      <div class="font-bold mt-1 mb-3 text-gray-500">这是何岩写的网站</div>
      
-     <!-- 2. 新增 AI 绘画教程链接 -->
      <div>
          <a href="https://docs.qq.com/doc/DZkpRb1JEaHFRVVpm" target="_blank" class="inline-flex items-center gap-1 text-blue-400 hover:text-blue-600 transition underline decoration-dotted">
              <i class="fas fa-book-open"></i> 【腾讯文档】AI 绘画使用教程
@@ -311,10 +309,10 @@
         dot.className = isOnline ? "w-2 h-2 rounded-full bg-green-500" : "w-2 h-2 rounded-full bg-orange-400";
     }
 
-    // 实时翻译
+    // --- 极速翻译逻辑 (MyMemory API) ---
     function handleTransInput(source) {
         clearTimeout(transTimeout);
-        transTimeout = setTimeout(() => { syncTranslation(source); }, 1000);
+        transTimeout = setTimeout(() => { syncTranslation(source); }, 600); // 600ms 防抖
     }
 
     async function syncTranslation(source) {
@@ -328,19 +326,25 @@
         document.getElementById(source==='cn' ? 'loaderEn' : 'loaderCn').classList.remove('hidden');
 
         try {
-            let prompt = source === 'cn' ? `Translate to English: "${val}"` : `Translate to Chinese: "${val}"`;
-            const res = await fetch('https://text.pollinations.ai/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: [{ role: 'system', content: 'You are a translator. Output ONLY the translation.' }, { role: 'user', content: prompt }],
-                    model: 'openai'
-                })
-            });
-            const text = await res.text();
-            if (source === 'cn') enBox.value = text.trim();
-            else cnBox.value = text.trim();
-        } catch(e) { console.error("Trans Error", e); } 
+            // 使用 MyMemory API: langpair=zh|en or en|zh
+            const pair = source === 'cn' ? 'zh|en' : 'en|zh';
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(val)}&langpair=${pair}`;
+            
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if(data && data.responseData && data.responseData.translatedText) {
+                const text = data.responseData.translatedText;
+                if (source === 'cn') enBox.value = text;
+                else cnBox.value = text;
+            } else {
+                throw new Error("API Limit or Error");
+            }
+        } catch(e) { 
+            console.error("MyMemory Error, switching to backup...", e); 
+            // 备份方案：如果 MyMemory 挂了，用简单的逻辑提示
+            if(source === 'cn') enBox.value = "[服务繁忙，请稍后再试]";
+        } 
         finally {
             document.getElementById('loaderEn').classList.add('hidden');
             document.getElementById('loaderCn').classList.add('hidden');
@@ -408,7 +412,7 @@
         syncTranslation('en');
     }
 
-    // AI 生成 Prompt
+    // AI 生成 Prompt (生成逻辑保持不变，因为需要AI创造力)
     async function generatePrompt() {
         const input = document.getElementById('userInput').value.trim();
         if(!input) return alert("请输入描述");
@@ -428,7 +432,7 @@
             try { data = JSON.parse(txt.match(/\{[\s\S]*\}/)[0]); } catch(e){}
             document.getElementById('posOutput').value = data.positive;
             document.getElementById('negOutput').value = data.negative;
-        } catch(e) { alert("Error"); } 
+        } catch(e) { alert("AI思考超时，请重试"); } 
         finally { btn.innerHTML = oldHTML; btn.disabled = false; }
     }
 
@@ -443,7 +447,7 @@
         res.forEach(o => {
             const d = document.createElement('div');
             d.className = `tag-pill group ${type==='positive'?'bg-blue-50 text-blue-600 border-blue-100':'bg-gray-50 text-gray-600 border-gray-200'}`;
-            // 3. 修改点：直接显示 tag (英文)，不显示翻译字段
+            // 纯英文 Tag 模式
             const tagText = o.get('tag');
             d.innerHTML = `<span onclick="addTagToArea('${type}','${tagText.replace(/'/g,"\\'")}')">${tagText}</span>
             <i class="fas fa-times ml-2 opacity-0 group-hover:opacity-100 hover:text-red-400 text-[10px]" onclick="deleteTag('${o.id}','${type}')"></i>`;
@@ -456,11 +460,11 @@
         const tag = el.value.trim();
         if(!tag) return;
         
-        // 3. 修改点：取消翻译逻辑，直接保存英文
+        // 纯英文 Tag 保存
         const o = new (AV.Object.extend('PromptTags'))();
         o.set('type',type); 
         o.set('tag',tag); 
-        o.set('translation', tag); // 保持兼容，translation 字段也存英文
+        o.set('translation', tag); // 占位
         
         await o.save(); el.value=''; loadLibrary(type);
     }
