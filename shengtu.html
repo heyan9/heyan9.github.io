@@ -114,26 +114,26 @@
 
   <div class="w-full max-w-6xl flex flex-col gap-6 mb-10">
 
-    <!-- 顶部状态栏 -->
+    <!-- 顶部状态栏 & Logo -->
     <div class="glass-card px-6 py-4 flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
+      <!-- 1. Logo 点击跳转 (新窗口打开) -->
+      <a href="https://heyan9.github.io" target="_blank" class="flex items-center gap-3 hover:opacity-80 transition group" title="点击访问主页">
+        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md group-hover:bg-blue-500 transition">
           <i class="fas fa-layer-group"></i>
         </div>
         <div>
-          <h1 class="font-bold text-gray-800 text-lg">AI 灵感工坊</h1>
+          <h1 class="font-bold text-gray-800 text-lg group-hover:text-blue-600 transition">AI 灵感工坊</h1>
           <p class="text-xs text-gray-400">He Yan AI Workshop</p>
         </div>
-      </div>
+      </a>
+      
       <div id="statusTag" onclick="testConnection()" class="cursor-pointer px-3 py-1 rounded-full bg-gray-100 text-gray-400 text-xs font-medium flex items-center gap-2">
         <div id="statusDot" class="w-2 h-2 rounded-full bg-gray-400"></div>
         <span id="statusText">连接云端中...</span>
       </div>
     </div>
 
-    <!-- ============================================== -->
-    <!-- NEW: 实时翻译对比框 (新增模块) -->
-    <!-- ============================================== -->
+    <!-- 实时翻译对比框 -->
     <div class="glass-card p-6 relative">
         <div class="flex justify-between items-center mb-4">
             <h3 class="font-bold text-gray-800 flex items-center gap-2">
@@ -150,20 +150,15 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
-            <!-- 中间图标 -->
             <div class="sync-icon shadow-sm hidden md:flex">
                 <i class="fas fa-exchange-alt text-xs"></i>
             </div>
-
-            <!-- 左：中文 -->
             <div class="relative group">
                 <label class="block text-xs text-gray-400 mb-1 ml-1">中文 (Chinese) - 输入自动翻译</label>
                 <textarea id="transCn" class="input-clean w-full h-32 resize-none" 
                     placeholder="在此输入中文，右侧会自动变英文..." oninput="handleTransInput('cn')"></textarea>
                 <div id="loaderCn" class="absolute top-8 right-3 hidden"><div class="spinner"></div></div>
             </div>
-
-            <!-- 右：英文 -->
             <div class="relative group">
                 <label class="block text-xs text-gray-400 mb-1 ml-1">英文 (English) - 修改反向同步</label>
                 <textarea id="transEn" class="input-clean w-full h-32 resize-none font-mono" 
@@ -172,7 +167,6 @@
             </div>
         </div>
 
-        <!-- 翻译片段库 -->
         <div class="mt-4 pt-4 border-t border-gray-100">
             <div class="text-xs text-gray-400 mb-2 font-bold flex items-center gap-2">
                 <i class="fas fa-tags"></i> 已存片段 (点击加载)
@@ -182,9 +176,8 @@
             </div>
         </div>
     </div>
-    <!-- ============================================== -->
 
-    <!-- 原有功能：画面描述生成 -->
+    <!-- 画面描述生成 -->
     <div class="glass-card p-6">
       <label class="block text-sm font-bold text-gray-600 mb-2 flex items-center gap-2">
         <i class="fas fa-pen-fancy text-blue-500"></i>
@@ -213,7 +206,7 @@
         
         <div class="flex-1 bg-white/60 rounded-xl border border-gray-200 flex flex-col overflow-hidden">
           <div class="p-2 border-b border-gray-100 flex gap-2">
-            <input id="addPosTag" class="input-clean flex-1 py-1 text-xs" placeholder="Add Tag">
+            <input id="addPosTag" class="input-clean flex-1 py-1 text-xs" placeholder="输入英文Tag (原样保存)">
             <button onclick="addCloudTag('positive')" class="bg-blue-500 text-white px-2 rounded text-xs"><i class="fas fa-plus"></i></button>
           </div>
           <div id="posLib" class="flex-1 overflow-y-auto p-2 content-start"><span class="text-xs text-gray-300">Loading...</span></div>
@@ -230,7 +223,7 @@
         
         <div class="flex-1 bg-white/60 rounded-xl border border-gray-200 flex flex-col overflow-hidden">
           <div class="p-2 border-b border-gray-100 flex gap-2">
-            <input id="addNegTag" class="input-clean flex-1 py-1 text-xs" placeholder="Add Tag">
+            <input id="addNegTag" class="input-clean flex-1 py-1 text-xs" placeholder="输入英文Tag (原样保存)">
             <button onclick="addCloudTag('negative')" class="bg-gray-500 text-white px-2 rounded text-xs"><i class="fas fa-plus"></i></button>
           </div>
           <div id="negLib" class="flex-1 overflow-y-auto p-2 content-start"><span class="text-xs text-gray-300">Loading...</span></div>
@@ -264,19 +257,23 @@
 
   <footer class="text-center text-gray-400 text-xs pb-8">
      <div>© 2025 AI Workshop</div>
-     <div class="font-bold mt-1 text-gray-500">这是何岩写的网站</div>
+     <div class="font-bold mt-1 mb-3 text-gray-500">这是何岩写的网站</div>
+     
+     <!-- 2. 新增 AI 绘画教程链接 -->
+     <div>
+         <a href="https://docs.qq.com/doc/DZkpRb1JEaHFRVVpm" target="_blank" class="inline-flex items-center gap-1 text-blue-400 hover:text-blue-600 transition underline decoration-dotted">
+             <i class="fas fa-book-open"></i> 【腾讯文档】AI 绘画使用教程
+         </a>
+     </div>
   </footer>
 
   <script>
-    // --- 配置 ---
     const APP_ID = "0fNWglSVWq6bfPeY4EgmAIXk-gzGzoHsz";
     const APP_KEY = "mtd6n4o06xmcHExxciaZBkvu";
     const SERVER_URL = "https://0fnwglsv.lc-cn-n1-shared.com";
     let isLCConnected = false;
-
-    // --- 实时翻译变量 ---
     let transTimeout = null;
-    let transHistory = []; // 存 {cn, en}
+    let transHistory = [];
     const MAX_HISTORY = 10;
 
     window.onload = function() {
@@ -299,7 +296,7 @@
             await query.find();
             setStatus(true, "云端已同步");
             loadLibrary('positive'); loadLibrary('negative');
-            loadTransClips(); // 加载翻译片段
+            loadTransClips();
         } catch (e) {
             if(e.code===101) { 
                 setStatus(true, "云端就绪"); loadTransClips();
@@ -314,41 +311,24 @@
         dot.className = isOnline ? "w-2 h-2 rounded-full bg-green-500" : "w-2 h-2 rounded-full bg-orange-400";
     }
 
-    // ==========================================
-    // NEW: 实时双向翻译逻辑
-    // ==========================================
-    
-    // 输入事件处理 (防抖)
+    // 实时翻译
     function handleTransInput(source) {
         clearTimeout(transTimeout);
-        transTimeout = setTimeout(() => {
-            syncTranslation(source);
-        }, 1000); // 停止打字1秒后触发
+        transTimeout = setTimeout(() => { syncTranslation(source); }, 1000);
     }
 
     async function syncTranslation(source) {
         const cnBox = document.getElementById('transCn');
         const enBox = document.getElementById('transEn');
-        
-        // 保存历史以便撤销
         saveHistoryState();
 
         const val = source === 'cn' ? cnBox.value.trim() : enBox.value.trim();
-        if(!val) return; // 空内容不翻
+        if(!val) return; 
 
-        // UI Loading
         document.getElementById(source==='cn' ? 'loaderEn' : 'loaderCn').classList.remove('hidden');
 
         try {
-            // Prompt construction
-            let prompt = "";
-            if (source === 'cn') {
-                prompt = `Translate this Chinese text to English directly: "${val}"`;
-            } else {
-                prompt = `Translate this English text to Chinese directly: "${val}"`;
-            }
-
-            // Call Free API
+            let prompt = source === 'cn' ? `Translate to English: "${val}"` : `Translate to Chinese: "${val}"`;
             const res = await fetch('https://text.pollinations.ai/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -358,27 +338,18 @@
                 })
             });
             const text = await res.text();
-            
-            // Update the OTHER box
-            if (source === 'cn') {
-                enBox.value = text.trim();
-            } else {
-                cnBox.value = text.trim();
-            }
-
-        } catch(e) {
-            console.error("Trans Error", e);
-        } finally {
+            if (source === 'cn') enBox.value = text.trim();
+            else cnBox.value = text.trim();
+        } catch(e) { console.error("Trans Error", e); } 
+        finally {
             document.getElementById('loaderEn').classList.add('hidden');
             document.getElementById('loaderCn').classList.add('hidden');
         }
     }
 
-    // 历史/撤销功能
     function saveHistoryState() {
         const cn = document.getElementById('transCn').value;
         const en = document.getElementById('transEn').value;
-        // 只有当内容变化才存
         if(transHistory.length > 0) {
             const last = transHistory[transHistory.length - 1];
             if(last.cn === cn && last.en === en) return;
@@ -394,70 +365,50 @@
         document.getElementById('transEn').value = last.en;
     }
 
-    // 存储片段到云端
     async function saveTransClip() {
         if(!isLCConnected) return alert("云端未连接");
         const enText = document.getElementById('transEn').value.trim();
         if(!enText) return alert("英文框是空的");
-
         const label = prompt("请填写标签名称 (用来记忆这段话):");
         if(!label) return;
-
         try {
             const Obj = AV.Object.extend('PromptTags');
             const o = new Obj();
-            o.set('type', 'trans_clip'); // 特殊类型
-            o.set('tag', enText);        // 存内容
-            o.set('translation', label); // 存标签名
+            o.set('type', 'trans_clip');
+            o.set('tag', enText);
+            o.set('translation', label);
             await o.save();
             loadTransClips();
         } catch(e) { alert("保存失败"); }
     }
 
-    // 加载片段库
     async function loadTransClips() {
         if(!isLCConnected) return;
         const container = document.getElementById('clipLib');
         const q = new AV.Query('PromptTags');
-        q.equalTo('type', 'trans_clip');
-        q.descending('createdAt');
-        q.limit(20);
-
+        q.equalTo('type', 'trans_clip'); q.descending('createdAt'); q.limit(20);
         try {
             const res = await q.find();
             container.innerHTML = '';
-            if(res.length === 0) {
-                container.innerHTML = '<span class="text-xs text-gray-300">暂无存储...</span>';
-                return;
-            }
+            if(res.length === 0) { container.innerHTML = '<span class="text-xs text-gray-300">暂无存储...</span>'; return; }
             res.forEach(o => {
                 const content = o.get('tag');
                 const label = o.get('translation');
                 const id = o.id;
-
                 const pill = document.createElement('div');
                 pill.className = 'tag-pill group bg-white border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-500';
-                pill.innerHTML = `
-                    <span onclick="applyClip('${content.replace(/'/g,"\\'")}','${label}')">${label}</span>
-                    <i class="fas fa-times ml-2 opacity-0 group-hover:opacity-100 hover:text-red-400 text-[10px]" onclick="deleteTag('${id}', 'trans_clip')"></i>
-                `;
+                pill.innerHTML = `<span onclick="applyClip('${content.replace(/'/g,"\\'")}','${label}')">${label}</span><i class="fas fa-times ml-2 opacity-0 group-hover:opacity-100 hover:text-red-400 text-[10px]" onclick="deleteTag('${id}', 'trans_clip')"></i>`;
                 container.appendChild(pill);
             });
         } catch(e) { console.error(e); }
     }
 
-    // 应用片段 (点击标签)
     function applyClip(content, label) {
-        // 填入英文
         document.getElementById('transEn').value = content;
-        // 自动触发反向翻译 (模拟输入)
         syncTranslation('en');
     }
 
-    // ==========================================
-    // 原有逻辑 (Prompt, Library, Image)
-    // ==========================================
-    
+    // AI 生成 Prompt
     async function generatePrompt() {
         const input = document.getElementById('userInput').value.trim();
         if(!input) return alert("请输入描述");
@@ -467,11 +418,9 @@
         btn.disabled = true;
 
         const sys = `Role: SD Prompt Expert. Translate to English tags. JSON output {"positive":"...","negative":"..."}. Input: ${input}`;
-        
         try {
             const res = await fetch('https://text.pollinations.ai/', {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
+                method: 'POST', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:input}],model:'openai',jsonMode:true})
             });
             const txt = await res.text();
@@ -494,7 +443,9 @@
         res.forEach(o => {
             const d = document.createElement('div');
             d.className = `tag-pill group ${type==='positive'?'bg-blue-50 text-blue-600 border-blue-100':'bg-gray-50 text-gray-600 border-gray-200'}`;
-            d.innerHTML = `<span onclick="addTagToArea('${type}','${o.get('tag').replace(/'/g,"\\'")}')">${o.get('translation')}</span>
+            // 3. 修改点：直接显示 tag (英文)，不显示翻译字段
+            const tagText = o.get('tag');
+            d.innerHTML = `<span onclick="addTagToArea('${type}','${tagText.replace(/'/g,"\\'")}')">${tagText}</span>
             <i class="fas fa-times ml-2 opacity-0 group-hover:opacity-100 hover:text-red-400 text-[10px]" onclick="deleteTag('${o.id}','${type}')"></i>`;
             box.appendChild(d);
         });
@@ -504,10 +455,13 @@
         const el = document.getElementById(type==='positive'?'addPosTag':'addNegTag');
         const tag = el.value.trim();
         if(!tag) return;
-        const res = await fetch(`https://text.pollinations.ai/Translate "${tag}" to Chinese concise word.`);
-        const cn = (await res.text()).replace(/"/g,'').trim();
+        
+        // 3. 修改点：取消翻译逻辑，直接保存英文
         const o = new (AV.Object.extend('PromptTags'))();
-        o.set('type',type); o.set('tag',tag); o.set('translation',cn);
+        o.set('type',type); 
+        o.set('tag',tag); 
+        o.set('translation', tag); // 保持兼容，translation 字段也存英文
+        
         await o.save(); el.value=''; loadLibrary(type);
     }
 
