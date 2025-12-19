@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>瑟瑟分享 - 稳定增强版</title>
+    <style>
+        :root { --blue: #0066FF; --bg: #ffffff; --border: #ebebeb; }
+        body { margin: 0; background: var(--bg); font-family: -apple-system, sans-serif; color: #1a1a1a; }
+        
+        /* 导航栏 - 知乎蓝毛玻璃 */
+        header { 
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(255,255,255,0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border); padding: 12px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; color: var(--blue); font-size: 18px; }
+        .brand img { height: 32px; width: 32px; border-radius: 6px; object-fit: cover; }
+        .nav-links a { text-decoration: none; color: #666; font-size: 14px; margin-left: 15px; transition: 0.2s; }
+        .nav-links a:hover { color: var(--blue); }
+
+        /* 瀑布流布局 */
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+        .gallery { column-count: 4; column-gap: 15px; }
+        @media (max-width: 1000px) { .gallery { column-count: 3; } }
+        @media (max-width: 700px) { .gallery { column-count: 2; } }
+
+        .img-card { 
+            break-inside: avoid; margin-bottom: 15px; border-radius: 10px; 
+            border: 1px solid var(--border); overflow: hidden; background: #f9f9f9;
+            transition: 0.3s; cursor: zoom-in;
+        }
+        .img-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .img-card img { width: 100%; display: block; height: auto; }
+
+        /* 悬浮音乐 */
+        #music-ctrl {
+            position: fixed; bottom: 25px; right: 25px; z-index: 200;
+            background: rgba(255,255,255,0.9); border: 1px solid var(--border);
+            padding: 10px 18px; border-radius: 30px; display: flex; align-items: center;
+            gap: 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; }
+        .playing .dot { background: var(--blue); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* 预览模态框 */
+        #modal { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(15px);
+            z-index: 1000; justify-content: center; align-items: center; 
+        }
+        #modal img { max-width: 90%; max-height: 85%; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .modal-btns { position: absolute; top: 20px; right: 20px; }
+        .btn { background: var(--blue); color: white; padding: 8px 20px; border-radius: 20px; text-decoration: none; border:none; cursor:pointer; }
+
+        .status { text-align: center; padding: 50px; color: #999; }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="#" class="brand">
+        <img id="logo-img" src="" onerror="this.src='https://via.placeholder.com/32?text=L'">
+        <span>瑟瑟分享</span>
+    </a>
+    <div class="nav-links">
+        <a href="https://pornhub.com" target="_blank">Pornhub</a>
+        <a href="https://e621.net" target="_blank">e621</a>
+    </div>
+</header>
+
+<div class="container">
+    <div id="gallery" class="gallery"></div>
+    <div id="status-msg" class="status">正在加载内容...</div>
+</div>
+
+<div id="music-ctrl" onclick="toggleMusic()">
+    <div class="dot" id="music-dot"></div>
+    <span style="font-size:14px; color:#555" id="music-txt">点击播放背景音乐</span>
+    <audio id="audio-player" loop></audio>
+</div>
+
+<div id="modal" onclick="closeModal(event)">
+    <div class="modal-btns">
+        <a id="dl-link" class="btn" download target="_blank">下载图片</a>
+    </div>
+    <img id="modal-img">
+</div>
+
+<script>
+    // --- 配置区 ---
+    const user = 'heyan9';
+    const repo = 'heyan9.github.io';
+    const branch = 'main'; // 如果你发现还是不行，尝试改成 'master'
+    const folder = 'img2';
+    // --------------
+
+    const audio = document.getElementById('audio-player');
+    const msg = document.getElementById('status-msg');
+
+    // 1. 立即加载 Logo 和 音乐（不等待图片列表）
+    const rawBase = `https://raw.gitmirror.com/${user}/${repo}/${branch}/`;
+    document.getElementById('logo-img').src = rawBase + 'logo2.png';
+    audio.src = rawBase + '3.mp3';
+
+    // 2. 加载图片列表
+    async function loadGallery() {
+        const api = `https://api.github.com/repos/${user}/${repo}/contents/${folder}?ref=${branch}`;
+        try {
+            const res = await fetch(api);
+            if (!res.ok) {
+                if(res.status === 403) throw new Error("API访问太快了，请1小时后再试，或换个网络。");
+                throw new Error("找不到文件夹，请检查名字是否为 img2");
+            }
+            const data = await res.json();
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';
+            
+            data.forEach(file => {
+                if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                    // 图片使用 jsDelivr 加速，更适合国内
+                    const imgUrl = `https://cdn.jsdelivr.net/gh/${user}/${repo}@${branch}/${folder}/${file.name}`;
+                    const card = document.createElement('div');
+                    card.className = 'img-card';
+                    card.innerHTML = `<img src="${imgUrl}" loading="lazy">`;
+                    card.onclick = () => {
+                        document.getElementById('modal-img').src = imgUrl;
+                        document.getElementById('dl-link').href = imgUrl;
+                        document.getElementById('modal').style.display = 'flex';
+                    };
+                    gallery.appendChild(card);
+                }
+            });
+            msg.style.display = 'none';
+        } catch (e) {
+            msg.innerHTML = `<span style="color:red">加载失败：${e.message}</span>`;
+        }
+    }
+
+    // 3. 音乐控制
+    function toggleMusic() {
+        if (audio.paused) {
+            audio.play();
+            document.getElementById('music-ctrl').classList.add('playing');
+            document.getElementById('music-txt').innerText = 'BGM 正在播放';
+        } else {
+            audio.pause();
+            document.getElementById('music-ctrl').classList.remove('playing');
+            document.getElementById('music-txt').innerText = 'BGM 已暂停';
+        }
+    }
+
+    function closeModal(e) {
+        if (e.target.id === 'modal') {
+            document.getElementById('modal').style.display = 'none';
+        }
+    }
+
+    loadGallery();
+</script>
+</body>
+</html>
