@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>瑟瑟分享 - 媒体库</title>
+    <style>
+        :root { --blue: #0066FF; --bg: #ffffff; --border: rgba(0,0,0,0.08); }
+        body { margin: 0; background: var(--bg); font-family: -apple-system, sans-serif; color: #1a1a1a; }
+        
+        /* 导航栏 */
+        header { 
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(255,255,255,0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border); padding: 12px 25px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .brand { font-size: 20px; font-weight: 700; color: var(--blue); text-decoration: none; }
+        .nav-links a { text-decoration: none; color: #666; font-size: 14px; margin-left: 18px; font-weight: 500; }
+
+        /* 瀑布流容器 */
+        .container { max-width: 1300px; margin: 20px auto; padding: 0 15px; }
+        .gallery { column-count: 4; column-gap: 15px; }
+        @media (max-width: 1100px) { .gallery { column-count: 3; } }
+        @media (max-width: 750px) { .gallery { column-count: 2; } }
+
+        .media-card { 
+            break-inside: avoid; margin-bottom: 15px; border-radius: 12px; 
+            border: 1px solid var(--border); overflow: hidden; background: #000;
+            transition: transform 0.3s; cursor: zoom-in; position: relative;
+        }
+        .media-card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.15); }
+        .media-card img, .media-card video { width: 100%; display: block; height: auto; }
+        
+        /* 视频标识 */
+        .video-tag { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: #fff; font-size: 12px; padding: 2px 6px; border-radius: 4px; pointer-events: none; }
+
+        /* 音乐控制 */
+        #music-ctrl {
+            position: fixed; bottom: 30px; left: 30px; z-index: 200;
+            background: var(--blue); color: white; padding: 10px 22px; 
+            border-radius: 50px; cursor: pointer; box-shadow: 0 5px 20px rgba(0,102,255,0.3);
+            display: flex; align-items: center; gap: 8px; font-size: 14px;
+        }
+
+        /* 模态框预览 */
+        #modal { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.98); backdrop-filter: blur(15px);
+            z-index: 1000; justify-content: center; align-items: center; 
+        }
+        #modal-content { max-width: 90%; max-height: 85%; display: flex; justify-content: center; align-items: center; }
+        #modal-img, #modal-video { max-width: 100%; max-height: 85vh; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); display: none; }
+        
+        /* 切换按钮 */
+        .nav-btn {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(0,0,0,0.03); border: none; width: 60px; height: 60px;
+            border-radius: 50%; font-size: 40px; color: #333; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; transition: 0.2s; user-select: none;
+        }
+        .nav-btn:hover { background: var(--blue); color: white; }
+        #prev-btn { left: 30px; }
+        #next-btn { right: 30px; }
+        
+        .close-btn { position: absolute; top: 25px; left: 25px; font-size: 30px; color: #999; cursor: pointer; padding: 10px; z-index: 1001; }
+        .download-btn { position: absolute; top: 25px; right: 25px; background: var(--blue); color: white; padding: 10px 25px; border-radius: 25px; text-decoration: none; font-size: 14px; z-index: 1001; }
+
+        .loader { text-align: center; padding: 100px; color: #bbb; }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="#" class="brand">瑟瑟分享</a>
+    <div class="nav-links">
+        <a href="https://pornhub.com" target="_blank">Pornhub</a>
+        <a href="https://e621.net" target="_blank">e621</a>
+    </div>
+</header>
+
+<div class="container">
+    <div id="gallery" class="gallery"></div>
+    <div id="loader" class="loader">正在调取媒体资源...</div>
+</div>
+
+<div id="music-ctrl" onclick="toggleMusic()">
+    <span id="music-text">点击播放 BGM</span>
+    <audio id="audio-bg" loop preload="auto"><source src="./3.mp3" type="audio/mpeg"></audio>
+</div>
+
+<div id="modal">
+    <span class="close-btn" onclick="closeModal()">✕</span>
+    <a id="dl-link" class="download-btn" download target="_blank">保存当前内容</a>
+    
+    <button class="nav-btn" id="prev-btn" onclick="changeMedia(-1, event)">‹</button>
+    <div id="modal-content">
+        <img id="modal-img" src="">
+        <video id="modal-video" controls playsinline></video>
+    </div>
+    <button class="nav-btn" id="next-btn" onclick="changeMedia(1, event)">›</button>
+</div>
+
+<script>
+    const CONFIG = {
+        user: 'heyan9',
+        repo: 'heyan9.github.io',
+        folder: 'img2',
+        branch: 'main' 
+    };
+
+    let mediaList = []; // 存储 {type: 'img'|'video', url: '...'}
+    let currentIndex = 0;
+    const bgAudio = document.getElementById('audio-bg');
+
+    async function init() {
+        try {
+            const api = `https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}?ref=${CONFIG.branch}`;
+            const res = await fetch(api);
+            const data = await res.json();
+            
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';
+
+            data.forEach(file => {
+                const name = file.name.toLowerCase();
+                const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+                const isVid = /\.(mp4|webm|mov)$/i.test(name);
+
+                if (isImg || isVid) {
+                    const rawUrl = `https://raw.githubusercontent.com/${CONFIG.user}/${CONFIG.repo}/${CONFIG.branch}/${CONFIG.folder}/${file.name}`;
+                    // 图片使用加速代理，视频使用原始链接（视频走代理容易报错）
+                    const finalUrl = isImg ? `https://images.weserv.nl/?url=${encodeURIComponent(rawUrl)}` : rawUrl;
+                    
+                    const item = { type: isImg ? 'img' : 'video', url: finalUrl };
+                    mediaList.push(item);
+                    
+                    const card = document.createElement('div');
+                    card.className = 'media-card';
+                    
+                    if (isImg) {
+                        card.innerHTML = `<img src="${finalUrl}" loading="lazy">`;
+                    } else {
+                        card.innerHTML = `
+                            <div class="video-tag">VIDEO</div>
+                            <video src="${finalUrl}" muted loop playsinline onmouseover="this.play()" onmouseout="this.pause()"></video>
+                        `;
+                    }
+
+                    const idx = mediaList.length - 1;
+                    card.onclick = () => openModal(idx);
+                    gallery.appendChild(card);
+                }
+            });
+            document.getElementById('loader').style.display = 'none';
+        } catch (e) {
+            document.getElementById('loader').innerHTML = `加载失败，请检查 img2 文件夹`;
+        }
+    }
+
+    function openModal(index) {
+        currentIndex = index;
+        updateModal();
+        document.getElementById('modal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function updateModal() {
+        const item = mediaList[currentIndex];
+        const imgEl = document.getElementById('modal-img');
+        const videoEl = document.getElementById('modal-video');
+        const dlLink = document.getElementById('dl-link');
+
+        // 先全部隐藏并停止视频
+        imgEl.style.display = 'none';
+        videoEl.style.display = 'none';
+        videoEl.pause();
+        videoEl.src = "";
+
+        dlLink.href = item.url;
+
+        if (item.type === 'img') {
+            imgEl.src = item.url;
+            imgEl.style.display = 'block';
+        } else {
+            videoEl.src = item.url;
+            videoEl.style.display = 'block';
+            videoEl.play().catch(e => console.log("请手动点击播放"));
+        }
+    }
+
+    function changeMedia(step, event) {
+        if (event) event.stopPropagation();
+        currentIndex = (currentIndex + step + mediaList.length) % mediaList.length;
+        updateModal();
+    }
+
+    function closeModal() {
+        document.getElementById('modal-video').pause();
+        document.getElementById('modal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    function toggleMusic() {
+        if (bgAudio.paused) {
+            bgAudio.play();
+            document.getElementById('music-ctrl').style.opacity = "1";
+            document.getElementById('music-text').innerText = 'BGM 正在播放';
+        } else {
+            bgAudio.pause();
+            document.getElementById('music-ctrl').style.opacity = "0.7";
+            document.getElementById('music-text').innerText = 'BGM 已暂停';
+        }
+    }
+
+    // 键盘支持
+    document.onkeydown = (e) => {
+        if (document.getElementById('modal').style.display === 'flex') {
+            if (e.key === "ArrowLeft") changeMedia(-1);
+            if (e.key === "ArrowRight") changeMedia(1);
+            if (e.key === "Escape") closeModal();
+        }
+    };
+
+    document.getElementById('modal').onclick = (e) => {
+        if (e.target.id === 'modal') closeModal();
+    };
+
+    init();
+</script>
+</body>
+</html>
