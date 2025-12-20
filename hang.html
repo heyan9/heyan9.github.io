@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>从夯到拉排行 - 实时搜图版</title>
+  <title>从夯到拉排行</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
     :root {
       --hang: #FF3B30; --top: #FF9500; --rsr: #FFCC00; --npc: #F2F2F7; --la: #8E8E93;
@@ -14,7 +15,14 @@
     body { background: #f0f2f5; font-family: -apple-system, "PingFang SC", sans-serif; touch-action: pan-y; }
     .glass { background: white; border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); overflow: hidden; }
     
-    /* 标题横向布局 */
+    /* 标题输入框样式 */
+    #mainTitle {
+      background: transparent; border: none; outline: none;
+      width: 100%; font-weight: 900; color: #111;
+      padding: 0; margin-bottom: 4px;
+    }
+    #mainTitle::placeholder { color: #ccc; }
+
     .t-row { display: flex; border-bottom: 1px solid #f0f0f0; min-height: 110px; }
     .t-label {
       width: 90px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
@@ -23,43 +31,37 @@
     }
     .t-content { flex: 1; display: flex; flex-wrap: wrap; gap: 12px; padding: 15px; align-content: center; min-height: 110px; }
 
-    /* 角色卡片：大图 + 实时搜索 */
     .tag-item {
       width: 80px; background: white; border-radius: 12px; padding: 6px;
       display: flex; flex-direction: column; align-items: center; gap: 6px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: grab; border: 1px solid #eee;
-      transition: all 0.2s;
     }
-    .tag-item:active { transform: scale(0.9); cursor: grabbing; }
-    .tag-item img {
-      width: 68px; height: 68px; border-radius: 8px; 
-      object-fit: cover; pointer-events: none; background: #f8f8f8;
-    }
-    .tag-item span { font-size: 12px; font-weight: 800; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #333; }
+    .tag-item img { width: 68px; height: 68px; border-radius: 8px; object-fit: cover; pointer-events: none; background: #f8f8f8; }
+    .tag-item span { font-size: 11px; font-weight: 800; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #333; }
 
-    .btn-zoo { background: var(--judy-blue); color: white; padding: 12px 28px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; transition: 0.2s; }
-    .btn-zoo:active { transform: scale(0.95); opacity: 0.9; }
-    .input-zoo { border: 2px solid #eee; border-radius: 14px; padding: 14px; width: 100%; outline: none; font-size: 15px; transition: 0.3s; }
-    .input-zoo:focus { border-color: var(--judy-blue); background: #fdfdfd; }
+    .btn-zoo { background: var(--judy-blue); color: white; padding: 10px 20px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.2s; font-size: 14px; }
+    .btn-zoo:active { transform: scale(0.95); }
+    .input-zoo { border: 2px solid #eee; border-radius: 12px; padding: 12px; width: 100%; outline: none; font-size: 14px; }
 
+    .doc-container { width: 100%; height: 750px; border: none; border-radius: 12px; background: white; }
+    
     @media (max-width: 640px) {
+      .doc-container { height: 500px; } 
       .t-label { width: 70px; font-size: 14px; }
-      .tag-item { width: 70px; }
-      .tag-item img { width: 58px; height: 58px; }
-      .t-row { min-height: 90px; }
+      #mainTitle { font-size: 1.5rem; }
     }
   </style>
 </head>
 <body class="p-3 sm:p-8">
 
   <div class="max-w-4xl mx-auto flex flex-col gap-6">
-    <!-- 头部 -->
+    <!-- 头部：可编辑标题 -->
     <div class="flex justify-between items-end px-2">
-      <div>
-        <h1 class="text-3xl font-black text-gray-900 tracking-tight">从夯到拉排行-by heyan</h1>
-        <p class="text-gray-400 text-xs font-bold mt-1">REAL-TIME IMAGE SEARCH • LOCAL STORAGE</p>
+      <div class="flex-1 mr-4">
+        <input type="text" id="mainTitle" class="text-3xl tracking-tight" placeholder="点击输入排行榜标题..." oninput="saveLocal()">
+        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Real-Time Sync • Interactive UI • Local Storage</p>
       </div>
-      <button onclick="clearData()" class="text-xs font-bold text-red-400 hover:text-red-600 transition">清空全部</button>
+      <button onclick="clearData()" class="text-xs font-bold text-red-400 hover:underline shrink-0">重置</button>
     </div>
 
     <!-- 排行榜主体 -->
@@ -73,114 +75,144 @@
 
     <!-- 注入池 -->
     <div class="glass p-6">
-      <div class="flex gap-3">
-        <input id="batchIn" class="input-zoo" placeholder="输入名称 (支持空格/逗号分隔，如: 尼克 朱迪 闪电)">
+      <div class="flex gap-3 mb-4">
+        <input id="batchIn" class="input-zoo" placeholder="输入名称(空格或逗号分隔)...">
         <button onclick="inject()" class="btn-zoo shrink-0">注入</button>
       </div>
-      <div id="pool" class="mt-6 min-h-[120px] flex flex-wrap gap-4 p-5 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200"></div>
+      <div id="pool" class="min-h-[100px] flex flex-wrap gap-4 p-5 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200"></div>
     </div>
 
-    <div class="text-center text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">
-      双击标签删除 • 左右拖拽排序 • 数据自动保存在本地
+    <!-- 数据备份 -->
+    <div class="glass p-6">
+      <h3 class="text-xs font-black mb-3 text-gray-500 uppercase tracking-widest">导入导出 / 数据备份</h3>
+      <textarea id="ioBox" class="w-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-3 text-[10px] font-mono h-20 mb-3 outline-none" placeholder="生成代码或粘贴还原..."></textarea>
+      <div class="flex gap-2">
+        <button onclick="exportData()" class="bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-xs">生成备份代码</button>
+        <button onclick="copyData()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-bold text-xs">复制</button>
+        <div class="flex-1"></div>
+        <button onclick="importData()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs">导入还原</button>
+      </div>
+    </div>
+
+    <!-- 腾讯文档内嵌 -->
+    <div class="glass p-1">
+      <div class="bg-gray-50 p-3 border-b flex items-center justify-between">
+        <span class="text-xs font-black text-gray-500 uppercase tracking-widest"><i class="fas fa-database mr-2"></i> 数据文档内嵌视图</span>
+        <a href="https://docs.qq.com/doc/DZk50aGZqU3V1RVR0" target="_blank" class="text-[10px] text-blue-500 font-bold">全屏打开</a>
+      </div>
+      <iframe class="doc-container" src="https://docs.qq.com/doc/DZk50aGZqU3V1RVR0"></iframe>
+    </div>
+
+    <!-- 页脚署名 -->
+    <div class="text-center pb-12">
+      <p class="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em] mb-3">实时搜图 • 自动保存 • 文档内嵌</p>
+      <a href="https://heyan9.github.io" target="_blank" class="inline-flex items-center gap-2 bg-white px-6 py-2 rounded-full shadow-sm border border-gray-100 hover:shadow-md transition group">
+        <span class="text-xs font-black text-gray-600 group-hover:text-blue-600">个人主页</span>
+        <span class="text-gray-300">|</span>
+        <span class="text-xs font-bold text-gray-400 group-hover:text-gray-600">heyan9.github.io</span>
+      </a>
     </div>
   </div>
 
   <script>
     const containers = ['row-hang', 'row-top', 'row-rsr', 'row-npc', 'row-la', 'pool'];
 
-    /**
-     * 核心搜图逻辑：调取必应实时搜索缩略图
-     * 无需 API Key，国内直连极速
-     */
     function getRealImage(name) {
-      // 使用必应图片的国内 CDN 接口，pid=ImgDetNav 是公开的缩略图参数
-      // 配合 weserv 进行 Referer 剥离，确保图片 100% 能够加载
       const query = encodeURIComponent(name);
       return `https://images.weserv.nl/?url=https://tse1-mm.cn.bing.net/th?q=${query}&w=160&h=160&c=7&rs=1&p=0&dpr=1&pid=ImgDetNav`;
     }
 
-    // 创建标签 DOM
     function createTag(name) {
       const div = document.createElement('div');
       div.className = 'tag-item';
       div.setAttribute('data-name', name);
-      
-      const imgUrl = getRealImage(name);
-      
-      div.innerHTML = `
-        <img src="${imgUrl}" loading="lazy" onerror="this.src='https://via.placeholder.com/150?text=${name}'">
-        <span>${name}</span>
-      `;
-
-      // 双击删除
-      div.ondblclick = () => {
-        div.style.transform = "scale(0.8)";
-        div.style.opacity = "0";
-        setTimeout(() => {
-          div.remove();
-          saveLocal();
-        }, 200);
-      };
-      
+      div.innerHTML = `<img src="${getRealImage(name)}" loading="lazy" onerror="this.src='https://via.placeholder.com/150?text=${name}'"><span>${name}</span>`;
+      div.ondblclick = () => { div.remove(); saveLocal(); };
       return div;
     }
 
-    // --- 注入逻辑 ---
     function inject() {
       const input = document.getElementById('batchIn');
-      const val = input.value.trim();
-      if (!val) return;
-
-      const names = val.split(/[,，\s\n]/).map(n => n.trim()).filter(n => n);
-      const pool = document.getElementById('pool');
-      
+      const names = input.value.split(/[,，\s\n]/).map(n => n.trim()).filter(n => n);
       names.forEach(n => {
         if (!document.querySelector(`[data-name="${n}"]`)) {
-          pool.appendChild(createTag(n));
+          document.getElementById('pool').appendChild(createTag(n));
         }
       });
-      
       input.value = '';
       saveLocal();
     }
 
-    // --- 本地存储逻辑 (LocalStorage) ---
+    // 保存标题 + 排行
     function saveLocal() {
-      const data = {};
+      const data = {
+        title: document.getElementById('mainTitle').value,
+        rows: {}
+      };
       containers.forEach(id => {
-        data[id] = Array.from(document.getElementById(id).children).map(el => el.getAttribute('data-name'));
+        data.rows[id] = Array.from(document.getElementById(id).children).map(el => el.getAttribute('data-name'));
       });
-      localStorage.setItem('heyan_pro_ranking', JSON.stringify(data));
+      localStorage.setItem('heyan_ranking_final_vLast', JSON.stringify(data));
     }
 
     function loadLocal() {
-      const raw = localStorage.getItem('heyan_pro_ranking');
+      const raw = localStorage.getItem('heyan_ranking_final_vLast');
       if (!raw) return;
-      try {
-        const data = JSON.parse(raw);
+      const data = JSON.parse(raw);
+      if (data.title) document.getElementById('mainTitle').value = data.title;
+      if (data.rows) {
         containers.forEach(id => {
           const el = document.getElementById(id);
           el.innerHTML = '';
-          if (data[id]) {
-            data[id].forEach(name => el.appendChild(createTag(name)));
-          }
+          if (data.rows[id]) data.rows[id].forEach(name => el.appendChild(createTag(name)));
         });
-      } catch (e) { console.error("Load fail", e); }
+      }
+    }
+
+    function exportData() {
+      const data = {
+        title: document.getElementById('mainTitle').value,
+        rows: {}
+      };
+      containers.forEach(id => {
+        data.rows[id] = Array.from(document.getElementById(id).children).map(el => el.getAttribute('data-name'));
+      });
+      document.getElementById('ioBox').value = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    }
+
+    function importData() {
+      const str = document.getElementById('ioBox').value.trim();
+      if (!str) return;
+      try {
+        const data = JSON.parse(decodeURIComponent(escape(atob(str))));
+        if (data.title) document.getElementById('mainTitle').value = data.title;
+        containers.forEach(id => {
+          const el = document.getElementById(id);
+          el.innerHTML = '';
+          if (data.rows && data.rows[id]) data.rows[id].forEach(name => el.appendChild(createTag(name)));
+        });
+        saveLocal();
+      } catch (e) { alert('代码格式错误'); }
+    }
+
+    function copyData() {
+      const box = document.getElementById('ioBox');
+      box.select();
+      document.execCommand('copy');
+      alert('备份代码已复制');
     }
 
     function clearData() {
-      if(confirm("确定要清空排行榜吗？数据将无法找回。")) {
-        localStorage.removeItem('heyan_pro_ranking');
+      if(confirm("确定清空数据吗？")) {
+        localStorage.removeItem('heyan_ranking_final_vLast');
         location.reload();
       }
     }
 
-    // --- 初始化拖拽 ---
     containers.forEach(id => {
       new Sortable(document.getElementById(id), {
         group: 'shared',
-        animation: 250,
-        easing: "cubic-bezier(1, 0, 0, 1)",
+        animation: 200,
         ghostClass: 'opacity-10',
         onEnd: saveLocal
       });
