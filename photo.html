@@ -2,256 +2,262 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>何岩Photo - Zootopia Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>何岩Photo | Zootopia Media</title>
     <style>
         :root {
-            /* 疯狂动物城低饱和度色盘 */
-            --judy-blue: #87A7CA;      /* 朱迪警服蓝 */
-            --nick-green: #9DB8A1;     /* 尼克衬衫绿 */
-            --carrot-gold: #EBC07E;    /* 胡萝卜暖金 */
-            --city-grey: #D1D9E0;      /* 城市大象灰 */
-            --white-glass: rgba(255, 255, 255, 0.4);
-            --text-dark: #4A5568;
+            --zootopia-blue: #007AFF;   /* 朱迪警服蓝 - 高饱和 */
+            --zootopia-green: #28CD41;  /* 尼克衬衫绿 - 高饱和 */
+            --zootopia-orange: #FF9500; /* 胡萝卜金 - 高饱和 */
+            --city-grey: #8E8E93;
+            --glass: rgba(255, 255, 255, 0.6);
         }
 
         body {
             margin: 0; padding: 0;
-            /* 模拟热带雨林区到冰川区的渐变 */
-            background: linear-gradient(135deg, #eef2f3 0%, #cfd9df 100%);
-            background-attachment: fixed;
-            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-            color: var(--text-dark);
-            overflow-x: hidden;
+            background: #F2F2F7; /* 干净的浅灰背景 */
+            font-family: -apple-system, system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* 顶层导航栏 - 深度毛玻璃 */
+        /* 极简导航栏 */
         header {
             position: sticky; top: 0; z-index: 1000;
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-            padding: 12px 40px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding: 10px 20px;
             display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
         }
 
-        .brand { display: flex; align-items: center; gap: 15px; text-decoration: none; }
-        .brand img { height: 40px; border-radius: 50%; border: 3px solid #fff; }
-        .brand span { font-size: 22px; font-weight: 800; color: var(--judy-blue); letter-spacing: 1.5px; }
+        .logo-box img { height: 40px; display: block; } /* 纯净Logo，无圆圈 */
 
-        .nav-tabs { display: flex; gap: 12px; background: rgba(255,255,255,0.2); padding: 5px; border-radius: 30px; }
-        .tab-btn {
-            padding: 8px 22px; border-radius: 25px; cursor: pointer;
-            font-size: 14px; font-weight: 600; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            color: var(--text-dark); border: none; background: transparent;
-        }
-        .tab-btn:hover { background: rgba(255,255,255,0.5); }
-        /* 不同文件夹对应不同主题色 */
-        .tab-btn.active[data-folder="img3"] { background: var(--nick-green); color: white; }
-        .tab-btn.active[data-folder="img5"] { background: var(--judy-blue); color: white; }
-        .tab-btn.active[data-folder="img6"] { background: var(--carrot-gold); color: white; }
-
-        /* 内容展示区 */
-        .container { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
-        .gallery { column-count: 4; column-gap: 20px; }
-        @media (max-width: 1100px) { .gallery { column-count: 3; } }
-        @media (max-width: 750px) { .gallery { column-count: 2; } }
-
-        .card {
-            break-inside: avoid; margin-bottom: 20px; border-radius: 20px;
-            background: var(--white-glass); border: 1px solid rgba(255,255,255,0.6);
-            overflow: hidden; transition: 0.3s; cursor: zoom-in; position: relative;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.02);
-        }
-        .card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
-        .card img, .card video { width: 100%; display: block; height: auto; transition: 0.5s; }
+        .nav-wrap { display: flex; align-items: center; gap: 10px; }
         
-        .type-icon { 
-            position: absolute; bottom: 12px; left: 12px; 
-            background: rgba(255,255,255,0.8); padding: 4px 10px; 
-            border-radius: 12px; font-size: 10px; font-weight: 700; color: var(--judy-blue);
+        .tab {
+            padding: 8px 16px; border-radius: 20px; border: none;
+            font-size: 14px; font-weight: 700; cursor: pointer;
+            background: rgba(0,0,0,0.05); color: var(--city-grey);
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 模态框沉浸式预览 */
+        /* 高饱和度分类配色 */
+        .tab.active[data-f="img5"] { background: var(--zootopia-blue); color: white; }
+        .tab.active[data-f="img3"] { background: var(--zootopia-green); color: white; }
+        .tab.active[data-f="img6"] { background: var(--zootopia-orange); color: white; }
+
+        .link-ext {
+            background: #000; color: #fff; padding: 8px 14px;
+            border-radius: 20px; text-decoration: none; font-size: 12px; font-weight: bold;
+        }
+
+        /* 真正的瀑布流容器 */
+        .container { max-width: 1400px; margin: 15px auto; padding: 0 10px; }
+        
+        .masonry {
+            column-count: 4;
+            column-gap: 12px;
+        }
+
+        .media-item {
+            break-inside: avoid;
+            margin-bottom: 12px;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            cursor: zoom-in;
+            transition: transform 0.3s;
+            position: relative;
+        }
+        .media-item:hover { transform: translateY(-4px); }
+
+        .media-item img, .media-item video {
+            width: 100%;
+            height: auto; /* 关键：保持原图比例，拒绝空缺 */
+            display: block;
+        }
+
+        .v-badge {
+            position: absolute; bottom: 8px; right: 8px;
+            background: rgba(0,0,0,0.5); color: #fff;
+            padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;
+        }
+
+        /* 沉浸式模态框 */
         #modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(209, 217, 224, 0.85); backdrop-filter: blur(30px);
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(25px);
             z-index: 2000; justify-content: center; align-items: center;
         }
-        #modal-content { position: relative; max-width: 90%; max-height: 85%; }
-        #modal-img, #modal-video { max-width: 100%; max-height: 85vh; border-radius: 15px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); display: none; }
-
-        /* 导航按钮 */
-        .nav-arrow {
-            position: absolute; top: 50%; transform: translateY(-50%);
-            background: rgba(255,255,255,0.6); border: none; width: 55px; height: 55px;
-            border-radius: 50%; font-size: 24px; cursor: pointer; transition: 0.3s;
-            display: flex; justify-content: center; align-items: center; color: var(--text-dark);
+        
+        .m-content { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        #m-img, #m-video { 
+            max-width: 95%; max-height: 80vh; 
+            border-radius: 8px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); 
+            display: none; 
         }
-        .nav-arrow:hover { background: white; color: var(--judy-blue); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        #prev-btn { left: -80px; }
-        #next-btn { right: -80px; }
 
-        .close-btn { position: absolute; top: -50px; left: 0; color: var(--text-dark); cursor: pointer; font-size: 20px; font-weight: 700; }
-        .down-btn { position: absolute; top: -50px; right: 0; background: var(--judy-blue); color: white; padding: 6px 20px; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: 600; }
+        .m-nav {
+            position: absolute; top: 50%; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; pointer-events: none;
+        }
+        .n-btn {
+            width: 50px; height: 50px; background: rgba(0,0,0,0.05); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            cursor: pointer; pointer-events: auto; border: none; transition: 0.2s;
+        }
+        .n-btn:hover { background: var(--zootopia-blue); color: #fff; }
 
-        .loading { text-align: center; padding: 100px; font-weight: 600; color: var(--judy-blue); letter-spacing: 4px; animation: breathe 2s infinite; }
-        @keyframes breathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        .m-top { position: absolute; top: 20px; width: 92%; display: flex; justify-content: space-between; align-items: center; }
+        .m-close { font-size: 28px; cursor: pointer; color: #333; }
+        .m-down { background: var(--zootopia-blue); color: #fff; padding: 8px 20px; border-radius: 20px; text-decoration: none; font-size: 14px; font-weight: bold; }
 
-        @media (max-width: 850px) { #prev-btn, #next-btn { display: none; } }
+        /* 响应式适配 */
+        @media (max-width: 1024px) { .masonry { column-count: 3; } }
+        @media (max-width: 600px) {
+            header { padding: 10px; flex-direction: column; gap: 12px; }
+            .nav-wrap { width: 100%; justify-content: center; flex-wrap: wrap; }
+            .masonry { column-count: 2; column-gap: 8px; }
+            .media-item { margin-bottom: 8px; }
+            .n-btn { display: none; } /* 手机端隐藏侧边按钮，依靠点击区域切换 */
+            #m-img, #m-video { max-width: 100%; border-radius: 0; }
+        }
+
+        /* 手机端点击左右区域切换 */
+        .touch-zone { position: absolute; top: 15%; width: 35%; height: 70%; z-index: 2001; }
+        #left-zone { left: 0; }
+        #right-zone { right: 0; }
     </style>
 </head>
 <body>
 
 <header>
-    <a href="#" class="brand">
-        <img src="./heyan.png" alt="Logo" onerror="this.src='https://via.placeholder.com/40?text=HY'">
-        <span>何岩PHOTO</span>
-    </a>
-    <nav class="nav-tabs">
-        <button class="tab-btn active" data-folder="img3" onclick="loadMedia('img3', this)">风景</button>
-        <button class="tab-btn" data-folder="img5" onclick="loadMedia('img5', this)">主题</button>
-        <button class="tab-btn" data-folder="img6" onclick="loadMedia('img6', this)">AIGC</button>
-    </nav>
+    <div class="logo-box"><img src="./heyan.png" alt="Logo"></div>
+    <div class="nav-wrap">
+        <button class="tab active" data-f="img5" onclick="load('img5', this)">主题</button>
+        <button class="tab" data-f="img3" onclick="load('img3', this)">风景</button>
+        <button class="tab" data-f="img6" onclick="load('img6', this)">AIGC</button>
+        <a href="https://500px.com.cn/heyanw" target="_blank" class="link-ext">视觉中国 →</a>
+    </div>
 </header>
 
 <div class="container">
-    <div id="gallery" class="gallery"></div>
-    <div id="loader" class="loading">WELCOME TO ZOOTOPIA...</div>
+    <div id="gallery" class="masonry"></div>
 </div>
 
+<!-- 模态框预览 -->
 <div id="modal">
-    <div id="modal-content">
-        <span class="close-btn" onclick="closeModal()">✕ CLOSE</span>
-        <a id="download-link" class="down-btn" download target="_blank">DOWNLOAD 原图</a>
+    <div class="m-content">
+        <div class="m-top">
+            <span class="m-close" onclick="hide()">✕</span>
+            <a id="m-dl" class="m-down" download target="_blank">下载原图</a>
+        </div>
         
-        <button class="nav-arrow" id="prev-btn" onclick="navMedia(-1)">‹</button>
-        <img id="modal-img" src="">
-        <video id="modal-video" controls autoplay playsinline></video>
-        <button class="nav-arrow" id="next-btn" onclick="navMedia(1)">›</button>
+        <div id="left-zone" class="touch-zone" onclick="nav(-1)"></div>
+        <div id="right-zone" class="touch-zone" onclick="nav(1)"></div>
+
+        <div class="m-nav">
+            <button class="n-btn" onclick="nav(-1)">‹</button>
+            <button class="n-btn" onclick="nav(1)">›</button>
+        </div>
+
+        <img id="m-img">
+        <video id="m-video" controls autoplay playsinline></video>
     </div>
 </div>
 
 <script>
-    const GITHUB_CONFIG = {
-        user: 'heyan9',
-        repo: 'heyan9.github.io',
-        branch: 'main' // 如果是 master 请修改
-    };
+    const GH = { user: 'heyan9', repo: 'heyan9.github.io', branch: 'main' };
+    let dataList = [];
+    let idx = 0;
 
-    let currentMediaArray = [];
-    let currentIndex = 0;
-
-    // 核心加载函数
-    async function loadMedia(folder, btn) {
-        // UI 状态切换
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    async function load(folder, btn) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         btn.classList.add('active');
         
         const gallery = document.getElementById('gallery');
-        const loader = document.getElementById('loader');
-        gallery.innerHTML = '';
-        loader.style.display = 'block';
-        currentMediaArray = [];
+        gallery.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 50px; color:#999;">LOADING...</div>';
+        dataList = [];
 
         try {
-            const response = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.user}/${GITHUB_CONFIG.repo}/contents/${folder}?ref=${GITHUB_CONFIG.branch}`);
-            const files = await response.json();
+            const res = await fetch(`https://api.github.com/repos/${GH.user}/${GH.repo}/contents/${folder}?ref=${GH.branch}`);
+            const files = await res.json();
 
-            if (!Array.isArray(files)) throw new Error("Folder not found");
+            gallery.innerHTML = '';
+            files.forEach(f => {
+                const ext = f.name.split('.').pop().toLowerCase();
+                const isI = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+                const isV = ['mp4', 'webm'].includes(ext);
 
-            files.forEach(file => {
-                const ext = file.name.split('.').pop().toLowerCase();
-                const isImg = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
-                const isVid = ['mp4', 'mov', 'webm'].includes(ext);
-
-                if (isImg || isVid) {
-                    const rawUrl = `https://raw.githubusercontent.com/${GITHUB_CONFIG.user}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${folder}/${file.name}`;
-                    // 国内极速代理：Weserv
-                    const optimizedUrl = isImg ? `https://images.weserv.nl/?url=${encodeURIComponent(rawUrl)}` : rawUrl;
+                if (isI || isV) {
+                    const raw = `https://raw.githubusercontent.com/${GH.user}/${GH.repo}/${GH.branch}/${folder}/${f.name}`;
+                    const thumb = isI ? `https://images.weserv.nl/?url=${encodeURIComponent(raw)}` : raw;
                     
-                    const mediaObj = { type: isImg ? 'img' : 'video', url: optimizedUrl, raw: rawUrl };
-                    currentMediaArray.push(mediaObj);
+                    dataList.push({ type: isI ? 'i' : 'v', url: thumb, raw: raw });
+                    
+                    const el = document.createElement('div');
+                    el.className = 'media-item';
+                    const currentIdx = dataList.length - 1;
 
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    const idx = currentMediaArray.length - 1;
-
-                    if (isImg) {
-                        card.innerHTML = `<img src="${optimizedUrl}" loading="lazy">`;
+                    if (isI) {
+                        el.innerHTML = `<img src="${thumb}" loading="lazy">`;
                     } else {
-                        card.innerHTML = `<span class="type-icon">VIDEO</span><video src="${optimizedUrl}" muted loop playsinline onmouseover="this.play()" onmouseout="this.pause()"></video>`;
+                        el.innerHTML = `<span class="v-badge">VIDEO</span><video src="${thumb}" muted loop playsinline onmouseover="this.play()" onmouseout="this.pause()"></video>`;
                     }
-
-                    card.onclick = () => openModal(idx);
-                    gallery.appendChild(card);
+                    
+                    el.onclick = () => show(currentIdx);
+                    gallery.appendChild(el);
                 }
             });
-            loader.style.display = 'none';
-        } catch (error) {
-            loader.innerHTML = "资源调取失败，请检查网络或文件夹名称";
-        }
+        } catch (e) { gallery.innerHTML = '加载失败'; }
     }
 
-    // 预览窗逻辑
-    function openModal(index) {
-        currentIndex = index;
-        updateModalContent();
+    function show(i) {
+        idx = i;
+        render();
         document.getElementById('modal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
 
-    function updateModalContent() {
-        const item = currentMediaArray[currentIndex];
-        const imgEl = document.getElementById('modal-img');
-        const videoEl = document.getElementById('modal-video');
-        const dlLink = document.getElementById('download-link');
+    function render() {
+        const item = dataList[idx];
+        const img = document.getElementById('m-img');
+        const vid = document.getElementById('m-video');
+        const dl = document.getElementById('m-dl');
 
-        imgEl.style.display = 'none';
-        videoEl.style.display = 'none';
-        videoEl.pause();
-        videoEl.src = "";
+        img.style.display = vid.style.display = 'none';
+        vid.pause(); vid.src = "";
+        dl.href = item.raw;
 
-        dlLink.href = item.raw; // 下载使用原图地址
-
-        if (item.type === 'img') {
-            imgEl.src = item.url;
-            imgEl.style.display = 'block';
+        if (item.type === 'i') {
+            img.src = item.url; img.style.display = 'block';
         } else {
-            videoEl.src = item.url;
-            videoEl.style.display = 'block';
-            videoEl.play();
+            vid.src = item.url; vid.style.display = 'block'; vid.play();
         }
     }
 
-    function navMedia(step) {
-        currentIndex = (currentIndex + step + currentMediaArray.length) % currentMediaArray.length;
-        updateModalContent();
+    function nav(step) {
+        idx = (idx + step + dataList.length) % dataList.length;
+        render();
     }
 
-    function closeModal() {
+    function hide() {
         document.getElementById('modal').style.display = 'none';
-        document.getElementById('modal-video').pause();
+        document.getElementById('m-video').pause();
         document.body.style.overflow = 'auto';
     }
 
-    // 事件监听
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', e => {
         if (document.getElementById('modal').style.display === 'flex') {
-            if (e.key === "ArrowLeft") navMedia(-1);
-            if (e.key === "ArrowRight") navMedia(1);
-            if (e.key === "Escape") closeModal();
+            if (e.key === "ArrowLeft") nav(-1);
+            if (e.key === "ArrowRight") nav(1);
+            if (e.key === "Escape") hide();
         }
     });
 
-    document.getElementById('modal').onclick = (e) => {
-        if (e.target.id === 'modal') closeModal();
-    };
-
-    // 初始加载
-    loadMedia('img3', document.querySelector('.tab-btn'));
+    // 初始加载主题 img5
+    load('img5', document.querySelector('.tab[data-f="img5"]'));
 </script>
-
 </body>
 </html>
