@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>从夯到拉排行 - 实时搜图版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <style>
+    :root {
+      --hang: #FF3B30; --top: #FF9500; --rsr: #FFCC00; --npc: #F2F2F7; --la: #8E8E93;
+      --judy-blue: #007AFF;
+    }
+    body { background: #f0f2f5; font-family: -apple-system, "PingFang SC", sans-serif; touch-action: pan-y; }
+    .glass { background: white; border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); overflow: hidden; }
+    
+    /* 标题横向布局 */
+    .t-row { display: flex; border-bottom: 1px solid #f0f0f0; min-height: 110px; }
+    .t-label {
+      width: 90px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 16px; color: #1c1c1e; border-right: 1px solid #f0f0f0;
+      padding: 10px; text-align: center;
+    }
+    .t-content { flex: 1; display: flex; flex-wrap: wrap; gap: 12px; padding: 15px; align-content: center; min-height: 110px; }
+
+    /* 角色卡片：大图 + 实时搜索 */
+    .tag-item {
+      width: 80px; background: white; border-radius: 12px; padding: 6px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: grab; border: 1px solid #eee;
+      transition: all 0.2s;
+    }
+    .tag-item:active { transform: scale(0.9); cursor: grabbing; }
+    .tag-item img {
+      width: 68px; height: 68px; border-radius: 8px; 
+      object-fit: cover; pointer-events: none; background: #f8f8f8;
+    }
+    .tag-item span { font-size: 12px; font-weight: 800; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #333; }
+
+    .btn-zoo { background: var(--judy-blue); color: white; padding: 12px 28px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; transition: 0.2s; }
+    .btn-zoo:active { transform: scale(0.95); opacity: 0.9; }
+    .input-zoo { border: 2px solid #eee; border-radius: 14px; padding: 14px; width: 100%; outline: none; font-size: 15px; transition: 0.3s; }
+    .input-zoo:focus { border-color: var(--judy-blue); background: #fdfdfd; }
+
+    @media (max-width: 640px) {
+      .t-label { width: 70px; font-size: 14px; }
+      .tag-item { width: 70px; }
+      .tag-item img { width: 58px; height: 58px; }
+      .t-row { min-height: 90px; }
+    }
+  </style>
+</head>
+<body class="p-3 sm:p-8">
+
+  <div class="max-w-4xl mx-auto flex flex-col gap-6">
+    <!-- 头部 -->
+    <div class="flex justify-between items-end px-2">
+      <div>
+        <h1 class="text-3xl font-black text-gray-900 tracking-tight">从夯到拉排行-by heyan</h1>
+        <p class="text-gray-400 text-xs font-bold mt-1">REAL-TIME IMAGE SEARCH • LOCAL STORAGE</p>
+      </div>
+      <button onclick="clearData()" class="text-xs font-bold text-red-400 hover:text-red-600 transition">清空全部</button>
+    </div>
+
+    <!-- 排行榜主体 -->
+    <div class="glass">
+      <div class="t-row"><div class="t-label" style="background:var(--hang)">夯</div><div id="row-hang" class="t-content"></div></div>
+      <div class="t-row"><div class="t-label" style="background:var(--top)">顶级</div><div id="row-top" class="t-content"></div></div>
+      <div class="t-row"><div class="t-label" style="background:var(--rsr)">人上人</div><div id="row-rsr" class="t-content"></div></div>
+      <div class="t-row"><div class="t-label" style="background:var(--npc)">NPC</div><div id="row-npc" class="t-content"></div></div>
+      <div class="t-row"><div class="t-label" style="background:var(--la)">拉完了</div><div id="row-la" class="t-content"></div></div>
+    </div>
+
+    <!-- 注入池 -->
+    <div class="glass p-6">
+      <div class="flex gap-3">
+        <input id="batchIn" class="input-zoo" placeholder="输入名称 (支持空格/逗号分隔，如: 尼克 朱迪 闪电)">
+        <button onclick="inject()" class="btn-zoo shrink-0">注入</button>
+      </div>
+      <div id="pool" class="mt-6 min-h-[120px] flex flex-wrap gap-4 p-5 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200"></div>
+    </div>
+
+    <div class="text-center text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">
+      双击标签删除 • 左右拖拽排序 • 数据自动保存在本地
+    </div>
+  </div>
+
+  <script>
+    const containers = ['row-hang', 'row-top', 'row-rsr', 'row-npc', 'row-la', 'pool'];
+
+    /**
+     * 核心搜图逻辑：调取必应实时搜索缩略图
+     * 无需 API Key，国内直连极速
+     */
+    function getRealImage(name) {
+      // 使用必应图片的国内 CDN 接口，pid=ImgDetNav 是公开的缩略图参数
+      // 配合 weserv 进行 Referer 剥离，确保图片 100% 能够加载
+      const query = encodeURIComponent(name);
+      return `https://images.weserv.nl/?url=https://tse1-mm.cn.bing.net/th?q=${query}&w=160&h=160&c=7&rs=1&p=0&dpr=1&pid=ImgDetNav`;
+    }
+
+    // 创建标签 DOM
+    function createTag(name) {
+      const div = document.createElement('div');
+      div.className = 'tag-item';
+      div.setAttribute('data-name', name);
+      
+      const imgUrl = getRealImage(name);
+      
+      div.innerHTML = `
+        <img src="${imgUrl}" loading="lazy" onerror="this.src='https://via.placeholder.com/150?text=${name}'">
+        <span>${name}</span>
+      `;
+
+      // 双击删除
+      div.ondblclick = () => {
+        div.style.transform = "scale(0.8)";
+        div.style.opacity = "0";
+        setTimeout(() => {
+          div.remove();
+          saveLocal();
+        }, 200);
+      };
+      
+      return div;
+    }
+
+    // --- 注入逻辑 ---
+    function inject() {
+      const input = document.getElementById('batchIn');
+      const val = input.value.trim();
+      if (!val) return;
+
+      const names = val.split(/[,，\s\n]/).map(n => n.trim()).filter(n => n);
+      const pool = document.getElementById('pool');
+      
+      names.forEach(n => {
+        if (!document.querySelector(`[data-name="${n}"]`)) {
+          pool.appendChild(createTag(n));
+        }
+      });
+      
+      input.value = '';
+      saveLocal();
+    }
+
+    // --- 本地存储逻辑 (LocalStorage) ---
+    function saveLocal() {
+      const data = {};
+      containers.forEach(id => {
+        data[id] = Array.from(document.getElementById(id).children).map(el => el.getAttribute('data-name'));
+      });
+      localStorage.setItem('heyan_pro_ranking', JSON.stringify(data));
+    }
+
+    function loadLocal() {
+      const raw = localStorage.getItem('heyan_pro_ranking');
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        containers.forEach(id => {
+          const el = document.getElementById(id);
+          el.innerHTML = '';
+          if (data[id]) {
+            data[id].forEach(name => el.appendChild(createTag(name)));
+          }
+        });
+      } catch (e) { console.error("Load fail", e); }
+    }
+
+    function clearData() {
+      if(confirm("确定要清空排行榜吗？数据将无法找回。")) {
+        localStorage.removeItem('heyan_pro_ranking');
+        location.reload();
+      }
+    }
+
+    // --- 初始化拖拽 ---
+    containers.forEach(id => {
+      new Sortable(document.getElementById(id), {
+        group: 'shared',
+        animation: 250,
+        easing: "cubic-bezier(1, 0, 0, 1)",
+        ghostClass: 'opacity-10',
+        onEnd: saveLocal
+      });
+    });
+
+    window.onload = loadLocal;
+  </script>
+</body>
+</html>
