@@ -48,7 +48,7 @@
       border-radius: 10px;
       padding: 12px;
       outline: none;
-      transition: all 0.3s;
+      transition: border 0.3s, background 0.3s;
       color: #374151;
       font-size: 14px;
       line-height: 1.6;
@@ -125,8 +125,8 @@
           <div class="w-px h-6 bg-gray-200 hidden md:block"></div>
           <div class="flex items-center gap-3">
               <a href="https://civitai.com/" target="_blank" class="nav-link-btn nav-civitai"><i class="fas fa-cube"></i> 模型</a>
-              <a href="https://www.pokemon.com/us/pokedex" target="_blank" class="nav-link-btn nav-pokemon"><i class="fas fa-dragon"></i> 宝可梦</a>
-              <a href="https://e621.net/posts" target="_blank" class="nav-link-btn nav-nsfw"><i class="fas fa-heart"></i> 色</a>
+              <a href="https://www.waifu2x.net/" target="_blank" class="nav-link-btn nav-pokemon"><i class="fas fa-expand-arrows-alt"></i> 降噪放大</a>
+              <a href="https://www.pokecut.com/tools/ai-outpaint-image?referrer=grok.com" target="_blank" class="nav-link-btn nav-nsfw"><i class="fas fa-vector-square"></i> 扩图</a>
           </div>
       </div>
       <div id="statusTag" onclick="testConnection()" class="cursor-pointer px-3 py-1.5 rounded-full bg-gray-100 text-gray-400 text-xs font-bold flex items-center gap-2">
@@ -145,8 +145,8 @@
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
-            <div class="relative"><textarea id="transCn" class="input-clean w-full h-28 resize-none text-base" placeholder="在此输入中文..." oninput="handleTransInput('cn')"></textarea><div id="tipCn" class="absolute top-2 right-2 text-[10px] text-green-500 opacity-0 transition-opacity">增量更新</div></div>
-            <div class="relative"><textarea id="transEn" class="input-clean w-full h-28 resize-none font-mono text-base" placeholder="Type English here..." oninput="handleTransInput('en')"></textarea></div>
+            <div class="relative"><textarea id="transCn" class="input-clean w-full h-28 text-base" placeholder="在此输入中文..." oninput="handleTransInput('cn')"></textarea><div id="tipCn" class="absolute top-2 right-2 text-[10px] text-green-500 opacity-0 transition-opacity">增量更新</div></div>
+            <div class="relative"><textarea id="transEn" class="input-clean w-full h-28 font-mono text-base" placeholder="Type English here..." oninput="handleTransInput('en')"></textarea></div>
         </div>
         <div class="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 overflow-x-auto pb-1">
             <span class="text-xs text-gray-400 flex-shrink-0">已存片段:</span>
@@ -164,8 +164,8 @@
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
-            <div class="relative"><textarea id="transCn2" class="input-clean w-full h-28 resize-none text-base" placeholder="在此输入中文..." oninput="handleTransInput2('cn')"></textarea><div id="tipCn2" class="absolute top-2 right-2 text-[10px] text-green-500 opacity-0 transition-opacity">增量更新</div></div>
-            <div class="relative"><textarea id="transEn2" class="input-clean w-full h-28 resize-none font-mono text-base" placeholder="Type English here..." oninput="handleTransInput2('en')"></textarea></div>
+            <div class="relative"><textarea id="transCn2" class="input-clean w-full h-28 text-base" placeholder="在此输入中文..." oninput="handleTransInput2('cn')"></textarea><div id="tipCn2" class="absolute top-2 right-2 text-[10px] text-green-500 opacity-0 transition-opacity">增量更新</div></div>
+            <div class="relative"><textarea id="transEn2" class="input-clean w-full h-28 font-mono text-base" placeholder="Type English here..." oninput="handleTransInput2('en')"></textarea></div>
         </div>
     </div>
 
@@ -187,7 +187,7 @@
           <h3 class="font-bold text-gray-700 text-sm"><i class="fas fa-check-circle text-blue-500 mr-1"></i> 正向 (Positive)</h3>
           <button onclick="copyToClipboard('posOutput')" class="text-xs text-blue-500 hover:bg-blue-50 px-2 py-1 rounded transition font-bold">复制</button>
         </div>
-        <textarea id="posOutput" class="input-clean w-full h-32 mb-3 font-mono text-xs bg-gray-50 text-blue-900" placeholder="Prompt..."></textarea>
+        <textarea id="posOutput" class="input-clean w-full h-32 mb-3 font-mono text-xs bg-gray-50 text-blue-900 resize-none" placeholder="Prompt..."></textarea>
         <div class="flex-1 bg-white/60 rounded-xl border border-gray-200 flex flex-col overflow-hidden">
           <div class="p-2 border-b border-gray-100 flex gap-2">
             <input id="addPosTag" class="input-clean flex-1 py-1 text-xs" placeholder="Add Tag">
@@ -202,7 +202,7 @@
           <h3 class="font-bold text-gray-700 text-sm"><i class="fas fa-minus-circle text-gray-400 mr-1"></i> 反向 (Negative)</h3>
           <button onclick="copyToClipboard('negOutput')" class="text-xs text-gray-500 hover:bg-gray-100 px-2 py-1 rounded transition font-bold">复制</button>
         </div>
-        <textarea id="negOutput" class="input-clean w-full h-32 mb-3 font-mono text-xs bg-gray-50 text-gray-600" placeholder="Negative Prompt..."></textarea>
+        <textarea id="negOutput" class="input-clean w-full h-32 mb-3 font-mono text-xs bg-gray-50 text-gray-600 resize-none" placeholder="Negative Prompt..."></textarea>
         <div class="flex-1 bg-white/60 rounded-xl border border-gray-200 flex flex-col overflow-hidden">
           <div class="p-2 border-b border-gray-100 flex gap-2">
             <input id="addNegTag" class="input-clean flex-1 py-1 text-xs" placeholder="Add Tag">
