@@ -11,38 +11,42 @@
     :root {
       --hang: #FF3B30; --top: #FF9500; --rsr: #FFCC00; --npc: #F2F2F7; --la: #8E8E93;
       --judy-blue: #007AFF;
+      --bg: #f0f2f5; --card-bg: #ffffff; --text: #1c1c1e; --border: #f0f0f0; --input-bg: #ffffff;
     }
-    body { background: #f0f2f5; font-family: -apple-system, "PingFang SC", sans-serif; touch-action: pan-y; }
-    .glass { background: white; border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); overflow: hidden; }
     
-    /* 标题输入框样式 */
+    body.dark {
+      --bg: #121212; --card-bg: #1c1c1e; --text: #f2f2f7; --border: #2c2c2e; --input-bg: #2c2c2e;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, "PingFang SC", sans-serif; touch-action: pan-y; transition: background 0.3s; }
+    .glass { background: var(--card-bg); border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid var(--border); }
+    
     #mainTitle {
       background: transparent; border: none; outline: none;
-      width: 100%; font-weight: 900; color: #111;
-      padding: 0; margin-bottom: 4px;
+      width: 100%; font-weight: 900; color: var(--text);
+      padding: 0;
     }
-    #mainTitle::placeholder { color: #ccc; }
+    #mainTitle::placeholder { color: #888; }
 
-    .t-row { display: flex; border-bottom: 1px solid #f0f0f0; min-height: 110px; }
+    .t-row { display: flex; border-bottom: 1px solid var(--border); min-height: 110px; }
     .t-label {
       width: 90px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-      font-weight: 900; font-size: 16px; color: #1c1c1e; border-right: 1px solid #f0f0f0;
+      font-weight: 900; font-size: 16px; color: #1c1c1e; border-right: 1px solid var(--border);
       padding: 10px; text-align: center;
     }
     .t-content { flex: 1; display: flex; flex-wrap: wrap; gap: 12px; padding: 15px; align-content: center; min-height: 110px; }
 
     .tag-item {
-      width: 80px; background: white; border-radius: 12px; padding: 6px;
+      width: 80px; background: var(--card-bg); border-radius: 12px; padding: 6px;
       display: flex; flex-direction: column; align-items: center; gap: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: grab; border: 1px solid #eee;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: grab; border: 1px solid var(--border);
     }
     .tag-item img { width: 68px; height: 68px; border-radius: 8px; object-fit: cover; pointer-events: none; background: #f8f8f8; }
-    .tag-item span { font-size: 11px; font-weight: 800; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #333; }
+    .tag-item span { font-size: 11px; font-weight: 800; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
 
     .btn-zoo { background: var(--judy-blue); color: white; padding: 10px 20px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.2s; font-size: 14px; }
-    .btn-zoo:active { transform: scale(0.95); }
-    .input-zoo { border: 2px solid #eee; border-radius: 12px; padding: 12px; width: 100%; outline: none; font-size: 14px; }
-
+    .input-zoo { background: var(--input-bg); border: 2px solid var(--border); border-radius: 12px; padding: 12px; width: 100%; outline: none; font-size: 14px; color: var(--text); }
+    
     .doc-container { width: 100%; height: 750px; border: none; border-radius: 12px; background: white; }
     
     @media (max-width: 640px) {
@@ -55,22 +59,29 @@
 <body class="p-3 sm:p-8">
 
   <div class="max-w-4xl mx-auto flex flex-col gap-6">
-    <!-- 头部：可编辑标题 -->
-    <div class="flex justify-between items-end px-2">
-      <div class="flex-1 mr-4">
-        <input type="text" id="mainTitle" class="text-3xl tracking-tight" placeholder="点击输入排行榜标题..." oninput="saveLocal()">
-        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Real-Time Sync • Interactive UI • Local Storage</p>
+    
+    <!-- 头部：标题与按钮对齐 -->
+    <div class="flex items-center justify-between px-2 gap-4">
+      <div class="flex-1">
+        <input type="text" id="mainTitle" class="text-3xl tracking-tight" placeholder="输入标题..." oninput="saveLocal()">
+        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Real-Time Sync • Chinese Secret Code</p>
       </div>
-      <button onclick="clearData()" class="text-xs font-bold text-red-400 hover:underline shrink-0">重置</button>
+      
+      <div class="flex items-center gap-4 shrink-0">
+        <button onclick="toggleDarkMode()" class="text-gray-400 hover:text-blue-500 transition text-xl">
+            <i id="darkIcon" class="fas fa-moon"></i>
+        </button>
+        <button onclick="clearData()" class="text-xs font-bold text-red-400 hover:underline">重置</button>
+      </div>
     </div>
 
-    <!-- 排行榜主体 -->
+    <!-- 排行榜 -->
     <div class="glass">
-      <div class="t-row"><div class="t-label" style="background:var(--hang)">夯</div><div id="row-hang" class="t-content"></div></div>
-      <div class="t-row"><div class="t-label" style="background:var(--top)">顶级</div><div id="row-top" class="t-content"></div></div>
-      <div class="t-row"><div class="t-label" style="background:var(--rsr)">人上人</div><div id="row-rsr" class="t-content"></div></div>
-      <div class="t-row"><div class="t-label" style="background:var(--npc)">NPC</div><div id="row-npc" class="t-content"></div></div>
-      <div class="t-row"><div class="t-label" style="background:var(--la)">拉完了</div><div id="row-la" class="t-content"></div></div>
+        <div class="t-row"><div class="t-label" style="background:var(--hang)">夯</div><div id="row-hang" class="t-content"></div></div>
+        <div class="t-row"><div class="t-label" style="background:var(--top)">顶级</div><div id="row-top" class="t-content"></div></div>
+        <div class="t-row"><div class="t-label" style="background:var(--rsr)">人上人</div><div id="row-rsr" class="t-content"></div></div>
+        <div class="t-row"><div class="t-label" style="background:var(--npc)">NPC</div><div id="row-npc" class="t-content"></div></div>
+        <div class="t-row"><div class="t-label" style="background:var(--la)">拉完了</div><div id="row-la" class="t-content"></div></div>
     </div>
 
     <!-- 注入池 -->
@@ -79,36 +90,31 @@
         <input id="batchIn" class="input-zoo" placeholder="输入名称(空格或逗号分隔)...">
         <button onclick="inject()" class="btn-zoo shrink-0">注入</button>
       </div>
-      <div id="pool" class="min-h-[100px] flex flex-wrap gap-4 p-5 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200"></div>
+      <div id="pool" class="min-h-[100px] flex flex-wrap gap-4 p-5 bg-black/5 rounded-2xl border-2 border-dashed border-gray-200"></div>
     </div>
 
     <!-- 数据备份 -->
     <div class="glass p-6">
-      <h3 class="text-xs font-black mb-3 text-gray-500 uppercase tracking-widest">导入导出 / 数据备份</h3>
-      <textarea id="ioBox" class="w-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-3 text-[10px] font-mono h-20 mb-3 outline-none" placeholder="生成代码或粘贴还原..."></textarea>
+      <h3 class="text-xs font-black mb-3 text-gray-500 uppercase tracking-widest">备份与还原 (中文暗码)</h3>
+      <textarea id="ioBox" class="w-full bg-black/5 border-2 border-dashed border-gray-200 rounded-xl p-3 text-sm h-20 mb-3 outline-none text-blue-500 font-medium" placeholder="此处显示中文暗码..."></textarea>
       <div class="flex gap-2">
-        <button onclick="exportData()" class="bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-xs">生成备份代码</button>
-        <button onclick="copyData()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-bold text-xs">复制</button>
+        <button onclick="exportData()" class="bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-black">生成暗码</button>
+        <button onclick="copyData()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-bold text-xs hover:bg-gray-300">复制</button>
         <div class="flex-1"></div>
-        <button onclick="importData()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs">导入还原</button>
+        <button onclick="importData()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-green-700">导入暗码</button>
       </div>
     </div>
 
-    <!-- 腾讯文档内嵌 -->
+    <!-- 文档内嵌 -->
     <div class="glass p-1">
-      <div class="bg-gray-50 p-3 border-b flex items-center justify-between">
-        <span class="text-xs font-black text-gray-500 uppercase tracking-widest"><i class="fas fa-database mr-2"></i> 数据文档内嵌视图</span>
-        <a href="https://docs.qq.com/doc/DZk50aGZqU3V1RVR0" target="_blank" class="text-[10px] text-blue-500 font-bold">全屏打开</a>
-      </div>
       <iframe class="doc-container" src="https://docs.qq.com/doc/DZk50aGZqU3V1RVR0"></iframe>
     </div>
 
-    <!-- 页脚署名 -->
+    <!-- 页脚 -->
     <div class="text-center pb-12">
-      <p class="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em] mb-3">实时搜图 • 自动保存 • 文档内嵌</p>
-      <a href="https://heyan9.github.io" target="_blank" class="inline-flex items-center gap-2 bg-white px-6 py-2 rounded-full shadow-sm border border-gray-100 hover:shadow-md transition group">
-        <span class="text-xs font-black text-gray-600 group-hover:text-blue-600">个人主页</span>
-        <span class="text-gray-300">|</span>
+      <a href="https://heyan9.github.io" target="_blank" class="inline-flex items-center gap-2 bg-white dark:bg-zinc-800 px-6 py-2 rounded-full shadow-sm border border-gray-100 dark:border-zinc-700 hover:shadow-md transition group">
+        <span class="text-xs font-black text-gray-600 dark:text-gray-300 group-hover:text-blue-600">个人主页</span>
+        <span class="text-gray-300 dark:text-zinc-600">|</span>
         <span class="text-xs font-bold text-gray-400 group-hover:text-gray-600">heyan9.github.io</span>
       </a>
     </div>
@@ -116,6 +122,32 @@
 
   <script>
     const containers = ['row-hang', 'row-top', 'row-rsr', 'row-npc', 'row-la', 'pool'];
+
+    // 核心：中文暗码转换逻辑 (数据 -> 压缩 -> 位移至中文字符区)
+    function toChineseCode(obj) {
+        const str = JSON.stringify(obj);
+        let code = "";
+        for (let i = 0; i < str.length; i++) {
+            // 将字符编码位移到 CJK 常用汉字区 (0x4E00 附近)
+            code += String.fromCharCode(str.charCodeAt(i) + 0x4E00);
+        }
+        return code;
+    }
+
+    function fromChineseCode(code) {
+        let str = "";
+        for (let i = 0; i < code.length; i++) {
+            str += String.fromCharCode(code.charCodeAt(i) - 0x4E00);
+        }
+        return JSON.parse(str);
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+      const isDark = document.body.classList.contains('dark');
+      document.getElementById('darkIcon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+      localStorage.setItem('heyan_dark_mode', isDark);
+    }
 
     function getRealImage(name) {
       const query = encodeURIComponent(name);
@@ -143,68 +175,73 @@
       saveLocal();
     }
 
-    // 保存标题 + 排行
     function saveLocal() {
       const data = {
-        title: document.getElementById('mainTitle').value,
-        rows: {}
+        t: document.getElementById('mainTitle').value, // 简写 key 减小体积
+        r: {}
       };
       containers.forEach(id => {
-        data.rows[id] = Array.from(document.getElementById(id).children).map(el => el.getAttribute('data-name'));
+        data.r[id] = Array.from(document.getElementById(id).children).map(el => el.getAttribute('data-name'));
       });
-      localStorage.setItem('heyan_ranking_final_vLast', JSON.stringify(data));
+      localStorage.setItem('heyan_ranking_v2', JSON.stringify(data));
     }
 
     function loadLocal() {
-      const raw = localStorage.getItem('heyan_ranking_final_vLast');
+      if (localStorage.getItem('heyan_dark_mode') === 'true') {
+        document.body.classList.add('dark');
+        document.getElementById('darkIcon').className = 'fas fa-sun';
+      }
+
+      const raw = localStorage.getItem('heyan_ranking_v2');
       if (!raw) return;
       const data = JSON.parse(raw);
-      if (data.title) document.getElementById('mainTitle').value = data.title;
-      if (data.rows) {
+      if (data.t) document.getElementById('mainTitle').value = data.t;
+      if (data.r) {
         containers.forEach(id => {
           const el = document.getElementById(id);
           el.innerHTML = '';
-          if (data.rows[id]) data.rows[id].forEach(name => el.appendChild(createTag(name)));
+          if (data.r[id]) data.r[id].forEach(name => el.appendChild(createTag(name)));
         });
       }
     }
 
     function exportData() {
       const data = {
-        title: document.getElementById('mainTitle').value,
-        rows: {}
+        t: document.getElementById('mainTitle').value,
+        r: {}
       };
       containers.forEach(id => {
-        data.rows[id] = Array.from(document.getElementById(id).children).map(el => el.getAttribute('data-name'));
+        data.r[id] = Array.from(document.getElementById(id).children).map(el => el.getAttribute('data-name'));
       });
-      document.getElementById('ioBox').value = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+      document.getElementById('ioBox').value = toChineseCode(data);
     }
 
     function importData() {
-      const str = document.getElementById('ioBox').value.trim();
-      if (!str) return;
+      const code = document.getElementById('ioBox').value.trim();
+      if (!code) return;
       try {
-        const data = JSON.parse(decodeURIComponent(escape(atob(str))));
-        if (data.title) document.getElementById('mainTitle').value = data.title;
+        const data = fromChineseCode(code);
+        if (data.t) document.getElementById('mainTitle').value = data.t;
         containers.forEach(id => {
           const el = document.getElementById(id);
           el.innerHTML = '';
-          if (data.rows && data.rows[id]) data.rows[id].forEach(name => el.appendChild(createTag(name)));
+          if (data.r && data.r[id]) data.r[id].forEach(name => el.appendChild(createTag(name)));
         });
         saveLocal();
-      } catch (e) { alert('代码格式错误'); }
+        alert('导入成功');
+      } catch (e) { alert('暗码无效'); }
     }
 
     function copyData() {
       const box = document.getElementById('ioBox');
       box.select();
       document.execCommand('copy');
-      alert('备份代码已复制');
+      alert('暗码已复制');
     }
 
     function clearData() {
       if(confirm("确定清空数据吗？")) {
-        localStorage.removeItem('heyan_ranking_final_vLast');
+        localStorage.removeItem('heyan_ranking_v2');
         location.reload();
       }
     }
