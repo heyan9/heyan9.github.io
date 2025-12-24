@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>何岩专业去水印 - 影核旗舰 v9.0</title>
+    <style>
+        :root { --blue: #0066ff; --bg: #f5f7f9; --glass: rgba(255,255,255,0.9); }
+        * { box-sizing: border-box; outline: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); font-family: -apple-system, sans-serif; overflow: hidden; }
+
+        /* 笔触预览 */
+        #cursor-circle {
+            position: fixed; border: 1.5px dashed var(--blue); border-radius: 50%;
+            pointer-events: none; display: none; z-index: 10000; transform: translate(-50%, -50%);
+            background: rgba(0, 102, 255, 0.1);
+        }
+
+        .layout { display: flex; flex-direction: column; height: 100vh; }
+        
+        /* 导航头 */
+        header {
+            height: 55px; background: #fff; border-bottom: 1px solid #eee;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100;
+        }
+        header h1 { font-size: 16px; margin: 0; }
+        header h1 span { color: var(--blue); font-weight: 800; }
+
+        .main { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+        /* 视口 */
+        #viewport {
+            flex: 1; position: relative; overflow: auto; background: #e0e4e8;
+            display: flex; align-items: center; justify-content: center; cursor: none;
+        }
+        #canvas-stack { position: relative; transform-origin: center center; }
+        canvas { position: absolute; top: 0; left: 0; image-rendering: -webkit-optimize-contrast; }
+        #maskCanvas { opacity: 0.6; pointer-events: none; } /* 蓝色遮罩透明度 */
+
+        /* 侧边调节面板 */
+        .panel {
+            width: 300px; background: var(--glass); backdrop-filter: blur(20px);
+            border-left: 1px solid #ddd; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px;
+        }
+
+        @media (max-width: 800px) {
+            .main { flex-direction: column; }
+            .panel { width: 100%; height: 45%; border-left: none; border-top: 1px solid #ddd; }
+        }
+
+        .sec-title { font-size: 12px; font-weight: 700; color: #999; letter-spacing: 1px; margin-bottom: 10px; }
+        .ctrl-group { margin-bottom: 15px; }
+        .ctrl-label { display: flex; justify-content: space-between; font-size: 11px; color: #444; margin-bottom: 5px; }
+        .ctrl-label b { color: var(--blue); }
+
+        input[type=range] { appearance: none; width: 100%; height: 2px; background: #ddd; }
+        input[type=range]::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; background: var(--blue); border-radius: 50%; cursor: pointer; }
+
+        /* HSL 分色小球 */
+        .color-row { display: flex; gap: 8px; margin: 10px 0; overflow-x: auto; padding: 5px 0; }
+        .c-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 0 1px #eee; transition: 0.2s; }
+        .c-dot.active { transform: scale(1.3); box-shadow: 0 0 0 2px var(--blue); }
+
+        .btns { display: flex; gap: 10px; margin-top: 10px; }
+        button { flex: 1; padding: 10px; border-radius: 6px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .b-blue { background: var(--blue); color: #fff; }
+        .b-green { background: #28a745; color: #fff; }
+        .b-sub { background: #f0f2f5; color: #666; }
+
+        #loader { display: none; position: absolute; background: var(--blue); color: #fff; padding: 12px 25px; border-radius: 40px; z-index: 1000; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<div id="cursor-circle"></div>
+
+<div class="layout">
+    <header>
+        <h1>何岩专业去水印 <span>PRO v9.0</span></h1>
+        <div style="display:flex; gap:10px;">
+            <button class="b-sub" style="padding:5px 15px;" onclick="undo()">撤销</button>
+            <button class="b-blue" style="padding:5px 20px;" onclick="startAI()">开始去水印</button>
+        </div>
+    </header>
+
+    <div class="main">
+        <div id="viewport">
+            <div id="loader">正在 AI 重绘，请稍后...</div>
+            <div id="empty-hint" style="text-align:center; color:#999;" onclick="document.getElementById('file').click()">
+                <p style="font-size:40px; margin:0;">📁</p>
+                <p>Ctrl + V 粘贴高清原图</p>
+                <input type="file" id="file" hidden onchange="initImage(this.files[0])">
+            </div>
+            <div id="canvas-stack">
+                <canvas id="mainCanvas"></canvas>
+                <canvas id="maskCanvas"></canvas>
+            </div>
+        </div>
+
+        <aside class="panel" id="panel" style="visibility:hidden">
+            <div class="ctrl-group">
+                <div class="sec-title">画面尺寸</div>
+                <div class="ctrl-label">物理尺寸调节 <b id="val-res">100%</b></div>
+                <input type="range" id="adj-res" min="10" max="200" value="100">
+            </div>
+
+            <div class="ctrl-group">
+                <div class="sec-title">全局调节</div>
+                <div class="ctrl-label">亮度 <b id="v-gb">100</b></div>
+                <input type="range" class="g-adj" id="g-b" min="50" max="150" value="100">
+                <div class="ctrl-label" style="margin-top:10px">对比度 <b id="v-gc">100</b></div>
+                <input type="range" class="g-adj" id="g-c" min="50" max="150" value="100">
+            </div>
+
+            <div class="ctrl-group">
+                <div class="sec-title">HSL 分色系统</div>
+                <div class="color-row">
+                    <div class="c-dot active" data-color="red" style="background:#ff4d4f"></div>
+                    <div class="c-dot" data-color="orange" style="background:#ffa940"></div>
+                    <div class="c-dot" data-color="yellow" style="background:#ffec3d"></div>
+                    <div class="c-dot" data-color="green" style="background:#73d13d"></div>
+                    <div class="c-dot" data-color="blue" style="background:#40a9ff"></div>
+                    <div class="c-dot" data-color="purple" style="background:#9254de"></div>
+                </div>
+                <div class="ctrl-label"><span id="hsl-n">红色</span> 饱和度 <b id="v-hs">0</b></div>
+                <input type="range" id="h-s" min="-100" max="100" value="0">
+                <div class="ctrl-label" style="margin-top:10px"><span id="hsl-n2">红色</span> 亮度 <b id="v-hl">0</b></div>
+                <input type="range" id="h-l" min="-100" max="100" value="0">
+            </div>
+
+            <div class="btns">
+                <button class="b-sub" onclick="resetAdj()">重置参数</button>
+                <button class="b-green" onclick="download()">下载大图</button>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<script>
+    const API_KEY = '376b0909f65b98df057437602f259a625c82c73fcb63237919a1a8492847fc6c7d910b61ef6febdd0617cd42e0c369f8';
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const mCanvas = document.getElementById('maskCanvas');
+    const mCtx = mCanvas.getContext('2d');
+    const stack = document.getElementById('canvas-stack');
+    const cursor = document.getElementById('cursor-circle');
+
+    let baseImg = null, history = [], isDrawing = false;
+    let zoom = 1, brushSize = 30, activeCol = 'red';
+    let hslStore = { red:{s:0,l:0}, orange:{s:0,l:0}, yellow:{s:0,l:0}, green:{s:0,l:0}, blue:{s:0,l:0}, purple:{s:0,l:0} };
+
+    // --- 初始化 ---
+    window.addEventListener('paste', e => {
+        const item = Array.from(e.clipboardData.items).find(x => x.type.includes('image'));
+        if (item) initImage(item.getAsFile());
+    });
+
+    function initImage(file) {
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            baseImg = new Image();
+            baseImg.onload = () => {
+                canvas.width = mCanvas.width = baseImg.width;
+                canvas.height = mCanvas.height = baseImg.height;
+                stack.style.width = baseImg.width + 'px';
+                stack.style.height = baseImg.height + 'px';
+                render();
+                saveHist();
+                document.getElementById('empty-hint').style.display = 'none';
+                document.getElementById('panel').style.visibility = 'visible';
+                zoom = 1; updateZoom();
+            };
+            baseImg.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // --- 鼠标交互 ---
+    window.addEventListener('mousemove', e => {
+        if(!baseImg) return;
+        cursor.style.display = 'block';
+        cursor.style.left = e.clientX + 'px'; cursor.style.top = e.clientY + 'px';
+        cursor.style.width = (brushSize * zoom) + 'px'; cursor.style.height = (brushSize * zoom) + 'px';
+    });
+
+    window.addEventListener('wheel', e => {
+        if(e.ctrlKey) {
+            e.preventDefault();
+            zoom = Math.min(Math.max(0.1, zoom + (e.deltaY > 0 ? -0.1 : 0.1)), 10);
+            updateZoom();
+        } else if(baseImg) {
+            e.preventDefault();
+            brushSize = Math.min(Math.max(5, brushSize + (e.deltaY > 0 ? -5 : 5)), 500);
+        }
+    }, { passive: false });
+
+    function updateZoom() { stack.style.transform = `scale(${zoom})`; }
+
+    // --- 调色逻辑 ---
+    document.querySelectorAll('.g-adj').forEach(el => el.oninput = render);
+    document.getElementById('adj-res').oninput = function() {
+        if(!baseImg) return;
+        canvas.width = mCanvas.width = baseImg.width * (this.value/100);
+        canvas.height = mCanvas.height = baseImg.height * (this.value/100);
+        render();
+    };
+
+    document.querySelectorAll('.c-dot').forEach(dot => {
+        dot.onclick = function() {
+            document.querySelector('.c-dot.active').classList.remove('active');
+            this.classList.add('active'); activeCol = this.dataset.color;
+            document.getElementById('h-s').value = hslStore[activeCol].s;
+            document.getElementById('h-l').value = hslStore[activeCol].l;
+            document.querySelectorAll('#hsl-n, #hsl-n2').forEach(el => el.innerText = activeCol);
+            render();
+        };
+    });
+
+    document.getElementById('h-s').oninput = function() { hslStore[activeCol].s = +this.value; render(); };
+    document.getElementById('h-l').oninput = function() { hslStore[activeCol].l = +this.value; render(); };
+
+    function render() {
+        if(!baseImg) return;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        
+        // 全局滤镜
+        const b = document.getElementById('g-b').value, c = document.getElementById('g-c').value;
+        canvas.style.filter = `brightness(${b}%) contrast(${c}%)`;
+        document.getElementById('v-gb').innerText = b; document.getElementById('v-gc').innerText = c;
+        document.getElementById('val-res').innerText = document.getElementById('adj-res').value + '%';
+        document.getElementById('v-hs').innerText = hslStore[activeCol].s; 
+        document.getElementById('v-hl').innerText = hslStore[activeCol].l;
+
+        ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
+
+        // HSL 分色处理
+        const hasHSL = Object.values(hslStore).some(v => v.s!==0 || v.l!==0);
+        if(hasHSL) {
+            const idata = ctx.getImageData(0,0,canvas.width,canvas.height), d = idata.data;
+            for(let i=0; i<d.length; i+=4) {
+                const hsl = rgbToHsl(d[i], d[i+1], d[i+2]);
+                const key = getHueKey(hsl.h);
+                if(hslStore[key]) {
+                    hsl.s = Math.min(1, Math.max(0, hsl.s + hslStore[key].s/100));
+                    hsl.l = Math.min(1, Math.max(0, hsl.l + hslStore[key].l/200));
+                    const rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
+                    d[i] = rgb.r; d[i+1] = rgb.g; d[i+2] = rgb.b;
+                }
+            }
+            ctx.putImageData(idata, 0, 0);
+        }
+    }
+
+    // --- 涂抹逻辑 (在 maskCanvas 上画) ---
+    viewport.onmousedown = (e) => { if(baseImg) isDrawing = true; paint(e); };
+    window.onmouseup = () => isDrawing = false;
+    viewport.onmousemove = paint;
+
+    function paint(e) {
+        if(!isDrawing) return;
+        const r = canvas.getBoundingClientRect();
+        const x = (e.clientX - r.left) / zoom, y = (e.clientY - r.top) / zoom;
+        mCtx.fillStyle = '#0066ff';
+        mCtx.beginPath(); mCtx.arc(x, y, brushSize/2, 0, Math.PI*2); mCtx.fill();
+    }
+
+    // --- AI 处理 ---
+    async function startAI() {
+        const loader = document.getElementById('loader'); loader.style.display = 'block';
+        
+        // 生成 AI 遮罩图
+        const tempM = document.createElement('canvas');
+        tempM.width = canvas.width; tempM.height = canvas.height;
+        const tmCtx = tempM.getContext('2d');
+        tmCtx.fillStyle = 'black'; tmCtx.fillRect(0,0,tempM.width,tempM.height);
+        tmCtx.fillStyle = 'white';
+        // 将蓝色涂抹转换为 AI 识别的白色遮罩
+        tmCtx.drawImage(mCanvas, 0, 0); 
+        const mData = tmCtx.getImageData(0,0,tempM.width,tempM.height);
+        for(let i=0; i<mData.data.length; i+=4) {
+            // 只要不是纯黑，就变成纯白
+            const v = mData.data[i+2] > 50 ? 255 : 0;
+            mData.data[i] = mData.data[i+1] = mData.data[i+2] = v;
+            mData.data[i+3] = 255;
+        }
+        tmCtx.putImageData(mData, 0, 0);
+
+        try {
+            const outC = document.createElement('canvas');
+            outC.width = canvas.width; outC.height = canvas.height;
+            const octx = outC.getContext('2d');
+            octx.filter = canvas.style.filter; octx.drawImage(canvas, 0, 0);
+
+            const imgB = await new Promise(r => outC.toBlob(r, 'image/png'));
+            const maskB = await new Promise(r => tempM.toBlob(r, 'image/png'));
+            
+            const fd = new FormData();
+            fd.append('image_file', imgB); fd.append('mask_file', maskB);
+
+            const res = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://clipdrop-api.co/cleanup/v1'), {
+                method: 'POST', headers: {'x-api-key': API_KEY}, body: fd
+            });
+            
+            const resBlob = await res.blob();
+            const resImg = new Image();
+            resImg.onload = () => {
+                baseImg = resImg; canvas.width = mCanvas.width = resImg.width; canvas.height = mCanvas.height = resImg.height;
+                mCtx.clearRect(0,0,mCanvas.width,mCanvas.height); // 清除蓝色涂抹
+                render(); saveHist(); loader.style.display = 'none';
+            };
+            resImg.src = URL.createObjectURL(resBlob);
+        } catch(e) { loader.style.display = 'none'; alert("AI 处理失败，请检查 Key 或网络。"); }
+    }
+
+    function saveHist() { if(history.length>10) history.shift(); history.push(canvas.toDataURL()); }
+    function undo() {
+        if(history.length<=1) return;
+        history.pop(); const img = new Image();
+        img.onload = () => { baseImg = img; canvas.width=mCanvas.width=img.width; canvas.height=mCanvas.height=img.height; render(); };
+        img.src = history[history.length-1];
+    }
+    function resetAdj() {
+        Object.keys(hslStore).forEach(k => hslStore[k]={s:0,l:0});
+        document.getElementById('g-b').value=100; document.getElementById('g-c').value=100; render();
+    }
+    function download() {
+        const out = document.createElement('canvas'); out.width = canvas.width; out.height = canvas.height;
+        const o = out.getContext('2d'); o.filter = canvas.style.filter; o.drawImage(canvas, 0, 0);
+        const a = document.createElement('a'); a.href = out.toDataURL(); a.download = '何岩专业修复.png'; a.click();
+    }
+
+    // --- 工具 ---
+    function getHueKey(h) {
+        h *= 360;
+        if(h < 20 || h >= 340) return 'red';
+        if(h < 45) return 'orange';
+        if(h < 75) return 'yellow';
+        if(h < 170) return 'green';
+        if(h < 260) return 'blue';
+        return 'purple';
+    }
+    function rgbToHsl(r,g,b){
+        r/=255,g/=255,b/=255; const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;
+        let h,s,l=(max+min)/2;
+        if(d===0)h=s=0;
+        else {
+            s=l>0.5?d/(2-max-min):d/(max+min);
+            switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}
+            h/=6;
+        }
+        return {h,s,l};
+    }
+    function hslToRgb(h,s,l){
+        let r,g,b;
+        if(s===0)r=g=b=l;
+        else {
+            const q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q;
+            const f=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
+            r=f(p,q,h+1/3);g=f(p,q,h);b=f(p,q,h-1/3);
+        }
+        return {r:r*255,g:g*255,b:b*255};
+    }
+</script>
+</body>
+</html>
