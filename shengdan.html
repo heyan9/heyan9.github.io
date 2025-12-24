@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>祝我们的桂宝宝有个完美的圣诞节</title>
+    <style>
+        :root {
+            --gold: #ffd700;
+            --warm-light: rgba(255, 200, 100, 0.4);
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000; /* 初始背景全黑 */
+            color: white; font-family: 'STKaiti', 'Microsoft YaHei', serif;
+            overflow: hidden;
+        }
+
+        /* 场景控制：开场慢慢亮起 */
+        .scene {
+            width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at bottom, #4a1212 0%, #000 70%),
+                url('https://images.unsplash.com/photo-1543589077-47d81606c1bf?auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            opacity: 0; /* 初始全透明 */
+            transition: opacity 5s ease-in-out; /* 5秒缓慢亮起 */
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .scene.active { opacity: 1; }
+
+        /* 标题感 */
+        .header-msg {
+            margin-top: 50px; text-align: center; z-index: 10;
+            text-shadow: 0 0 15px var(--gold);
+            animation: glow 2s infinite alternate;
+        }
+        .header-msg h1 { font-size: 2.2rem; margin: 0; color: var(--gold); }
+        .header-msg p { font-size: 1.2rem; color: #fff; margin-top: 10px; }
+
+        /* 圣诞树容器 */
+        .tree-area {
+            position: relative;
+            width: 400px; height: 550px;
+            margin-top: 20px;
+        }
+
+        /* 高级感圣诞树主体 */
+        .tree-svg {
+            width: 100%; height: 100%;
+            filter: drop-shadow(0 0 20px #064e3b);
+        }
+
+        /* 照片球 - 装饰效果 */
+        .ornament {
+            position: absolute;
+            width: 55px; height: 55px;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 15px var(--gold);
+            overflow: hidden;
+            cursor: pointer;
+            z-index: 20;
+            transition: transform 0.3s;
+            background: #fff;
+        }
+        .ornament:hover { transform: scale(1.4); z-index: 100; }
+        .ornament img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 倒计时样式 */
+        .countdown-container {
+            position: absolute; bottom: 40px;
+            text-align: center; background: rgba(0,0,0,0.6);
+            padding: 15px 30px; border-radius: 50px;
+            border: 1px solid var(--gold);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        .timer { font-size: 1.8rem; font-weight: bold; color: var(--gold); letter-spacing: 2px; }
+        .timer-label { font-size: 0.8rem; color: #ccc; margin-top: 5px; }
+
+        /* 弹窗 */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal img { max-width: 85%; max-height: 85%; border: 5px solid #fff; border-radius: 10px; }
+
+        @keyframes glow {
+            from { opacity: 0.8; } to { opacity: 1; text-shadow: 0 0 25px var(--gold); }
+        }
+
+        /* 手机适配 */
+        @media (max-width: 600px) {
+            .tree-area { width: 300px; height: 400px; transform: scale(0.9); }
+            .header-msg h1 { font-size: 1.4rem; }
+            .ornament { width: 45px; height: 45px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scene" id="mainScene">
+        <div class="header-msg">
+            <h1>祝我们的桂宝宝有个完美的圣诞节</h1>
+            <p>愿所有的温暖都伴随你，爱你 ❤️</p>
+        </div>
+
+        <div class="tree-area" id="treeContainer">
+            <!-- 树的形状 -->
+            <svg class="tree-svg" viewBox="0 0 200 260">
+                <path d="M100 10 L140 70 L125 70 L165 130 L145 130 L190 210 L10 210 L55 130 L35 130 L75 70 L60 70 Z" fill="#064e3b" />
+                <rect x="90" y="210" width="20" height="30" fill="#311c04" />
+                <!-- 树顶星星 -->
+                <polygon points="100,5 105,18 118,18 108,27 112,40 100,32 88,40 92,27 82,18 95,18" fill="gold" />
+            </svg>
+            <div id="ballsGallery"></div>
+        </div>
+
+        <div class="countdown-container">
+            <div class="timer-label">距离 2025 圣诞节还有</div>
+            <div class="timer" id="countdown">00 天 00 时 00 分 00 秒</div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal" onclick="this.style.display='none'">
+        <img id="modalImg" src="">
+    </div>
+
+    <script>
+        // 配置：这里设置你有多少张图
+        const IMAGE_COUNT = 10; 
+
+        window.onload = () => {
+            // 1. 启动开场动画
+            setTimeout(() => {
+                document.getElementById('mainScene').classList.add('active');
+            }, 800);
+
+            // 2. 生成照片球并自动对准树形
+            const gallery = document.getElementById('ballsGallery');
+            
+            // 定义树的层级结构，确保球挂在树叶范围内
+            // 每一层的 [top, width_range]
+            const layers = [
+                {t: 60,  w: 40}, 
+                {t: 120, w: 80}, 
+                {t: 180, w: 120},
+                {t: 240, w: 180},
+                {t: 300, w: 220},
+                {t: 360, w: 260}
+            ];
+
+            for (let i = 1; i <= IMAGE_COUNT; i++) {
+                const ball = document.createElement('div');
+                ball.className = 'ornament';
+                
+                // 算法：随机选择一层，并在该层的宽度范围内随机摆放
+                const layer = layers[Math.floor(Math.random() * layers.length)];
+                const top = layer.t + (Math.random() * 40);
+                const left = 200 + (Math.random() * layer.w - layer.w/2) - 27; // -27是球半径补偿
+
+                ball.style.top = top + 'px';
+                ball.style.left = left + 'px';
+                
+                const imgSrc = `imgsd/${i}.jpg`;
+                ball.innerHTML = `<img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/100?text=Pic+${i}'">`;
+                
+                ball.onclick = () => {
+                    document.getElementById('modalImg').src = imgSrc;
+                    document.getElementById('modal').style.display = 'flex';
+                };
+                gallery.appendChild(ball);
+            }
+
+            // 3. 圣诞节倒计时逻辑
+            function updateCountdown() {
+                const now = new Date();
+                // 目标是 2025年12月25日 0点
+                let target = new Date(2025, 11, 25); 
+                
+                const diff = target - now;
+                
+                if (diff <= 0) {
+                    document.getElementById('countdown').innerHTML = "圣诞快乐！我的宝宝";
+                    return;
+                }
+
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const m = Math.floor((diff / 1000 / 60) % 60);
+                const s = Math.floor((diff / 1000) % 60);
+
+                document.getElementById('countdown').innerHTML = 
+                    `${d}天 ${h < 10 ? '0'+h : h}时 ${m < 10 ? '0'+m : m}分 ${s < 10 ? '0'+s : s}秒`;
+            }
+
+            setInterval(updateCountdown, 1000);
+            updateCountdown();
+        };
+    </script>
+</body>
+</html>
