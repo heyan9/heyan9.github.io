@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>何岩提词器</title>
+    <style>
+        /* --- 1. 全局配置 --- */
+        :root {
+            --zhihu-blue: #0066ff;
+            --zhihu-dark-blue: #005ce6;
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            --dark-glass-bg: rgba(40, 40, 40, 0.7);
+            --dark-glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f0ff 100%);
+            color: #121212;
+            height: 100vh;
+            overflow: hidden;
+            /* 背景装饰圆，增加玻璃通透感 */
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 102, 255, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 102, 255, 0.15) 0%, transparent 40%);
+        }
+
+        /* --- 2. 首页：输入设置 (明亮毛玻璃) --- */
+        #setup-page {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            text-align: center;
+            margin: 30px 0;
+            color: var(--zhihu-blue);
+            font-weight: 800;
+            font-size: 2rem;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(0, 102, 255, 0.2);
+        }
+
+        /* 毛玻璃卡片通用类 */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: var(--glass-shadow);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            margin-bottom: 24px;
+            transition: transform 0.3s ease;
+        }
+
+        textarea {
+            width: 100%;
+            flex: 1;
+            border: none;
+            resize: none;
+            font-size: 18px;
+            line-height: 1.8;
+            color: #444;
+            background: transparent;
+        }
+        
+        textarea::placeholder {
+            color: #aab;
+        }
+
+        /* 知乎蓝按钮 */
+        .btn {
+            display: block;
+            width: 100%;
+            background: var(--zhihu-blue);
+            color: white;
+            text-align: center;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 102, 255, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: var(--zhihu-dark-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 102, 255, 0.4);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* --- 3. 播放页：提词器 (暗黑沉浸 + 暗色毛玻璃控件) --- */
+        #teleprompter-page {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: #000; /* 纯黑背景，极致对比 */
+            z-index: 999;
+        }
+
+        #teleprompter-page.is-playing {
+            cursor: none;
+        }
+
+        /* 滚动文字 */
+        #scrolling-content {
+            padding: 45vh 5vw;
+            color: #fff;
+            font-weight: bold;
+            line-height: 1.5;
+            text-align: justify;
+            font-size: 70px; /* 默认大字 */
+            overflow-y: scroll;
+            height: 100%;
+            scrollbar-width: none;
+            position: relative;
+            z-index: 1;
+        }
+        
+        #scrolling-content::-webkit-scrollbar { display: none; }
+
+        /* --- 4. 悬浮控制层 --- */
+        .ui-controls {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; 
+            z-index: 10;
+            transition: opacity 0.4s ease;
+            opacity: 1;
+        }
+
+        /* 播放时隐藏 UI */
+        #teleprompter-page.is-playing .ui-controls {
+            opacity: 0;
+        }
+
+        /* 暗色毛玻璃面板 */
+        .dark-glass {
+            background: var(--dark-glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--dark-glass-border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            color: #fff;
+        }
+
+        /* 退出按钮 */
+        .close-btn {
+            position: absolute;
+            top: 30px; left: 30px;
+            padding: 10px 20px;
+            border-radius: 20px; /* 胶囊状 */
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .close-btn:hover { background: rgba(255,255,255,0.2); }
+
+        /* 设置面板 */
+        .settings-panel {
+            position: absolute;
+            top: 30px; right: 30px;
+            padding: 20px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 260px;
+        }
+
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .setting-item label {
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: rgba(255,255,255,0.8);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* 蓝色滑块 */
+        input[type=range] {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            appearance: none;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--zhihu-blue);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,102,255,0.5);
+        }
+
+        /* 清除格式按钮 */
+        .action-btn {
+            background: rgba(0, 102, 255, 0.2);
+            border: 1px solid var(--zhihu-blue);
+            color: #fff;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 5px;
+            transition: 0.2s;
+        }
+        .action-btn:hover {
+            background: var(--zhihu-blue);
+        }
+
+        /* 暂停图标 */
+        #pause-indicator {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px; height: 80px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(4px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            font-size: 30px;
+            color: #fff;
+        }
+        
+        /* 隐藏原生的 pause 字符，用 CSS 画两条线更好看 */
+        #pause-indicator::before, #pause-indicator::after {
+            content: "";
+            display: block;
+            width: 6px; height: 24px;
+            background-color: #fff;
+            margin: 0 4px;
+            border-radius: 2px;
+        }
+
+        .noselect {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 输入页：明亮玻璃风 -->
+    <div id="setup-page">
+        <div class="header">何岩提词器</div>
+        <div class="glass-card">
+            <textarea id="input-text" placeholder="在此粘贴或输入台词...&#10;&#10;点击下一步进入提词模式：&#10;1. 纯黑背景，点击屏幕播放/暂停&#10;2. 暂停时自动显示毛玻璃设置面板&#10;3. 支持一键清除标点符号"></textarea>
+        </div>
+        <div class="btn" onclick="startTeleprompter()">下一步</div>
+    </div>
+
+    <!-- 2. 播放页：暗黑沉浸风 -->
+    <div id="teleprompter-page" class="noselect">
+        
+        <!-- UI 层 -->
+        <div class="ui-controls">
+            <!-- 退出 -->
+            <div class="close-btn dark-glass" onclick="exitTeleprompter(event)">✕ 退出</div>
+
+            <!-- 设置面板 -->
+            <div class="settings-panel dark-glass" onclick="event.stopPropagation()">
+                
+                <!-- 文本工具 -->
+                <div class="setting-item">
+                    <label>工具</label>
+                    <button class="action-btn" onclick="cleanPunctuation()">⚡ 去除标点和空格</button>
+                </div>
+
+                <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 5px 0;"></div>
+
+                <!-- 调节工具 -->
+                <div class="setting-item">
+                    <label>字体大小</label>
+                    <input type="range" min="30" max="150" value="70" oninput="updateFontSize(this.value)">
+                </div>
+                <div class="setting-item">
+                    <label>字间距 (可负值)</label>
+                    <!-- 负值用于压扁文字 -->
+                    <input type="range" min="-10" max="20" step="1" value="0" oninput="updateLetterSpacing(this.value)">
+                </div>
+                <div class="setting-item">
+                    <label>滚动速度</label>
+                    <input type="range" min="0" max="15" step="0.5" value="2.5" oninput="updateSpeed(this.value)">
+                </div>
+            </div>
+
+            <!-- 暂停图标 -->
+            <div id="pause-indicator"></div>
+        </div>
+
+        <!-- 滚动文字 -->
+        <div id="scrolling-content"></div>
+    </div>
+
+    <script>
+        const setupPage = document.getElementById('setup-page');
+        const playPage = document.getElementById('teleprompter-page');
+        const inputText = document.getElementById('input-text');
+        const scrollContent = document.getElementById('scrolling-content');
+
+        let isPlaying = false;
+        let scrollSpeed = 2.5; 
+        let animationFrameId;
+        let scrollAccumulator = 0; 
+
+        // 1. 开始
+        function startTeleprompter() {
+            const text = inputText.value.trim();
+            if (!text) {
+                alert('何老师，请先输入台词！');
+                return;
+            }
+
+            // 转换换行
+            scrollContent.innerHTML = text.replace(/\n/g, '<br>');
+            
+            setupPage.style.display = 'none';
+            playPage.style.display = 'block';
+
+            scrollContent.scrollTop = 0;
+            scrollAccumulator = 0;
+            setIsPlaying(false); // 默认暂停，显示面板
+
+            requestFullScreen(document.documentElement);
+        }
+
+        // 2. 退出
+        function exitTeleprompter(e) {
+            if(e) e.stopPropagation();
+            stopScroll();
+            exitFullScreen();
+            playPage.style.display = 'none';
+            setupPage.style.display = 'flex';
+        }
+
+        // 3. 点击播放/暂停
+        playPage.addEventListener('click', function(e) {
+            if (e.target.closest('.dark-glass')) return; // 忽略面板点击
+            setIsPlaying(!isPlaying);
+        });
+
+        // 4. 状态切换
+        function setIsPlaying(status) {
+            isPlaying = status;
+            if (isPlaying) {
+                playPage.classList.add('is-playing'); // 隐藏UI
+                startScroll();
+            } else {
+                playPage.classList.remove('is-playing'); // 显示UI
+                stopScroll();
+            }
+        }
+
+        // 5. 去除标点空格功能
+        function cleanPunctuation() {
+            if (confirm("确定要去掉所有空格和标点符号吗？(换行会保留)")) {
+                let html = scrollContent.innerHTML;
+                
+                // 保护 <br>
+                html = html.replace(/<br\s*\/?>/gi, '___BR___');
+                
+                // 正则：去除所有非汉字、非数字、非字母的内容 (即去除标点和空格)
+                // 这里简单粗暴地去除常见的标点符号和空白字符
+                let tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                let text = tempDiv.innerText;
+
+                // 替换掉空格、制表符、各种标点
+                const regex = /[ \t\r\f\v，。、！？：；“”‘’（）《》【】—….\-,!?:;"'()\[\]]/g;
+                text = text.replace(regex, '');
+                
+                // 恢复 <br>
+                text = text.replace(/___BR___/g, '<br>');
+                
+                scrollContent.innerHTML = text;
+            }
+        }
+
+        // 6. 滚动逻辑
+        function startScroll() {
+            cancelAnimationFrame(animationFrameId);
+            function animate() {
+                if (scrollSpeed > 0) {
+                    scrollAccumulator += (scrollSpeed * 0.5);
+                    if (scrollAccumulator >= 1) {
+                        const pixels = Math.floor(scrollAccumulator);
+                        scrollContent.scrollTop += pixels;
+                        scrollAccumulator -= pixels;
+                    }
+                    // 到底停止
+                    if ((scrollContent.scrollTop + scrollContent.clientHeight) >= scrollContent.scrollHeight - 1) {
+                        // 可选：setIsPlaying(false);
+                    }
+                }
+                animationFrameId = requestAnimationFrame(animate);
+            }
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function stopScroll() {
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        // 7. 调节功能
+        function updateFontSize(val) {
+            scrollContent.style.fontSize = val + 'px';
+        }
+        function updateLetterSpacing(val) {
+            scrollContent.style.letterSpacing = val + 'px';
+        }
+        function updateSpeed(val) {
+            scrollSpeed = parseFloat(val);
+        }
+
+        // 8. 全屏
+        function requestFullScreen(element) {
+            var requestMethod = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || element.msRequestFullScreen;
+            if (requestMethod) requestMethod.call(element);
+        }
+        function exitFullScreen() {
+            var exitMethod = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+            if (exitMethod && document.fullscreenElement) exitMethod.call(document);
+        }
+    </script>
+</body>
+</html>
