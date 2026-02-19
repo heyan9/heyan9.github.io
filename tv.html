@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知乎风·娱乐中心</title>
+    <style>
+        :root {
+            --zhihu-blue: #0084ff;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --border-color: #ebebeb;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: #ffffff;
+            background-image: radial-gradient(#ebebeb 1px, transparent 0);
+            background-size: 30px 30px;
+            font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: #121212;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 顶部状态栏 */
+        header {
+            width: 90%;
+            max-width: 1400px;
+            padding: 30px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #time { font-size: 56px; font-weight: 800; color: var(--zhihu-blue); letter-spacing: -2px; }
+        #date { font-size: 20px; color: #8590a6; font-weight: 500; }
+
+        /* 核心区域：5个大按键 */
+        .nav-grid {
+            width: 90%;
+            max-width: 1400px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border-color);
+            border-radius: 28px;
+            padding: 40px 20px;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+        }
+
+        .card:hover {
+            transform: translateY(-12px) scale(1.02);
+            background: #ffffff;
+            border-color: var(--zhihu-blue);
+            box-shadow: 0 20px 40px rgba(0, 132, 255, 0.15);
+        }
+
+        .card img {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            object-fit: contain;
+        }
+
+        .card .name { font-size: 24px; font-weight: 700; color: #333; }
+        .card .tag { font-size: 14px; color: var(--zhihu-blue); margin-top: 10px; font-weight: 500; }
+
+        /* 豆瓣区域：作为一个超大的影讯窗口 */
+        .douban-section {
+            width: 90%;
+            max-width: 1400px;
+            height: 600px; /* 增加高度，确保能看到内容 */
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 32px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 50px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.05);
+        }
+
+        .douban-header {
+            padding: 18px 30px;
+            background: rgba(255,255,255,0.8);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .douban-header span { font-weight: 700; color: #444; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+        .full-btn {
+            background: var(--zhihu-blue);
+            color: white;
+            text-decoration: none;
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        #douban-iframe {
+            flex: 1;
+            width: 100%;
+            border: none;
+            /* 去掉豆瓣原本的部分干扰元素 */
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div id="time">00:00</div>
+        <div id="date">2026年2月19日 星期四</div>
+    </header>
+
+    <!-- 优先级 1：五个超大按键 -->
+    <nav class="nav-grid">
+        <a href="https://tv.cctv.com/live/index.shtml" target="_blank" class="card">
+            <img src="https://p1.img.cctvpic.com/photoAlbum/templet/special/PAGEdNvWY0LYxCPWjyNDAVa2210805/ELMTHxWBOAUDg5x78VOQ6ykH210824_1629792792.png" alt="CCTV">
+            <span class="name">CCTV</span>
+            <span class="tag">央视直播</span>
+        </a>
+
+        <a href="https://www.88mv.me/?ref=88mv.org" target="_blank" class="card">
+            <img src="https://img.icons8.com/color/144/movie-projector.png" alt="88影视">
+            <span class="name">88影视</span>
+            <span class="tag">院线同步</span>
+        </a>
+
+        <a href="https://www.dushe02.com/" target="_blank" class="card">
+            <img src="https://img.icons8.com/color/144/snake.png" alt="毒蛇电影">
+            <span class="name">毒蛇电影</span>
+            <span class="tag">深度解析</span>
+        </a>
+
+        <a href="https://www.yikm.net/" target="_blank" class="card">
+            <img src="https://img.icons8.com/color/144/controller.png" alt="小霸王">
+            <span class="name">小霸王</span>
+            <span class="tag">在线游戏</span>
+        </a>
+
+        <a href="https://www.bilibili.com/" target="_blank" class="card">
+            <img src="https://img.icons8.com/color/144/bilibili.png" alt="B站">
+            <span class="name">B 站</span>
+            <span class="tag">BILIBILI</span>
+        </a>
+    </nav>
+
+    <!-- 优先级 2：豆瓣展示区 -->
+    <section class="douban-section">
+        <div class="douban-header">
+            <span>🎬 今日影讯 · 岳阳热映</span>
+            <a href="https://movie.douban.com/cinema/nowplaying/yueyang/" target="_blank" class="full-btn">查看完整豆瓣网页 ↗</a>
+        </div>
+        <iframe id="douban-iframe" src="https://movie.douban.com/cinema/nowplaying/yueyang/" scrolling="yes"></iframe>
+    </section>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const h = now.getHours().toString().padStart(2, '0');
+            const m = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('time').innerText = `${h}:${m}`;
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            document.getElementById('date').innerText = now.toLocaleDateString('zh-CN', options);
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
