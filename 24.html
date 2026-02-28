@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>21点 - 终极修复版</title>
+    
+    <!-- 国内极速 CDN -->
+    <script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script src="https://cdn.staticfile.org/peerjs/1.4.7/peerjs.min.js"></script>
+    <script src="https://cdn.staticfile.org/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.staticfile.org/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <link href="https://cdn.staticfile.org/remixicon/3.5.0/remixicon.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #0066FF; /* 知乎蓝 */
+            --danger: #ff4d4f;
+            --glass-shine: rgba(255, 255, 255, 0.6);
+        }
+
+        /* 动态背景：为了让毛玻璃看得出来，背景必须有花纹 */
+        body {
+            margin: 0;
+            font-family: -apple-system, sans-serif;
+            min-height: 100vh;
+            transition: 0.5s;
+            overflow-x: hidden;
+            /* 默认亮色动态背景 */
+            background: linear-gradient(125deg, #e0eafc, #cfdef3, #0066ff20, #e0eafc);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        body.theme-dark {
+            /* 暗色动态背景 */
+            background: linear-gradient(125deg, #0f2027, #203a43, #2c5364);
+            color: #e0e0e0;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; padding-bottom: 80px; }
+
+        /* --- 毛玻璃核心样式 --- */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.45); /* 半透明白 */
+            backdrop-filter: blur(20px) saturate(180%); /* 强模糊 + 增艳 */
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: 0.3s;
+        }
+
+        .theme-dark .glass-panel {
+            background: rgba(30, 30, 30, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        /* 按钮 */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 0;
+            border-radius: 10px;
+            font-weight: 600;
+            width: 100%;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(0, 102, 255, 0.3);
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); box-shadow: none; }
+        
+        /* 卡片容器 */
+        .card-area { display: flex; justify-content: center; gap: 8px; margin: 15px 0; min-height: 100px; }
+        .poker {
+            width: 60px; height: 88px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 4px; font-weight: bold; font-size: 16px; color: #333;
+        }
+        .poker.red { color: #d93025; }
+        .poker-back {
+            background: var(--primary);
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 10px, transparent 10px, transparent 20px);
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* 扫码全屏层 */
+        .scanner-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; z-index: 999;
+            display: flex; flex-direction: column;
+        }
+
+        /* 提示胶囊 */
+        .badge {
+            display: inline-block; padding: 4px 12px;
+            background: var(--primary); color: white;
+            border-radius: 20px; font-size: 12px; font-weight: bold;
+        }
+        .theme-dark .poker { background: #e0e0e0; }
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body :class="isDark ? 'theme-dark' : ''">
+
+<div id="app" v-cloak>
+    
+    <!-- 扫码界面 -->
+    <div v-if="isScanning" class="scanner-overlay">
+        <button @click="stopScan" style="position:absolute; top:20px; right:20px; z-index:1000; background:white; border:none; border-radius:50%; width:40px; height:40px; font-weight:bold;">✕</button>
+        <div id="reader" style="width:100%; margin-top:60px;"></div>
+        <p style="color:white; text-align:center; margin-top:20px;">对准房主的二维码即可自动加入</p>
+    </div>
+
+    <div class="container">
+        <!-- 导航 -->
+        <div class="glass-panel" style="display:flex; justify-content:space-between; align-items:center; padding: 15px;">
+            <div style="font-size: 18px; font-weight: 900; color: var(--primary); letter-spacing: -0.5px;">BLACKJACK 21</div>
+            <button @click="toggleTheme" style="background:transparent; border:none; font-size:20px; cursor:pointer;">
+                {{ isDark ? '🌙' : '☀️' }}
+            </button>
+        </div>
+
+        <!-- 菜单 (首页) -->
+        <div v-if="state === 'MENU'" class="glass-panel" style="text-align:center; padding-top:40px; padding-bottom:40px;">
+            <h2 style="margin-bottom:30px; opacity:0.8;">开始游戏</h2>
+            <button class="btn" @click="startLocal">
+                <i class="ri-user-smile-line"></i> 单机练习
+            </button>
+            <button class="btn btn-outline" @click="createRoom">
+                <i class="ri-add-box-line"></i> 创建房间 (房主)
+            </button>
+            <button class="btn btn-outline" style="border-color:#52c41a; color:#52c41a;" @click="startScan">
+                <i class="ri-qr-scan-2-line"></i> 扫码加入 (客机)
+            </button>
+            <div style="margin-top:20px; font-size:12px; color:gray;">{{ connectMsg }}</div>
+        </div>
+
+        <!-- 房主等待区 (生成二维码) -->
+        <div v-if="state === 'HOST_WAIT'" class="glass-panel" style="text-align:center;">
+            <h3 style="color:var(--primary); margin-top:0;">等待加入</h3>
+            
+            <!-- 这里是二维码容器，Vue 必须要等它渲染出来才能画图 -->
+            <div id="qrcode-container" style="background:white; padding:15px; border-radius:10px; display:inline-block; margin:10px 0;"></div>
+            
+            <p style="font-size:13px; opacity:0.7;">请朋友扫描上方二维码</p>
+            <button class="btn btn-outline" @click="state='MENU'" style="margin-top:10px; border-color:#999; color:#999;">取消</button>
+        </div>
+
+        <!-- 游戏主界面 -->
+        <div v-if="['GAME', 'RESULT'].includes(state)">
+            
+            <!-- 庄家区域 -->
+            <div class="glass-panel" style="text-align:center;">
+                <div style="font-size:12px; opacity:0.6; margin-bottom:5px;">庄家 Dealer</div>
+                <div class="card-area">
+                    <div v-for="(c, i) in dealerHand" :key="i" 
+                         class="poker" :class="{red: ['♥','♦'].includes(c.suit), 'poker-back': i===0 && state==='GAME' && !revealDealer}">
+                         <template v-if="!(i===0 && state==='GAME' && !revealDealer)">
+                            <div style="text-align:left;">{{c.rank}}</div>
+                            <div style="font-size:24px;">{{c.suit}}</div>
+                         </template>
+                         <template v-else>
+                             <i class="ri-vip-diamond-fill" style="color:rgba(255,255,255,0.5); font-size:24px;"></i>
+                         </template>
+                    </div>
+                </div>
+                <div class="badge" v-if="state!=='GAME' || revealDealer">{{ dealerScore }} 点</div>
+            </div>
+
+            <!-- 智能提示 -->
+            <div v-if="state==='GAME'" class="glass-panel" style="padding:10px; text-align:center; border:1px dashed var(--primary); background: rgba(0,102,255,0.05);">
+                <i class="ri-lightbulb-flash-line"></i> 军师建议: <strong>{{ optimalMove }}</strong>
+            </div>
+
+            <!-- 玩家区域 -->
+            <div class="glass-panel" style="text-align:center;">
+                <div style="display:flex; justify-content:space-between; font-size:12px; opacity:0.6; margin-bottom:5px;">
+                    <span>我的手牌</span>
+                    <span>下注: ${{ bet }}</span>
+                </div>
+                <div class="card-area">
+                    <div v-for="(c, i) in playerHand" :key="i" class="poker" :class="{red: ['♥','♦'].includes(c.suit)}">
+                        <div style="text-align:left;">{{c.rank}}</div>
+                        <div style="font-size:24px;">{{c.suit}}</div>
+                    </div>
+                </div>
+                <div class="badge" :style="playerScore>21 ? 'background:var(--danger)' : ''">
+                    {{ playerScore }} 点 <span v-if="playerScore>21">(爆牌)</span>
+                </div>
+                <div v-if="resultText" style="margin-top:10px; font-size:18px; font-weight:900; color:var(--primary);">
+                    {{ resultText }}
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="glass-panel" v-if="state==='GAME'" style="position:fixed; bottom:0; left:0; width:100%; border-radius:20px 20px 0 0; margin:0; box-sizing:border-box;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                    <button class="btn" @click="playerAct('hit')">要牌</button>
+                    <button class="btn" style="background:var(--danger);" @click="playerAct('stand')">停牌</button>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button class="btn btn-outline" style="font-size:12px; padding:8px;" @click="playerAct('double')" :disabled="money<bet">加倍</button>
+                    <button class="btn btn-outline" style="font-size:12px; padding:8px;" @click="playerAct('surrender')">投降</button>
+                </div>
+                <div style="text-align:center; font-size:12px; margin-top:10px; opacity:0.6;">余额: ${{ money }}</div>
+            </div>
+
+            <!-- 结算按钮 -->
+            <div class="glass-panel" v-if="state==='RESULT'" style="position:fixed; bottom:0; left:0; width:100%; border-radius:20px 20px 0 0; margin:0; box-sizing:border-box;">
+                <button class="btn" style="background:#52c41a;" @click="nextRound">下一局</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, computed, nextTick, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            // --- 状态 ---
+            const isDark = ref(false);
+            const state = ref('MENU'); // MENU, HOST_WAIT, GAME, RESULT
+            const connectMsg = ref('');
+            
+            // --- 游戏数据 ---
+            const deck = ref([]);
+            const dealerHand = ref([]);
+            const playerHand = ref([]);
+            const money = ref(1000);
+            const bet = ref(100);
+            const revealDealer = ref(false);
+            const resultText = ref('');
+
+            // --- 联机对象 ---
+            const peer = ref(null);
+            const conn = ref(null);
+            const isHost = ref(false);
+            const isScanning = ref(false);
+            const scanner = ref(null);
+
+            // --- 辅助计算 ---
+            const getScore = (cards) => {
+                let s = 0, a = 0;
+                cards.forEach(c => { s += c.val; if(c.rank === 'A') a++; });
+                while(s > 21 && a > 0) { s -= 10; a--; }
+                return s;
+            };
+            const dealerScore = computed(() => getScore(dealerHand.value));
+            const playerScore = computed(() => getScore(playerHand.value));
+
+            // --- 策略建议 ---
+            const optimalMove = computed(() => {
+                const p = playerScore.value;
+                const d = dealerHand.value[0]?.val;
+                if(!d) return '';
+                if(p >= 17) return '停牌';
+                if(p <= 11) return '要牌';
+                if(d >= 7) return '要牌 (庄家牌大)';
+                return '停牌 (庄家易爆)';
+            });
+
+            // --- 核心游戏逻辑 ---
+            const initDeck = () => {
+                const s = ['♠','♥','♣','♦'], r = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+                let d = [];
+                s.forEach(suit => r.forEach(rank => {
+                    let val = parseInt(rank);
+                    if(['J','Q','K'].includes(rank)) val = 10;
+                    if(rank === 'A') val = 11;
+                    d.push({suit, rank, val});
+                }));
+                return d.sort(() => Math.random() - 0.5);
+            };
+
+            const startGame = () => {
+                deck.value = initDeck();
+                playerHand.value = [deck.value.pop(), deck.value.pop()];
+                dealerHand.value = [deck.value.pop(), deck.value.pop()];
+                revealDealer.value = false;
+                resultText.value = '';
+                state.value = 'GAME';
+                
+                if (playerScore.value === 21) handleEnd(); // 开局BJ
+                syncState();
+            };
+
+            const handleEnd = () => {
+                state.value = 'RESULT';
+                revealDealer.value = true;
+                
+                // 庄家补牌逻辑
+                const dealerTurn = () => {
+                    if (getScore(dealerHand.value) < 17) {
+                        setTimeout(() => {
+                            dealerHand.value.push(deck.value.pop());
+                            syncState();
+                            dealerTurn();
+                        }, 800);
+                    } else {
+                        checkWinner();
+                    }
+                };
+                dealerTurn();
+            };
+
+            const checkWinner = () => {
+                const p = playerScore.value;
+                const d = getScore(dealerHand.value);
+                
+                if (p > 21) {
+                    resultText.value = "爆牌！你输了";
+                    money.value -= bet.value;
+                } else if (d > 21) {
+                    resultText.value = "庄家爆牌！你赢了";
+                    money.value += bet.value;
+                } else if (p > d) {
+                    resultText.value = "点数大！你赢了";
+                    money.value += bet.value;
+                } else if (p < d) {
+                    resultText.value = "点数小！你输了";
+                    money.value -= bet.value;
+                } else {
+                    resultText.value = "平局 (Push)";
+                }
+                syncState();
+            };
+
+            // --- 玩家操作 ---
+            const playerAct = (type) => {
+                // 如果是客机，发送指令
+                if (!isHost.value && conn.value) {
+                    conn.value.send({ type: 'ACT', val: type });
+                    return;
+                }
+                // 本地/房主直接执行
+                execAct(type);
+            };
+
+            const execAct = (type) => {
+                if (type === 'hit') {
+                    playerHand.value.push(deck.value.pop());
+                    if (playerScore.value > 21) handleEnd();
+                } else if (type === 'stand') {
+                    handleEnd();
+                } else if (type === 'double') {
+                    bet.value *= 2;
+                    playerHand.value.push(deck.value.pop());
+                    handleEnd(); // 加倍后强制停牌
+                } else if (type === 'surrender') {
+                    money.value -= bet.value / 2;
+                    resultText.value = "投降 (输一半)";
+                    state.value = 'RESULT';
+                    revealDealer.value = true;
+                }
+                syncState();
+            };
+
+            // --- 联机核心 (修复二维码生成) ---
+            const createRoom = () => {
+                state.value = 'HOST_WAIT';
+                isHost.value = true;
+                connectMsg.value = "正在连接服务器...";
+                
+                peer.value = new Peer();
+                peer.value.on('open', (id) => {
+                    connectMsg.value = "房间已创建";
+                    const url = location.href.split('?')[0] + '?join=' + id;
+                    
+                    // 【关键修复】使用 nextTick 等待 div 渲染
+                    nextTick(() => {
+                        const el = document.getElementById("qrcode-container");
+                        if(el) {
+                            el.innerHTML = ""; // 清空旧的
+                            new QRCode(el, { text: url, width: 160, height: 160 });
+                        }
+                    });
+                });
+
+                peer.value.on('connection', (c) => {
+                    conn.value = c;
+                    state.value = 'GAME';
+                    startGame();
+                    // 监听客机操作
+                    c.on('data', (d) => {
+                        if (d.type === 'ACT') execAct(d.val);
+                        if (d.type === 'NEXT') startGame();
+                    });
+                });
+            };
+
+            const startLocal = () => {
+                isHost.value = true; // 单机算作本地房主
+                startGame();
+            };
+
+            const syncState = () => {
+                if (isHost.value && conn.value) {
+                    conn.value.send({
+                        type: 'SYNC',
+                        data: {
+                            s: state.value,
+                            dh: dealerHand.value,
+                            ph: playerHand.value,
+                            m: money.value,
+                            res: resultText.value,
+                            rd: revealDealer.value
+                        }
+                    });
+                }
+            };
+
+            // --- 扫码功能 ---
+            const startScan = () => {
+                isScanning.value = true;
+                nextTick(() => {
+                    scanner.value = new Html5Qrcode("reader");
+                    scanner.value.start({ facingMode: "environment" }, { fps: 10 }, (txt) => {
+                        handleJoin(txt);
+                        stopScan();
+                    }).catch(err => alert("无法启动摄像头，请确保使用 HTTPS 或 localhost"));
+                });
+            };
+
+            const stopScan = () => {
+                if(scanner.value) scanner.value.stop().then(()=>scanner.value.clear());
+                isScanning.value = false;
+            };
+
+            const handleJoin = (urlOrId) => {
+                let id = urlOrId;
+                if (urlOrId.includes('join=')) {
+                    id = urlOrId.split('join=')[1];
+                }
+                connectMsg.value = "正在连接房主...";
+                
+                peer.value = new Peer();
+                peer.value.on('open', () => {
+                    conn.value = peer.value.connect(id);
+                    conn.value.on('open', () => {
+                        connectMsg.value = "已连接！";
+                    });
+                    conn.value.on('data', (d) => {
+                        if (d.type === 'SYNC') {
+                            const { s, dh, ph, m, res, rd } = d.data;
+                            state.value = s;
+                            dealerHand.value = dh;
+                            playerHand.value = ph;
+                            money.value = m;
+                            resultText.value = res;
+                            revealDealer.value = rd;
+                        }
+                    });
+                });
+            };
+
+            const nextRound = () => {
+                if (isHost.value) startGame();
+                else conn.value.send({ type: 'NEXT' });
+            };
+
+            // 自动检测URL加入
+            onMounted(() => {
+                const p = new URLSearchParams(location.search);
+                if (p.get('join')) handleJoin(p.get('join'));
+            });
+
+            return {
+                isDark, toggleTheme: () => isDark.value = !isDark.value,
+                state, connectMsg,
+                startLocal, createRoom, startScan, stopScan, isScanning,
+                dealerHand, playerHand, playerScore, dealerScore, money, bet,
+                revealDealer, resultText, optimalMove,
+                playerAct, nextRound
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
