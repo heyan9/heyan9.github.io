@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联机24点 - 无服务器版</title>
+    <!-- 引入 PeerJS 库，用于P2P通信 -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #2c3e50; color: white; text-align: center; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        /* 连接界面样式 */
+        #connection-panel { background: #34495e; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        input { padding: 8px; border-radius: 4px; border: none; width: 200px; }
+        button { padding: 8px 15px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-green { background: #27ae60; color: white; }
+        .btn-blue { background: #2980b9; color: white; }
+        .btn-green:hover { background: #2ecc71; }
+        
+        /* 游戏界面样式 */
+        #game-area { display: none; }
+        .card-container { display: flex; justify-content: center; gap: 10px; margin: 30px 0; }
+        .card { 
+            width: 70px; height: 100px; background: white; color: #333; 
+            border-radius: 8px; display: flex; align-items: center; justify-content: center; 
+            font-size: 28px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .card.used { opacity: 0.5; background: #ddd; }
+        
+        /* 聊天/日志 */
+        #logs { height: 150px; overflow-y: auto; background: rgba(0,0,0,0.2); text-align: left; padding: 10px; border-radius: 5px; font-size: 14px; margin-top: 20px;}
+        .log-sys { color: #f1c40f; }
+        .log-win { color: #2ecc71; font-weight: bold; }
+        
+        #input-area { margin-top: 20px; }
+        #formula-input { font-size: 18px; width: 250px; text-align: center; }
+        
+        .score-board { display: flex; justify-content: space-around; font-size: 20px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>♠️ 联机24点 ♥️</h1>
+
+    <!-- 1. 连接控制面板 -->
+    <div id="connection-panel">
+        <h3>第一步：建立连接</h3>
+        <p style="font-size:12px; color:#bdc3c7;">一人点"创建房间"，把ID发给另一人。另一人输入ID点"加入"。</p>
+        
+        <div id="host-section">
+            <button class="btn-green" onclick="createGame()">我是房主 (创建房间)</button>
+            <p id="my-id-display" style="color:#f39c12; font-weight:bold; margin-top:10px;"></p>
+        </div>
+        
+        <div id="join-section" style="margin-top:20px; border-top:1px solid #7f8c8d; padding-top:10px;">
+            <input type="text" id="host-id-input" placeholder="输入房主的ID...">
+            <button class="btn-blue" onclick="joinGame()">我是访客 (加入游戏)</button>
+        </div>
+        <p id="status-msg"></p>
+    </div>
+
+    <!-- 2. 游戏主区域 -->
+    <div id="game-area">
+        <div class="score-board">
+            <div>我: <span id="score-me">0</span></div>
+            <div>对手: <span id="score-opp">0</span></div>
+        </div>
+
+        <div id="controls-host" style="display:none;">
+            <button class="btn-green" onclick="dealCards()">👉 发牌 (下一局) 👈</button>
+        </div>
+        <div id="controls-guest" style="display:none; color: #bdc3c7;">
+            等待房主发牌...
+        </div>
+
+        <div class="card-container" id="table-cards">
+            <!-- 卡片会显示在这里 -->
+            <div class="card">?</div><div class="card">?</div><div class="card">?</div><div class="card">?</div>
+        </div>
+
+        <div id="input-area">
+            <input type="text" id="formula-input" placeholder="输入算式 (例: 3*8+4-4)">
+            <button class="btn-blue" onclick="submitAnswer()">提交答案</button>
+        </div>
+
+        <div id="logs"></div>
+    </div>
+</div>
+
+<script>
+    // --- 变量定义 ---
+    let peer = null;
+    let conn = null;
+    let myScore = 0;
+    let oppScore = 0;
+    let currentCards = [];
+    let isHost = false;
+
+    // --- P2P 连接逻辑 ---
+
+    // 初始化PeerJS
+    function initPeer() {
+        // 使用公共服务器，有时候会慢，属于正常现象
+        peer = new Peer(null, { debug: 2 });
+        
+        peer.on('open', (id) => {
+            if (isHost) {
+                document.getElementById('my-id-display').innerHTML = `房间ID: <span style="user-select: all; background:#eee; color:#333; padding:2px 5px;">${id}</span> (复制发给朋友)`;
+                log("房间已创建，等待朋友加入...");
+            }
+        });
+
+        peer.on('connection', (c) => {
+            if (isHost) {
+                conn = c;
+                setupConnection();
+                log("朋友已连接！可以开始发牌了。");
+                document.getElementById('controls-host').style.display = 'block';
+                startGameUI();
+            }
+        });
+
+        peer.on('error', (err) => {
+            alert("连接错误: " + err.type);
+        });
+    }
+
+    // 房主创建
+    function createGame() {
+        isHost = true;
+        document.getElementById('host-section').style.display = 'block';
+        document.getElementById('join-section').style.display = 'none';
+        initPeer();
+    }
+
+    // 访客加入
+    function joinGame() {
+        isHost = false;
+        const hostId = document.getElementById('host-id-input').value.trim();
+        if (!hostId) return alert("请输入房主ID");
+        
+        peer = new Peer();
+        peer.on('open', () => {
+            conn = peer.connect(hostId);
+            setupConnection();
+            log("正在连接房主...");
+        });
+        peer.on('error', (err) => alert("连接失败，请检查ID"));
+    }
+
+    // 连接建立后的通用处理
+    function setupConnection() {
+        conn.on('open', () => {
+            document.getElementById('status-msg').innerText = "连接成功！";
+            startGameUI();
+            if(!isHost) {
+                document.getElementById('controls-guest').style.display = 'block';
+                log("已加入房间，等待房主发牌...");
+            }
+        });
+
+        conn.on('data', (data) => {
+            handleData(data);
+        });
+        
+        conn.on('close', () => {
+            alert("对方已断开连接");
+            location.reload();
+        });
+    }
+
+    // 切换界面
+    function startGameUI() {
+        document.getElementById('connection-panel').style.display = 'none';
+        document.getElementById('game-area').style.display = 'block';
+    }
+
+    // --- 游戏通信逻辑 ---
+
+    function handleData(data) {
+        switch(data.type) {
+            case 'DEAL':
+                currentCards = data.cards;
+                renderCards(currentCards);
+                log("新的一局！请解题。");
+                document.getElementById('formula-input').value = '';
+                document.getElementById('formula-input').disabled = false;
+                break;
+            case 'WIN':
+                log(`对方赢了！公式: ${data.formula} = 24`, 'win');
+                oppScore++;
+                updateScore();
+                document.getElementById('formula-input').disabled = true; // 锁定输入
+                break;
+            case 'MSG':
+                log("对方: " + data.text);
+                break;
+        }
+    }
+
+    // 发送数据封装
+    function send(data) {
+        if (conn && conn.open) {
+            conn.send(data);
+        }
+    }
+
+    // --- 游戏核心玩法 ---
+
+    // 房主发牌
+    function dealCards() {
+        if (!isHost) return;
+        // 生成4个 1-13 的随机数
+        const cards = [];
+        for(let i=0; i<4; i++) {
+            cards.push(Math.floor(Math.random() * 13) + 1);
+        }
+        currentCards = cards;
+        
+        // 本地渲染
+        renderCards(cards);
+        document.getElementById('formula-input').value = '';
+        document.getElementById('formula-input').disabled = false;
+        log("你发了牌，开始解题！");
+        
+        // 发送给对方
+        send({ type: 'DEAL', cards: cards });
+    }
+
+    // 渲染卡片
+    function renderCards(cards) {
+        const container = document.getElementById('table-cards');
+        container.innerHTML = '';
+        cards.forEach(num => {
+            let displayTxt = num;
+            if(num===1) displayTxt='A';
+            if(num===11) displayTxt='J';
+            if(num===12) displayTxt='Q';
+            if(num===13) displayTxt='K';
+            
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerText = displayTxt;
+            container.appendChild(div);
+        });
+    }
+
+    // 提交答案
+    function submitAnswer() {
+        const input = document.getElementById('formula-input').value.trim();
+        if (!input) return;
+
+        // 1. 验证算式结果是否为24
+        try {
+            // 安全性过滤：只允许数字和运算符号
+            if (/[^0-9+\-*/().\s]/.test(input)) {
+                return log("输入包含非法字符，只能输入数字和加减乘除", 'sys');
+            }
+            
+            // 计算结果
+            // 注意：这里简单使用eval，实际项目需注意安全，但在P2P好友间影响不大
+            const result = eval(input);
+            
+            if (Math.abs(result - 24) > 0.0001) {
+                return log(`结果是 ${result}，不是24哦。`, 'sys');
+            }
+
+            // 2. 验证是否只使用了当前的牌
+            if (!validateCards(input, currentCards)) {
+                return log("数字使用错误！必须且只能使用发出的4张牌各一次。", 'sys');
+            }
+
+            // 胜利！
+            myScore++;
+            updateScore();
+            log(`恭喜！你赢了！公式: ${input}`, 'win');
+            document.getElementById('formula-input').disabled = true;
+            
+            // 通知对方
+            send({ type: 'WIN', formula: input });
+
+        } catch (e) {
+            log("算式格式错误", 'sys');
+        }
+    }
+
+    // 验证算法：提取输入中的数字，对比题目数字
+    function validateCards(input, originalCards) {
+        // 提取算式中的所有数字
+        const numsInInput = input.match(/\d+/g);
+        if (!numsInInput || numsInInput.length !== 4) return false;
+
+        // 转换为数字数组并排序
+        const inputArr = numsInInput.map(n => parseInt(n)).sort((a,b) => a-b);
+        const originalArr = [...originalCards].sort((a,b) => a-b);
+
+        // 对比数组
+        for(let i=0; i<4; i++) {
+            if (inputArr[i] !== originalArr[i]) return false;
+        }
+        return true;
+    }
+
+    function updateScore() {
+        document.getElementById('score-me').innerText = myScore;
+        document.getElementById('score-opp').innerText = oppScore;
+    }
+
+    function log(msg, type='') {
+        const logs = document.getElementById('logs');
+        const div = document.createElement('div');
+        div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        if (type === 'sys') div.className = 'log-sys';
+        if (type === 'win') div.className = 'log-win';
+        logs.prepend(div);
+    }
+
+    // 监听回车键
+    document.getElementById('formula-input').addEventListener("keyup", function(event) {
+        if (event.key === "Enter") {
+            submitAnswer();
+        }
+    });
+
+</script>
+
+</body>
+</html>
