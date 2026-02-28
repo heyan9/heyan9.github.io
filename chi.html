@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>今天吃什么？- 知乎蓝完整版</title>
+    <style>
+        :root {
+            --zhihu-blue: #0084FF;
+            --bg-color: #f6f6f6;
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --shadow: 0 8px 32px 0 rgba(0, 132, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            /* 背景光斑 */
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(0, 132, 255, 0.1) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, rgba(0, 132, 255, 0.1) 0px, transparent 50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #444;
+        }
+
+        /* 毛玻璃卡片 */
+        .glass-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+
+        h1 {
+            color: var(--zhihu-blue);
+            font-weight: 600;
+            margin: 10px 0 20px;
+            font-size: 22px;
+            letter-spacing: 1px;
+        }
+
+        /* 轮盘区域 */
+        .wheel-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1; 
+            max-height: 400px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 50%;
+        }
+
+        /* 指针 */
+        .pointer {
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            width: 30px;
+            height: 40px;
+            background: var(--zhihu-blue);
+            clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+            filter: drop-shadow(0 4px 4px rgba(0,132,255,0.3));
+        }
+
+        /* 中间按钮 */
+        .spin-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 22%;
+            height: 22%;
+            border-radius: 50%;
+            background: #fff;
+            border: 4px solid rgba(255,255,255,0.8);
+            color: var(--zhihu-blue);
+            font-weight: 800;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 20;
+            box-shadow: 0 4px 15px rgba(0, 132, 255, 0.2);
+            transition: transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .spin-btn:active {
+            transform: translate(-50%, -50%) scale(0.95);
+            background: #f0f8ff;
+        }
+
+        /* 底部操作区 */
+        .controls {
+            margin-top: 25px;
+        }
+
+        .task-tag {
+            display: inline-block;
+            background: rgba(0, 132, 255, 0.1);
+            color: var(--zhihu-blue);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        input {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 14px;
+            width: 60%;
+            outline: none;
+            background: rgba(255,255,255,0.9);
+        }
+
+        input:focus {
+            border-color: var(--zhihu-blue);
+            box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.2);
+        }
+
+        button.add-btn {
+            background: var(--zhihu-blue);
+            color: white;
+            border: none;
+            padding: 0 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* 弹窗 */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 999;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            width: 280px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .modal.active .modal-card {
+            transform: scale(1);
+        }
+
+        .modal h2 {
+            margin: 0;
+            font-size: 16px;
+            color: #999;
+            font-weight: 400;
+        }
+
+        .modal .result {
+            font-size: 26px;
+            color: var(--zhihu-blue);
+            font-weight: bold;
+            margin: 15px 0 25px;
+            line-height: 1.4;
+        }
+
+        .modal button {
+            background: var(--zhihu-blue);
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 132, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glass-container">
+        <h1>今天吃什么？</h1>
+        
+        <div class="wheel-wrapper">
+            <div class="pointer"></div>
+            <canvas id="wheel" width="800" height="800"></canvas>
+            <button class="spin-btn" id="spinBtn">开始</button>
+        </div>
+
+        <div class="controls">
+            <div class="task-tag">✨ 做任务增加转盘次数 (+1)</div>
+            
+            <div class="input-group">
+                <input type="text" id="newInput" placeholder="输入新选项...">
+                <button class="add-btn" id="addBtn">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗结果 -->
+    <div class="modal" id="modal">
+        <div class="modal-card">
+            <h2>命运的安排是</h2>
+            <div class="result" id="resultValue">...</div>
+            <button id="closeModalBtn">就吃这个！</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. 定义数据
+        let options = [
+            "米线", "螺蛳粉", "麻辣烫", "辣妈麻辣烫", "老方圆", 
+            "biangbiang面", "芝华士", "芝卷卷", "左宗棠小吃", "霸碗", 
+            "烧烤", "炸串酸辣粉", "面（砂锅饭）", "羊肉火锅", "烤肉",
+            "盛香亭", "肯德基（周四专属）", "地锅鸡", "罗炭煲"
+        ];
+
+        // 2. 获取DOM元素
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const modal = document.getElementById('modal');
+        const resultValue = document.getElementById('resultValue');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const addBtn = document.getElementById('addBtn');
+        const newInput = document.getElementById('newInput');
+
+        // 3. 变量初始化
+        let startAngle = 0;
+        let arc = Math.PI / (options.length / 2);
+        let spinTimeout = null;
+        let spinAngleStart = 0;
+        let spinTime = 0;
+        let spinTimeTotal = 0;
+        let isSpinning = false;
+        const colors = ["#FFFFFF", "#F0F6FF"]; // 极淡蓝白交替
+
+        // 4. 绘制函数
+        function drawWheel() {
+            arc = 2 * Math.PI / options.length;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const outsideRadius = 390;
+            const textRadius = 320;
+            const insideRadius = 80;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            ctx.strokeStyle = "rgba(0, 132, 255, 0.1)";
+            ctx.lineWidth = 1;
+
+            for(let i = 0; i < options.length; i++) {
+                const angle = startAngle + i * arc;
+                
+                // 画扇形
+                ctx.fillStyle = colors[i % 2];
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, outsideRadius, angle, angle + arc, false);
+                ctx.arc(centerX, centerY, insideRadius, angle + arc, angle, true);
+                ctx.stroke();
+                ctx.fill();
+
+                // 画文字
+                ctx.save();
+                ctx.fillStyle = "#333";
+                
+                ctx.translate(centerX + Math.cos(angle + arc / 2) * textRadius, 
+                              centerY + Math.sin(angle + arc / 2) * textRadius);
+                ctx.rotate(angle + arc / 2 + Math.PI / 2);
+                
+                const text = options[i];
+                
+                // 文字换行逻辑
+                // 如果文字太长（超过5个字）或者包含括号，就拆分
+                let lines = [];
+                if (text.includes("（")) {
+                    lines = text.split("（");
+                    lines[1] = "（" + lines[1];
+                } else if (text.length > 5) {
+                    lines.push(text.substring(0, 4));
+                    lines.push(text.substring(4));
+                } else {
+                    lines.push(text);
+                }
+
+                // 渲染多行文字
+                if (lines.length > 1) {
+                    ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, Arial';
+                    ctx.fillText(lines[0], -ctx.measureText(lines[0]).width / 2, -5);
+                    ctx.font = 'normal 18px -apple-system, BlinkMacSystemFont, Arial';
+                    ctx.fillText(lines[1], -ctx.measureText(lines[1]).width / 2, 25);
+                } else {
+                    ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, Arial';
+                    ctx.fillText(lines[0], -ctx.measureText(lines[0]).width / 2, 5);
+                }
+                
+                ctx.restore();
+            }
+        }
+
+        // 5. 旋转逻辑
+        function spin() {
+            if (isSpinning) return;
+            isSpinning = true;
+            spinBtn.textContent = "Go";
+            spinAngleStart = Math.random() * 10 + 10;
+            spinTime = 0;
+            spinTimeTotal = Math.random() * 3000 + 4000;
+            rotateWheel();
+        }
+
+        function rotateWheel() {
+            spinTime += 30;
+            if(spinTime >= spinTimeTotal) {
+                stopRotateWheel();
+                return;
+            }
+            const spinAngle = spinAngleStart - (easeOut(spinTime, 0, spinAngleStart, spinTimeTotal));
+            startAngle += (spinAngle * Math.PI / 180);
+            drawWheel();
+            spinTimeout = requestAnimationFrame(rotateWheel);
+        }
+
+        function stopRotateWheel() {
+            cancelAnimationFrame(spinTimeout);
+            isSpinning = false;
+            spinBtn.textContent = "开始";
+            
+            const degrees = startAngle * 180 / Math.PI + 90;
+            const arcd = arc * 180 / Math.PI;
+            const index = Math.floor((360 - degrees % 360) / arcd);
+            
+            // 修正负数索引的情况（极少数情况）
+            let safeIndex = index;
+            if (safeIndex < 0) safeIndex = options.length + safeIndex;
+            
+            resultValue.textContent = options[safeIndex];
+            modal.classList.add('active');
+        }
+
+        function easeOut(t, b, c, d) {
+            const ts = (t/=d)*t;
+            const tc = ts*t;
+            return b+c*(tc + -3*ts + 3*t);
+        }
+
+        // 6. 交互事件
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+
+        function addItem() {
+            const val = newInput.value.trim();
+            if(val) {
+                options.push(val);
+                newInput.value = '';
+                drawWheel();
+                alert('添加成功: ' + val);
+            }
+        }
+
+        // *** 关键修复：绑定事件 ***
+        spinBtn.addEventListener('click', spin); // 之前漏了这行
+        closeModalBtn.addEventListener('click', closeModal);
+        addBtn.addEventListener('click', addItem);
+        
+        // 窗口大小变化时重绘
+        window.addEventListener('resize', drawWheel);
+
+        // 7. 初始化启动
+        drawWheel();
+
+    </script>
+</body>
+</html>
