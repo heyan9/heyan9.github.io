@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Blackjack 21 - 何岩制作</title>
+    
+    <!-- 1. 核心样式 (RemixIcon 国内源) -->
+    <link href="https://cdn.staticfile.net/remixicon/3.5.0/remixicon.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* 知乎蓝扁平风格 */
+            --primary: #0066FF;
+            --primary-hover: #005ce6;
+            --bg-color: #F6F8FA;
+            --text-main: #121212;
+            --text-sub: #8590A6;
+            --border: #EBECED;
+            --shadow: 0 4px 12px rgba(0,0,0,0.05);
+            --radius: 12px;
+            --gold: #FFD700;
+            --gold-dark: #D4AF37;
+        }
+
+        body {
+            margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color); color: var(--text-main);
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+            user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- 进度条加载页 --- */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.4s;
+        }
+        .progress-bar { width: 200px; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; margin-top: 15px; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.2s; }
+        .fade-out { opacity: 0; pointer-events: none; }
+
+        /* --- 布局容器 --- */
+        #app { width: 100%; max-width: 500px; min-height: 100vh; position: relative; background: var(--bg-color); }
+        @media (min-width: 768px) {
+            body { background: #E5E9EF; }
+            #app {
+                min-height: 800px; height: 90vh;
+                margin-top: 20px; border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+                overflow: hidden; background: #fff; border: 1px solid #ddd;
+            }
+        }
+
+        /* --- 顶部导航 --- */
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: #fff; border-bottom: 1px solid var(--border);
+        }
+        .brand { font-size: 18px; font-weight: 800; color: var(--primary); }
+        .author { font-size: 10px; background: #000; color: #fff; padding: 2px 5px; border-radius: 4px; margin-left: 5px; opacity: 0.8; vertical-align: middle; }
+        .user-tag {
+            font-size: 12px; font-weight: 600; color: #666; cursor: pointer;
+            padding: 6px 12px; background: #f0f2f5; border-radius: 15px;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .user-tag.login { color: var(--primary); background: rgba(0, 102, 255, 0.1); }
+
+        /* --- 通用卡片 --- */
+        .panel {
+            background: #fff; margin: 15px; padding: 20px;
+            border-radius: var(--radius); box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        /* --- 按钮 --- */
+        .btn {
+            background: var(--primary); color: #fff; border: none;
+            padding: 12px; width: 100%; border-radius: 8px;
+            font-size: 15px; font-weight: 600; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; gap: 6px;
+            transition: opacity 0.2s; margin-bottom: 10px;
+        }
+        .btn:active { opacity: 0.8; }
+        .btn-outline { background: #fff; border: 1px solid var(--primary); color: var(--primary); }
+        .btn-danger { background: #ff4d4f; }
+        .btn-success { background: #52c41a; }
+        .btn-shop { 
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); 
+            color: #5a3e00; font-weight: 800; box-shadow: 0 4px 10px rgba(255, 165, 0, 0.3);
+        }
+
+        /* --- 扑克牌 (对角线数字) --- */
+        .cards-area { display: flex; justify-content: center; gap: 8px; min-height: 100px; margin-top: 15px; }
+        .card {
+            width: 62px; height: 90px;
+            background: #fff; border-radius: 6px; border: 1px solid #ddd;
+            box-shadow: 1px 2px 6px rgba(0,0,0,0.1);
+            position: relative; padding: 4px; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .card.red { color: #d93025; }
+        .card-top { font-size: 14px; font-weight: bold; line-height: 1; text-align: left; }
+        .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 26px; }
+        .card-bottom { font-size: 14px; font-weight: bold; line-height: 1; text-align: right; transform: rotate(180deg); }
+        .card-back { background: var(--primary); border: 2px solid #fff; display: flex; justify-content: center; align-items: center; }
+        .card-back::after { content: "21"; color: rgba(255,255,255,0.2); font-weight: 900; font-size: 24px; }
+
+        /* --- 兑换券 --- */
+        .voucher {
+            background: linear-gradient(135deg, #fffbeb 0%, #fff 100%);
+            border: 2px dashed var(--gold-dark);
+            padding: 20px; border-radius: 12px; position: relative;
+            margin-top: 20px; text-align: center;
+        }
+        .voucher::before, .voucher::after {
+            content: ''; position: absolute; width: 20px; height: 20px; background: var(--bg-color);
+            border-radius: 50%; top: 50%; margin-top: -10px;
+        }
+        .voucher::before { left: -12px; border-right: 2px dashed var(--gold-dark); }
+        .voucher::after { right: -12px; border-left: 2px dashed var(--gold-dark); }
+        .code-box {
+            font-family: monospace; font-size: 20px; letter-spacing: 2px;
+            background: #eee; padding: 10px; margin: 15px 0; border-radius: 4px; font-weight: bold; color: #333;
+        }
+
+        /* --- 弹窗 --- */
+        .modal-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; justify-content: center; align-items: center; }
+        .modal { background: #fff; width: 80%; max-width: 300px; padding: 20px; border-radius: 12px; text-align: center; }
+        .input-box { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .role-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; color: #fff; vertical-align: middle; margin-left: 4px; }
+
+        .scan-layer { position: absolute; top:0; left:0; width:100%; height:100%; background:#000; z-index:2000; }
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body>
+
+<!-- 进度条加载页 -->
+<div id="loader">
+    <div style="font-weight:900; font-size:24px; color:#0066FF;">21点</div>
+    <div class="progress-bar"><div class="progress-fill" id="p-fill"></div></div>
+    <div class="loading-text" id="p-text" style="font-size:12px; margin-top:10px; color:#999;">资源加载 0%</div>
+</div>
+
+<div id="app" v-cloak>
+    
+    <!-- 头部 -->
+    <div class="header">
+        <div><span class="brand">21点</span> <span class="author">何岩制作</span></div>
+        <div class="user-tag" :class="{login: user}" @click="showAuth=true">
+            <i class="ri-user-smile-line"></i>
+            <span>{{ user ? user.getUsername() : '游客' }}</span>
+            <span style="border-left:1px solid #ccc; padding-left:6px; margin-left:2px; font-weight:bold;">${{ money }}</span>
+        </div>
+    </div>
+
+    <!-- 1. 首页菜单 -->
+    <div v-if="state === 'MENU'" class="panel" style="text-align:center; padding: 40px 20px; margin-top:30px;">
+        <!-- 图标换回钻石 -->
+        <div style="font-size: 60px; color: var(--primary); margin-bottom: 10px;">
+            <i class="ri-vip-diamond-fill"></i>
+        </div>
+        <!-- 标题修改 -->
+        <h2 style="color: #333; margin: 0 0 30px 0;">Blackjack 21</h2>
+        
+        <button class="btn" @click="startLocal">
+            <i class="ri-cpu-line"></i> 单机练习 (VS 电脑)
+        </button>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <button class="btn btn-outline" @click="initOnline('HOST')">
+                <i class="ri-add-box-line"></i> 建房
+            </button>
+            <button class="btn btn-outline" @click="initOnline('GUEST')">
+                <i class="ri-qr-scan-2-line"></i> 扫码
+            </button>
+        </div>
+
+        <!-- 商店按钮 -->
+        <button class="btn btn-shop" style="margin-top:15px;" @click="state='SHOP'">
+            <i class="ri-store-2-fill"></i> 礼品兑换商店
+        </button>
+        
+        <div style="margin-top:15px; font-size:12px; color:#999;">{{ msg }}</div>
+    </div>
+
+    <!-- 2. 商店界面 -->
+    <div v-if="state === 'SHOP'" class="panel" style="text-align:center;">
+        <h3 style="color:#5a3e00;">🏆 豪华礼品兑换</h3>
+        <div style="padding:20px; background:#fffcf0; border:1px solid #ffe58f; border-radius:8px; margin:20px 0;">
+            <i class="ri-gift-2-fill" style="font-size:40px; color:var(--primary);"></i>
+            <div style="font-weight:bold; font-size:18px; margin:10px 0;">100元现金礼品卡</div>
+            <div style="color:#f5222d; font-weight:bold;">售价: 300,000 金币</div>
+        </div>
+        <button class="btn btn-shop" @click="buyGift">立即购买</button>
+        <button class="btn btn-outline" @click="state='MENU'">返回大厅</button>
+    </div>
+
+    <!-- 3. 兑换券界面 -->
+    <div v-if="state === 'VOUCHER'" class="panel" style="text-align:center;">
+        <h3 style="color:var(--success);"><i class="ri-checkbox-circle-fill"></i> 购买成功</h3>
+        <p style="font-size:12px; color:#666;">请截屏保存您的兑换码</p>
+        
+        <div class="voucher">
+            <div style="font-size:14px; color:#999;">HE YAN GIFT CARD</div>
+            <div style="font-size:24px; font-weight:900; color:#333; margin:5px 0;">¥100</div>
+            <div class="code-box">{{ voucherCode }}</div>
+            <div style="font-size:10px; color:#ccc;">13位防伪码已激活</div>
+        </div>
+        
+        <button class="btn btn-outline" style="margin-top:20px;" @click="state='MENU'">返回游戏</button>
+    </div>
+
+    <!-- 4. 等待连接 -->
+    <div v-if="state === 'WAIT'" class="panel" style="text-align:center;">
+        <h3>等待加入</h3>
+        <div id="qrcode-box" style="background:#f9f9f9; padding:10px; display:inline-block; border-radius:8px;"></div>
+        <p style="font-size:12px; color:#999; margin-top:15px;">请朋友扫描上方二维码</p>
+        <button class="btn btn-outline" @click="resetToMenu">取消</button>
+    </div>
+
+    <!-- 5. 游戏主桌 -->
+    <div v-if="['BET', 'PLAYING', 'RESULT'].includes(state)">
+        <!-- 上方：对手/电脑 -->
+        <div class="panel">
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:#666; font-weight:600;">
+                <div>{{ amIBanker ? '闲家' : (isLocal?'电脑':'庄家') }} <span class="role-badge" :style="{background: amIBanker?'#52c41a':'#ff4d4f'}">{{ amIBanker?'闲':'庄' }}</span></div>
+                <div v-if="amIBanker" style="color:var(--primary);">下注: ${{ bet }}</div>
+            </div>
+            <div class="cards-area">
+                <div v-for="(c,i) in topHandDisplay" :key="i" class="card" :class="{red:['♥','♦'].includes(c.suit), black:['♠','♣'].includes(c.suit), 'card-back':c.hidden}">
+                    <template v-if="!c.hidden">
+                        <div class="card-top">{{c.rank}}</div>
+                        <div class="card-center">{{c.suit}}</div>
+                        <div class="card-bottom">{{c.rank}}</div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align:center;">
+            <div class="status-badge">{{ statusText }}</div>
+        </div>
+
+        <!-- 下方：我 -->
+        <div class="panel" style="border-color:var(--primary); box-shadow: 0 4px 15px rgba(0,102,255,0.1);">
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:#666; font-weight:600;">
+                <div>我 <span class="role-badge" :style="{background: amIBanker?'#ff4d4f':'#52c41a'}">{{ amIBanker?'庄':'闲' }}</span></div>
+                <div v-if="!amIBanker" style="color:var(--primary);">本局下注: ${{ bet }}</div>
+            </div>
+            <div class="cards-area">
+                <div v-for="(c,i) in myHand" :key="i" class="card" :class="{red:['♥','♦'].includes(c.suit), black:['♠','♣'].includes(c.suit)}">
+                    <div class="card-top">{{c.rank}}</div>
+                    <div class="card-center">{{c.suit}}</div>
+                    <div class="card-bottom">{{c.rank}}</div>
+                </div>
+            </div>
+            <div style="text-align:center; font-weight:800; color:var(--primary); margin-top:10px;">
+                {{ myScore }} 点 <span v-if="myScore>21" style="color:#ff4d4f">(爆牌)</span>
+            </div>
+        </div>
+
+        <!-- 底部控制 -->
+        <div style="position:fixed; bottom:0; left:0; width:100%; padding:20px; background:#fff; box-shadow:0 -5px 20px rgba(0,0,0,0.05); box-sizing:border-box; z-index:100;">
+            <div v-if="state === 'BET'">
+                <div v-if="!amIBanker">
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <button class="btn btn-outline" @click="modBet(0.5)">减半</button>
+                        <button class="btn btn-outline" @click="modBet(2)">加倍</button>
+                    </div>
+                    <button class="btn btn-success" @click="confirmBet">确认下注 ${{ bet }}</button>
+                </div>
+                <div v-else style="text-align:center; color:#999; padding:10px;">等待闲家下注...</div>
+            </div>
+            <div v-if="state === 'PLAYING'">
+                <div v-if="isMyTurn">
+                    <div style="display:flex; gap:15px;">
+                        <button class="btn" @click="doAct('HIT')">要牌</button>
+                        <button class="btn btn-danger" @click="doAct('STAND')">停牌</button>
+                    </div>
+                </div>
+                <div v-else style="text-align:center; color:#999; padding:10px;">对方思考中...</div>
+            </div>
+            <div v-if="state === 'RESULT'">
+                <h2 style="text-align:center; color:var(--primary); margin:0 0 15px 0;">{{ resultText }}</h2>
+                <button v-if="isHost || isLocal" class="btn" @click="nextRound">下一局</button>
+                <div v-else style="text-align:center; color:#999;">等待房主开始...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 登录弹窗 -->
+    <div v-if="showAuth" class="modal-mask" @click.self="showAuth=false">
+        <div class="modal">
+            <h3 style="margin-top:0;">账号中心</h3>
+            <div v-if="!user">
+                <input v-model="form.u" class="input-box" placeholder="用户名">
+                <input v-model="form.p" class="input-box" type="password" placeholder="密码">
+                <div v-if="authMode==='LOGIN'">
+                    <button class="btn" @click="login" :disabled="loading">{{loading?'登录中...':'登录'}}</button>
+                    <p style="font-size:12px; color:#666;">没账号? <a href="#" @click="authMode='REG'">注册</a></p>
+                </div>
+                <div v-else>
+                    <button class="btn btn-success" @click="reg" :disabled="loading">{{loading?'注册中...':'注册送$1000'}}</button>
+                    <p style="font-size:12px; color:#666;">有账号? <a href="#" @click="authMode='LOGIN'">登录</a></p>
+                </div>
+                <p style="color:red; font-size:12px;">{{errMsg}}</p>
+            </div>
+            <div v-else>
+                <p>当前账号: <strong>{{ user.getUsername() }}</strong></p>
+                <p>云端余额: ${{ money }}</p>
+                <button class="btn btn-danger" @click="logout">退出登录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 扫码弹窗 -->
+    <div v-if="isScanning" class="scan-layer">
+        <button @click="stopScan" style="position:absolute; top:30px; right:20px; z-index:2001; background:white; border:none; width:40px; height:40px; border-radius:50%; font-weight:bold; font-size:20px;">✕</button>
+        <div id="reader" style="width:100%; margin-top:100px;"></div>
+    </div>
+</div>
+
+<script src="https://cdn.staticfile.net/vue/3.3.4/vue.global.prod.min.js"></script>
+<script src="https://code.bdstatic.com/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
+
+<script>
+    // 资源加载器
+    const updateProgress = (pct) => {
+        document.getElementById('p-fill').style.width = pct + '%';
+        document.getElementById('p-text').innerText = '资源加载 ' + pct + '%';
+        if(pct >= 100) setTimeout(() => document.getElementById('loader').classList.add('fade-out'), 500);
+    };
+    const loadLib = (src) => {
+        return new Promise((resolve) => {
+            if(document.querySelector(`script[src="${src}"]`)) return resolve();
+            const s = document.createElement('script'); s.src = src; s.onload = resolve;
+            document.body.appendChild(s);
+        });
+    };
+    let p = 0; const t = setInterval(() => { p+=10; if(p>90) clearInterval(t); updateProgress(p); }, 100);
+    window.onload = () => { clearInterval(t); updateProgress(100); };
+
+    AV.init({ appId: "vcJyhwqg1HpbKXiLUvLHzFIh-gzGzoHsz", appKey: "hknbmRcwH2bJDcqxRvLR67mk", serverURL: "https://vcjyhwqg.lc-cn-n1-shared.com" });
+
+    const { createApp, ref, computed, nextTick, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const user = ref(AV.User.current());
+            const guestMoney = ref(parseInt(localStorage.getItem('guest_money')) || 1000);
+            const money = computed({
+                get: () => user.value ? (user.value.get('money')||0) : guestMoney.value,
+                set: (v) => {
+                    if(user.value){ user.value.set('money', v); user.value.save(); }
+                    else { guestMoney.value=v; localStorage.setItem('guest_money', v); }
+                }
+            });
+
+            // UI 状态
+            const state = ref('MENU'); 
+            const msg = ref('');
+            const isLocal = ref(false); const isHost = ref(false);
+            const showAuth = ref(false); const authMode = ref('LOGIN');
+            const form = ref({u:'', p:''}); const loading = ref(false); const errMsg = ref('');
+            const voucherCode = ref('');
+
+            // 游戏数据
+            const hand1 = ref([]); const hand2 = ref([]);
+            const bankerIdx = ref(1); const actorIdx = ref(2);
+            const bet = ref(100);
+            
+            // 联机
+            const peer = ref(null); const conn = ref(null); const isScanning = ref(false); let scanner = null;
+
+            // 购买礼品
+            const buyGift = () => {
+                if(money.value >= 300000) {
+                    money.value -= 300000;
+                    // 生成13位随机数
+                    voucherCode.value = Math.floor(Math.random() * 9000000000000) + 1000000000000;
+                    state.value = 'VOUCHER';
+                } else {
+                    alert('金币不足！需要300,000金币');
+                }
+            };
+
+            // 计算属性
+            const myIdx = computed(() => isLocal.value ? 2 : (isHost.value ? 1 : 2));
+            const amIBanker = computed(() => myIdx.value === bankerIdx.value);
+            const myHand = computed(() => myIdx.value===1 ? hand1.value : hand2.value);
+            const topHand = computed(() => myIdx.value===1 ? hand2.value : hand1.value);
+            
+            const topHandDisplay = computed(() => {
+                const raw = topHand.value;
+                const oppIsBanker = !amIBanker.value;
+                if(oppIsBanker && (state.value==='BET' || state.value==='PLAYING')) {
+                    return raw.map((c,i)=>i===0?c:{...c,hidden:true});
+                }
+                return raw.map(c=>({...c,hidden:false}));
+            });
+
+            const getScore = (arr) => {
+                let s=0, a=0;
+                arr.forEach(c=>{ s+=c.val; if(c.rank==='A') a++ });
+                while(s>21 && a>0) { s-=10; a--; }
+                return s;
+            };
+            const myScore = computed(()=>getScore(myHand.value));
+            const isMyTurn = computed(() => state.value==='PLAYING' && actorIdx.value===myIdx.value);
+            const statusText = computed(() => {
+                if(state.value==='BET') return '等待下注';
+                if(state.value==='PLAYING') return isMyTurn.value ? '轮到你行动' : '对方思考中...';
+                return '本局结束';
+            });
+            const resultText = ref('');
+
+            // 游戏逻辑
+            const createDeck = () => {
+                const s=['♠','♥','♣','♦'], r=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+                let d=[];
+                s.forEach(ss=>r.forEach(rr=>{
+                    let v=parseInt(rr); if(['J','Q','K'].includes(rr)) v=10; if(rr==='A') v=11;
+                    d.push({suit:ss, rank:rr, val:v});
+                }));
+                return d.sort(()=>Math.random()-0.5);
+            };
+            let deck = [];
+
+            const runAI = (mode) => {
+                setTimeout(() => {
+                    if(mode === 'BET') { bet.value = 100; confirmBet(); }
+                    else if(mode === 'PLAY') {
+                        const s = getScore(hand1.value);
+                        if(s < 17) doAct('HIT'); else doAct('STAND');
+                    }
+                }, 800);
+            };
+
+            const startLocal = () => {
+                isLocal.value=true; isHost.value=true; bankerIdx.value=1;
+                startRound();
+            };
+
+            const startRound = () => {
+                deck = createDeck();
+                hand1.value = [deck.pop(), deck.pop()];
+                hand2.value = [deck.pop(), deck.pop()];
+                state.value = 'BET';
+                const playerIdx = (bankerIdx.value === 1) ? 2 : 1;
+                actorIdx.value = playerIdx;
+                if(isLocal.value && playerIdx === 1) runAI('BET');
+                sync();
+            };
+
+            const modBet = (m) => {
+                // 允许负债，不设上限，只设最小下注
+                let n = Math.floor(bet.value * m);
+                if(n < 10) n = 10;
+                bet.value = n;
+            };
+
+            const confirmBet = () => {
+                if(getScore(hand1.value)===21 || getScore(hand2.value)===21) endRound();
+                else {
+                    state.value='PLAYING';
+                    if(isLocal.value && actorIdx.value===1) runAI('PLAY');
+                    if(!isHost.value && !isLocal.value) send('BET', bet.value);
+                }
+                sync();
+            };
+
+            const doAct = (act) => {
+                if(!isHost.value && !isLocal.value) { send('PLAY', act); return; }
+                const target = actorIdx.value===1 ? hand1 : hand2;
+                if(act==='HIT') {
+                    target.value.push(deck.pop());
+                    const s = getScore(target.value);
+                    if(s>21 || (target.value.length===5 && s<=21)) switchTurn();
+                    else { if(isLocal.value && actorIdx.value===1) runAI('PLAY'); }
+                } else { switchTurn(); }
+                sync();
+            };
+
+            const switchTurn = () => {
+                const playerIdx = (bankerIdx.value === 1) ? 2 : 1;
+                if(actorIdx.value === playerIdx) {
+                    actorIdx.value = bankerIdx.value;
+                    if(isLocal.value && actorIdx.value===1) runAI('PLAY');
+                } else endRound();
+            };
+
+            const endRound = () => {
+                state.value = 'RESULT';
+                const s1 = getScore(hand1.value); const s2 = getScore(hand2.value);
+                const h1_5 = hand1.value.length>=5 && s1<=21; const h2_5 = hand2.value.length>=5 && s2<=21;
+                let winner = 0; 
+                if(s2>21) winner=1; else if(s1>21) winner=2;
+                else if(h2_5 && !h1_5) winner=2; else if(h1_5 && !h2_5) winner=1;
+                else if(s1>s2) winner=1; else if(s1<s2) winner=2;
+                
+                if(winner===0) resultText.value = "平局 (Push)";
+                else {
+                    const iWon = (winner === myIdx.value);
+                    if(iWon) { money.value += bet.value; resultText.value = "你赢了!"; }
+                    else { money.value -= bet.value; resultText.value = "你输了!"; }
+                }
+                if(bankerIdx.value===1 && s2===21 && hand2.value.length===2) bankerIdx.value=2;
+                else if(bankerIdx.value===2 && s1===21 && hand1.value.length===2) bankerIdx.value=1;
+                sync();
+            };
+
+            const nextRound = () => {
+                if(isHost.value) startRound(); else send('NEXT');
+            };
+
+            const initOnline = async (role) => {
+                msg.value = '组件加载中...';
+                await loadLib('https://cdn.staticfile.net/peerjs/1.4.7/peerjs.min.js');
+                if(role === 'HOST') {
+                    await loadLib('https://cdn.staticfile.net/qrcodejs/1.0.0/qrcode.min.js');
+                    createRoom();
+                } else {
+                    await loadLib('https://cdn.staticfile.net/html5-qrcode/2.3.8/html5-qrcode.min.js');
+                    startScan();
+                }
+            };
+
+            const sync = () => {
+                if(isHost.value && conn.value && !isLocal.value) {
+                    conn.value.send({
+                        t:'SYNC', d:{
+                            st:state.value, h1:hand1.value, h2:hand2.value,
+                            bi:bankerIdx.value, ai:actorIdx.value, bt:bet.value
+                        }
+                    });
+                }
+            };
+            const send = (act, val) => { if(conn.value) conn.value.send({ t:'ACT', act, val }); };
+
+            const createRoom = () => {
+                isLocal.value=false; isHost.value=true; bankerIdx.value=1; state.value='WAIT';
+                peer.value = new Peer();
+                peer.value.on('open', id => {
+                    const url = location.href.split('?')[0]+'?join='+id;
+                    nextTick(()=>{
+                        document.getElementById('qrcode-box').innerHTML="";
+                        new QRCode(document.getElementById('qrcode-box'), {text:url, width:150, height:150});
+                    });
+                });
+                peer.value.on('connection', c => {
+                    conn.value = c; setupConn(c);
+                    setTimeout(startRound, 500);
+                });
+            };
+
+            const joinRoom = (id) => {
+                isLocal.value=false; isHost.value=false; msg.value='连接中...';
+                peer.value = new Peer();
+                peer.value.on('open', ()=>{ conn.value = peer.value.connect(id); setupConn(conn.value); });
+            };
+
+            const setupConn = (c) => {
+                c.on('open', ()=>{ msg.value='已连接'; if(!isHost.value) c.send({t:'HELLO'}); });
+                c.on('data', d => {
+                    if(d.t==='SYNC' && !isHost.value) {
+                        state.value=d.d.st; hand1.value=d.d.h1; hand2.value=d.d.h2;
+                        bankerIdx.value=d.d.bi; actorIdx.value=d.d.ai; bet.value=d.d.bt;
+                    }
+                    if(d.t==='ACT' && isHost.value) {
+                        if(d.act==='BET') { bet.value=d.val; confirmBet(); }
+                        if(d.act==='PLAY') doAct(d.val);
+                        if(d.act==='NEXT') startRound();
+                    }
+                    if(d.t==='HELLO' && isHost.value) sync();
+                });
+                c.on('close', resetToMenu);
+            };
+
+            const resetToMenu = () => { state.value='MENU'; if(peer.value) peer.value.destroy(); };
+            const startScan = () => {
+                isScanning.value=true;
+                nextTick(()=>{
+                    scanner = new Html5Qrcode("reader");
+                    scanner.start({facingMode:"environment"}, {fps:10}, txt=>{
+                        joinRoom(txt.includes('join=')?txt.split('join=')[1]:txt);
+                        stopScan();
+                    });
+                });
+            };
+            const stopScan = () => { if(scanner) scanner.stop().then(()=>isScanning.value=false); };
+
+            onMounted(() => {
+                const p = new URLSearchParams(location.search);
+                if(p.get('join')) { msg.value='自动加入...'; initOnline('GUEST').then(()=>setTimeout(()=>joinRoom(p.get('join')), 500)); }
+            });
+
+            const login = async () => {
+                loading.value=true; errMsg.value='';
+                try { await AV.User.logIn(form.value.u, form.value.p); user.value=AV.User.current(); showAuth.value=false; }
+                catch(e){ errMsg.value=e.message; } loading.value=false;
+            };
+            const reg = async () => {
+                loading.value=true; errMsg.value='';
+                const u = new AV.User(); u.setUsername(form.value.u); u.setPassword(form.value.p); u.set('money',1000);
+                try { await u.signUp(); user.value=u; showAuth.value=false; }
+                catch(e){ errMsg.value=e.message; } loading.value=false;
+            };
+            const logout = () => { AV.User.logOut(); user.value=null; showAuth.value=false; };
+
+            return {
+                user, money, showAuth, authMode, form, loading, errMsg, login, reg, logout,
+                state, msg, isLocal, isHost, isScanning,
+                hand1, hand2, bet, amIBanker, topHandDisplay, myHand, myScore, statusText, resultText, isMyTurn,
+                startLocal, initOnline, resetToMenu, startScan, stopScan,
+                modBet, confirmBet, doAct, nextRound,
+                buyGift, voucherCode
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
