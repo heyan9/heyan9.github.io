@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>21点 - 真人对战版</title>
+    <!-- 国内极速源 -->
+    <script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script src="https://cdn.staticfile.org/peerjs/1.4.7/peerjs.min.js"></script>
+    <script src="https://cdn.staticfile.org/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.staticfile.org/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <link href="https://cdn.staticfile.org/remixicon/3.5.0/remixicon.css" rel="stylesheet">
+
+    <style>
+        :root { --primary: #0066FF; --bg-grad: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg-grad); min-height: 100vh; overflow-x: hidden; user-select: none; }
+        
+        /* 极致毛玻璃 */
+        .glass {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+            padding: 15px; margin: 15px;
+        }
+
+        .container { max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
+        .header { display: flex; justify-content: space-between; align-items: center; color: var(--primary); font-weight: 900; font-size: 1.2rem; }
+        
+        .btn {
+            background: var(--primary); color: white; border: none; padding: 12px; 
+            border-radius: 10px; font-weight: bold; width: 100%; font-size: 16px;
+            margin-bottom: 8px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 5px;
+            transition: 0.2s;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; opacity: 0.7; }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-danger { background: #ff4d4f; }
+        .btn-success { background: #52c41a; }
+
+        /* 扑克牌区域 */
+        .area-title { font-size: 12px; color: #666; margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .cards-row { display: flex; justify-content: center; gap: 8px; min-height: 100px; perspective: 1000px; }
+        
+        .card {
+            width: 62px; height: 90px;
+            background: white; border-radius: 6px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 4px; font-weight: bold; font-size: 18px; color: #333;
+            position: relative;
+        }
+        .card.red { color: #d93025; }
+        .card-back {
+            background: var(--primary);
+            background-image: radial-gradient(white 15%, transparent 16%), radial-gradient(white 15%, transparent 16%);
+            background-size: 10px 10px;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* 特效标记 */
+        .tag { position: absolute; top: -10px; right: -10px; background: #ffc107; color: black; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); animation: pop 0.3s; }
+        @keyframes pop { 0% { transform: scale(0); } 80% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+        /* 全屏扫码 */
+        .scan-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 999; }
+        
+        /* 状态条 */
+        .status-bar { text-align: center; font-size: 14px; color: var(--primary); font-weight: bold; margin: 10px 0; }
+        
+        /* 角色标识 */
+        .role-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: white; margin-left: 5px; }
+        .role-banker { background: #ff4d4f; }
+        .role-player { background: #52c41a; }
+
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="app" v-cloak>
+    <!-- 扫码界面 -->
+    <div v-if="isScanning" class="scan-layer">
+        <button @click="stopScan" style="position:absolute; top:20px; right:20px; z-index:1000; width:40px; height:40px; border-radius:50%; border:none;">✕</button>
+        <div id="reader" style="width:100%; margin-top:60px;"></div>
+        <p style="color:white; text-align:center; margin-top:20px;">请扫描房主的二维码</p>
+    </div>
+
+    <div class="container">
+        <!-- 头部 -->
+        <div class="glass header">
+            <span>BLACKJACK PvP</span>
+            <div style="font-size:12px; font-weight:normal;">
+                {{ isHost ? '我是房主' : '我是客机' }}
+                <span class="role-badge" :class="amIBanker ? 'role-banker' : 'role-player'">
+                    {{ amIBanker ? '庄家' : '闲家' }}
+                </span>
+            </div>
+        </div>
+
+        <!-- 菜单 -->
+        <div v-if="state === 'MENU'" class="glass" style="text-align:center; padding:40px 20px;">
+            <button class="btn" @click="createRoom"><i class="ri-home-wifi-line"></i> 创建房间 (房主)</button>
+            <button class="btn btn-outline" @click="startScan"><i class="ri-qr-scan-line"></i> 扫码加入 (闲家)</button>
+            <div style="margin-top:20px; color:#888; font-size:12px;">请在同一Wi-Fi下使用</div>
+            <div style="color:var(--primary); font-size:12px; margin-top:5px;">{{ msg }}</div>
+        </div>
+
+        <!-- 二维码等待 -->
+        <div v-if="state === 'WAIT'" class="glass" style="text-align:center;">
+            <h3>等待闲家加入</h3>
+            <div id="qrcode-box" style="background:white; padding:10px; display:inline-block; border-radius:8px;"></div>
+            <p style="font-size:12px; color:#666;">闲家扫码即可连接</p>
+            <button class="btn btn-outline" @click="state='MENU'">取消</button>
+        </div>
+
+        <!-- 游戏主界面 -->
+        <div v-if="['BET', 'DEAL', 'PLAYER_TURN', 'BANKER_TURN', 'RESULT'].includes(state)">
+            
+            <!-- 对手区域 (上方) -->
+            <div class="glass">
+                <div class="area-title">
+                    <span>{{ amIBanker ? '闲家 (对手)' : '庄家 (对手)' }}</span>
+                    <span>{{ amIBanker ? '下注: $' + currentBet : '' }}</span>
+                </div>
+                <div class="cards-row">
+                    <div v-for="(c, i) in opponentHandDisplay" :key="i" 
+                         class="card" :class="{red: ['♥','♦'].includes(c.suit), 'card-back': c.hidden}">
+                        <template v-if="!c.hidden">
+                            <div style="text-align:left">{{ c.rank }}</div>
+                            <div style="font-size:24px; align-self:center">{{ c.suit }}</div>
+                        </template>
+                        <div v-if="state==='RESULT' && opponentFiveDragon" class="tag">五小龙</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 状态提示 -->
+            <div class="status-bar">
+                {{ statusText }}
+            </div>
+
+            <!-- 自己区域 (下方) -->
+            <div class="glass" style="border: 2px solid var(--primary);">
+                <div class="area-title">
+                    <span>{{ amIBanker ? '庄家 (我)' : '闲家 (我)' }}</span>
+                    <span>{{ amIBanker ? '' : '我的下注: $' + currentBet }}</span>
+                </div>
+                <div class="cards-row">
+                    <div v-for="(c, i) in myHand" :key="i" class="card" :class="{red: ['♥','♦'].includes(c.suit)}">
+                        <div style="text-align:left">{{ c.rank }}</div>
+                        <div style="font-size:24px; align-self:center">{{ c.suit }}</div>
+                        <div v-if="myFiveDragon" class="tag">五小龙</div>
+                    </div>
+                </div>
+                <div style="text-align:center; margin-top:5px; font-weight:bold;">
+                    {{ myScore }} 点 <span v-if="myScore>21" style="color:red">(爆牌)</span>
+                </div>
+            </div>
+
+            <!-- 控制台 (底部固定) -->
+            <div class="glass" style="position:fixed; bottom:0; left:0; width:100%; margin:0; border-radius:20px 20px 0 0; box-sizing:border-box; z-index:100;">
+                
+                <!-- 阶段1: 闲家下注 -->
+                <div v-if="state === 'BET'">
+                    <div v-if="!amIBanker">
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn btn-outline" @click="changeBet(0.5)">减倍 /2</button>
+                            <button class="btn btn-outline" @click="changeBet(2)">加倍 x2</button>
+                        </div>
+                        <button class="btn btn-success" @click="confirmBet">下注 ${{ currentBet }} 并发牌</button>
+                    </div>
+                    <div v-else style="text-align:center; color:#888;">等待闲家下注...</div>
+                </div>
+
+                <!-- 阶段2: 玩家行动 (要牌/停牌) -->
+                <div v-if="isMyTurn">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                        <button class="btn" @click="doAction('HIT')">要牌</button>
+                        <button class="btn btn-danger" @click="doAction('STAND')">停牌</button>
+                    </div>
+                </div>
+                <div v-if="!isMyTurn && state !== 'BET' && state !== 'RESULT'" style="text-align:center; color:#888;">
+                    对方思考中...
+                </div>
+
+                <!-- 阶段3: 结算 -->
+                <div v-if="state === 'RESULT'">
+                    <div style="text-align:center; font-size:18px; font-weight:900; margin-bottom:10px; color:var(--primary);">
+                        {{ resultMsg }}
+                    </div>
+                    <button v-if="isHost" class="btn" @click="restartGame">下一局 (房主点此)</button>
+                    <div v-else style="text-align:center; color:#888;">等待房主开始下一局</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, computed, nextTick, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            // --- 核心变量 ---
+            const state = ref('MENU'); // MENU, WAIT, BET, PLAYER_TURN, BANKER_TURN, RESULT
+            const msg = ref('');
+            
+            // 角色：HOST (房主), GUEST (闲家)
+            // 身份：BANKER (庄家), PLAYER (闲家)
+            const isHost = ref(false); 
+            const bankerRole = ref('HOST'); // 谁是庄家？'HOST' 或 'GUEST'
+
+            // 游戏数据 (全部由 Host 维护并同步给 Guest)
+            const deck = ref([]);
+            const hostHand = ref([]);
+            const guestHand = ref([]);
+            const currentBet = ref(100);
+            
+            // 联机
+            const peer = ref(null);
+            const conn = ref(null);
+            const isScanning = ref(false);
+            let scanner = null;
+
+            // --- 计算属性 ---
+            const amIBanker = computed(() => {
+                return isHost.value ? (bankerRole.value === 'HOST') : (bankerRole.value === 'GUEST');
+            });
+
+            // 我的手牌
+            const myHand = computed(() => isHost.value ? hostHand.value : guestHand.value);
+            // 对手手牌 (显示逻辑)
+            const opponentHandDisplay = computed(() => {
+                const raw = isHost.value ? guestHand.value : hostHand.value;
+                // 如果是庄家回合之前，且对手是庄家，则隐藏庄家第二张牌
+                const oppIsBanker = !amIBanker.value;
+                if (oppIsBanker && ['BET','PLAYER_TURN'].includes(state.value)) {
+                    return raw.map((c, i) => i === 0 ? c : { ...c, hidden: true });
+                }
+                return raw.map(c => ({ ...c, hidden: false }));
+            });
+
+            const myScore = computed(() => calcScore(myHand.value));
+            const myFiveDragon = computed(() => myHand.value.length >= 5 && myScore.value <= 21);
+            const opponentHand = computed(() => isHost.value ? guestHand.value : hostHand.value);
+            const opponentFiveDragon = computed(() => opponentHand.value.length >= 5 && calcScore(opponentHand.value) <= 21);
+
+            const isMyTurn = computed(() => {
+                if (state.value === 'PLAYER_TURN' && !amIBanker.value) return true; // 闲家回合
+                if (state.value === 'BANKER_TURN' && amIBanker.value) return true; // 庄家回合
+                return false;
+            });
+
+            const statusText = computed(() => {
+                if (state.value === 'BET') return '下注阶段';
+                if (state.value === 'PLAYER_TURN') return '闲家行动中...';
+                if (state.value === 'BANKER_TURN') return '庄家行动中...';
+                return '本局结束';
+            });
+
+            const resultMsg = computed(() => {
+                if (state.value !== 'RESULT') return '';
+                const hScore = calcScore(hostHand.value);
+                const gScore = calcScore(guestHand.value);
+                const h5 = hostHand.value.length >= 5 && hScore <= 21;
+                const g5 = guestHand.value.length >= 5 && gScore <= 21;
+
+                // 判断谁赢 (站在 Host 视角计算输赢，然后转换文字)
+                let hostWins = false;
+                let draw = false;
+
+                if (gScore > 21) hostWins = true; // 闲爆，庄赢
+                else if (hScore > 21) hostWins = false; // 庄爆，闲赢
+                else if (g5 && !h5) hostWins = false; // 闲五小龙
+                else if (h5 && !g5) hostWins = true; // 庄五小龙
+                else if (hScore > gScore) hostWins = true;
+                else if (hScore < gScore) hostWins = false;
+                else draw = true;
+
+                if (draw) return "平局 (Push)";
+                
+                // 转换成“我赢了/输了”
+                const iWon = isHost.value ? hostWins : !hostWins;
+                return iWon ? `你赢了! (+$${currentBet.value})` : `你输了! (-$${currentBet.value})`;
+            });
+
+            // --- 游戏逻辑 (仅 Host 运行) ---
+            const createDeck = () => {
+                const s = ['♠','♥','♣','♦'], r = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+                let d = [];
+                s.forEach(ss => r.forEach(rr => {
+                    let v = parseInt(rr);
+                    if(['J','Q','K'].includes(rr)) v = 10;
+                    if(rr === 'A') v = 11;
+                    d.push({suit:ss, rank:rr, val:v});
+                }));
+                return d.sort(() => Math.random() - 0.5);
+            };
+
+            const calcScore = (cards) => {
+                let s = 0, a = 0;
+                cards.forEach(c => { s += c.val; if(c.rank === 'A') a++; });
+                while(s > 21 && a > 0) { s -= 10; a--; }
+                return s;
+            };
+
+            // 房主初始化一局
+            const hostStartGame = () => {
+                deck.value = createDeck();
+                // 发牌：闲-庄-闲-庄
+                // 注意：hostHand 和 guestHand 哪个是庄家取决于 bankerRole
+                // 这里简单处理：每个人都发两张，身份由 amIBanker 决定
+                hostHand.value = [deck.value.pop(), deck.value.pop()];
+                guestHand.value = [deck.value.pop(), deck.value.pop()];
+                
+                state.value = 'BET'; 
+                sync();
+            };
+
+            // 收到下注，进入闲家回合
+            const handleBetConfirm = (amount) => {
+                currentBet.value = amount;
+                
+                // 检查 BlackJack (2张牌21点)
+                const hScore = calcScore(hostHand.value);
+                const gScore = calcScore(guestHand.value);
+                
+                // 如果有人天胡，直接结算
+                if (hScore === 21 || gScore === 21) {
+                    state.value = 'RESULT';
+                    checkChangeBanker(); // 检查是否换庄
+                } else {
+                    state.value = 'PLAYER_TURN';
+                }
+                sync();
+            };
+
+            // 处理操作 (要牌/停牌)
+            const handleAction = (role, action) => {
+                const targetHand = role === 'HOST' ? hostHand : guestHand;
+                
+                if (action === 'HIT') {
+                    targetHand.value.push(deck.value.pop());
+                    const score = calcScore(targetHand.value);
+                    const isFiveDragon = targetHand.value.length === 5 && score <= 21;
+                    
+                    if (score > 21 || isFiveDragon) {
+                        // 爆牌或五小龙，强制结束当前回合
+                        if (state.value === 'PLAYER_TURN') state.value = 'BANKER_TURN';
+                        else state.value = 'RESULT';
+                    }
+                } else {
+                    // STAND
+                    if (state.value === 'PLAYER_TURN') state.value = 'BANKER_TURN';
+                    else state.value = 'RESULT';
+                }
+
+                if (state.value === 'RESULT') checkChangeBanker();
+                sync();
+            };
+
+            // 换庄逻辑：如果闲家拿到 BlackJack (2张牌21点) -> 下局闲家做庄
+            const checkChangeBanker = () => {
+                const hScore = calcScore(hostHand.value);
+                const gScore = calcScore(guestHand.value);
+                
+                // 只有闲家是 Natural 21 才抢庄 (规则可自定义，这里按你要求的来)
+                const hostIsBanker = bankerRole.value === 'HOST';
+                const guestIsBanker = bankerRole.value === 'GUEST';
+
+                // 如果闲家是Guest且拿到21(2张)，下把Guest当庄
+                if (hostIsBanker && gScore === 21 && guestHand.value.length === 2) {
+                    bankerRole.value = 'GUEST';
+                }
+                // 如果闲家是Host且拿到21(2张)，下把Host当庄
+                else if (guestIsBanker && hScore === 21 && hostHand.value.length === 2) {
+                    bankerRole.value = 'HOST';
+                }
+            };
+
+            // --- 联机与同步 ---
+            const sync = () => {
+                if (isHost.value && conn.value) {
+                    conn.value.send({
+                        type: 'SYNC',
+                        data: {
+                            st: state.value,
+                            hh: hostHand.value,
+                            gh: guestHand.value,
+                            br: bankerRole.value, // 同步谁是庄家
+                            cb: currentBet.value
+                        }
+                    });
+                }
+            };
+
+            const createRoom = () => {
+                state.value = 'WAIT';
+                isHost.value = true;
+                bankerRole.value = 'HOST'; // 默认房主先庄
+                
+                peer.value = new Peer();
+                peer.value.on('open', id => {
+                    const url = location.href.split('?')[0] + '?join=' + id;
+                    nextTick(() => {
+                        document.getElementById('qrcode-box').innerHTML = "";
+                        new QRCode(document.getElementById('qrcode-box'), { text: url, width: 150, height: 150 });
+                    });
+                });
+                peer.value.on('connection', c => {
+                    conn.value = c;
+                    setupConn(c);
+                    hostStartGame();
+                });
+            };
+
+            const joinRoom = (id) => {
+                msg.value = "正在连接...";
+                peer.value = new Peer();
+                peer.value.on('open', () => {
+                    conn.value = peer.value.connect(id);
+                    setupConn(conn.value);
+                });
+            };
+
+            const setupConn = (c) => {
+                c.on('open', () => msg.value = "连接成功");
+                c.on('data', d => {
+                    if (d.type === 'SYNC' && !isHost.value) {
+                        state.value = d.data.st;
+                        hostHand.value = d.data.hh;
+                        guestHand.value = d.data.gh;
+                        bankerRole.value = d.data.br;
+                        currentBet.value = d.data.cb;
+                    }
+                    if (d.type === 'ACT' && isHost.value) {
+                        // 房主收到客机指令
+                        if (d.act === 'BET') handleBetConfirm(d.val);
+                        if (d.act === 'PLAY') handleAction('GUEST', d.val);
+                    }
+                });
+            };
+
+            // --- UI 动作 ---
+            const changeBet = (multiplier) => {
+                // 只有在BET阶段且不是庄家才能改注
+                currentBet.value = Math.floor(currentBet.value * multiplier);
+                if(currentBet.value < 10) currentBet.value = 10;
+            };
+
+            const confirmBet = () => {
+                if (isHost.value) handleBetConfirm(currentBet.value); // 房主自己是闲家直接调
+                else conn.value.send({ type: 'ACT', act: 'BET', val: currentBet.value }); // 客机发给房主
+            };
+
+            const doAction = (actionName) => {
+                const myRoleStr = isHost.value ? 'HOST' : 'GUEST';
+                if (isHost.value) handleAction(myRoleStr, actionName);
+                else conn.value.send({ type: 'ACT', act: 'PLAY', val: actionName });
+            };
+
+            const restartGame = () => {
+                if(isHost.value) hostStartGame();
+            };
+
+            // 扫码
+            const startScan = () => {
+                isScanning.value = true;
+                nextTick(() => {
+                    scanner = new Html5Qrcode("reader");
+                    scanner.start({ facingMode: "environment" }, { fps: 10 }, txt => {
+                        if(txt.includes('join=')) joinRoom(txt.split('join=')[1]);
+                        else joinRoom(txt);
+                        stopScan();
+                    });
+                });
+            };
+            const stopScan = () => {
+                if(scanner) scanner.stop().then(() => isScanning.value = false);
+            };
+
+            onMounted(() => {
+                const p = new URLSearchParams(location.search);
+                if(p.get('join')) joinRoom(p.get('join'));
+            });
+
+            return {
+                state, isHost, amIBanker, msg, currentBet,
+                myHand, opponentHandDisplay, myScore, myFiveDragon, opponentFiveDragon,
+                isMyTurn, statusText, resultMsg,
+                createRoom, startScan, stopScan, isScanning,
+                changeBet, confirmBet, doAction, restartGame
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
