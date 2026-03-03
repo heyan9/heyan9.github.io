@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>21点 - 极速版</title>
+    
+    <!-- 样式优先加载，防止白屏 -->
+    <link href="https://cdn.staticfile.org/remixicon/3.5.0/remixicon.css" rel="stylesheet">
+    <style>
+        :root { --primary: #0066FF; --bg-grad: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg-grad); min-height: 100vh; overflow-x: hidden; user-select: none; }
+
+        /* --- 加载进度条动画 --- */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s;
+        }
+        .spinner {
+            width: 50px; height: 50px; border: 5px solid #eee; border-top: 5px solid var(--primary);
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fade-out { opacity: 0; pointer-events: none; }
+
+        /* --- 毛玻璃容器 --- */
+        .glass {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+            padding: 15px; margin: 15px;
+        }
+
+        .container { max-width: 600px; margin: 0 auto; padding-bottom: 90px; }
+        .header { display: flex; justify-content: space-between; align-items: center; color: var(--primary); font-weight: 900; font-size: 1.2rem; }
+        
+        /* 按钮组 */
+        .btn {
+            background: var(--primary); color: white; border: none; padding: 12px; 
+            border-radius: 10px; font-weight: bold; width: 100%; font-size: 15px;
+            margin-bottom: 10px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;
+            transition: 0.1s;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-danger { background: #ff4d4f; }
+        .btn-success { background: #52c41a; }
+        .btn-group { display: flex; gap: 10px; }
+
+        /* 扑克牌 */
+        .cards-row { display: flex; justify-content: center; gap: -20px; min-height: 100px; margin-top: 10px; }
+        .card {
+            width: 60px; height: 88px; background: white; border-radius: 6px;
+            box-shadow: -2px 2px 8px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 4px; font-weight: bold; font-size: 18px; color: #333; position: relative; margin-right: 6px;
+            transition: transform 0.3s;
+        }
+        .card.red { color: #d93025; }
+        .card-back {
+            background: var(--primary);
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 10px, transparent 10px, transparent 20px);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .tag { position: absolute; top: -8px; right: -8px; background: #ffc107; color: black; font-size: 10px; padding: 2px 5px; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pop 0.3s; }
+        
+        /* 角色标签 */
+        .role-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; color: white; vertical-align: middle; margin-left: 5px; }
+        .bg-host { background: #ff4d4f; } /* 庄家红 */
+        .bg-guest { background: #52c41a; } /* 闲家绿 */
+
+        /* 扫码层 */
+        .scan-box { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; }
+        
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body>
+
+<!-- 1. 加载动画 (放在最前面，JS加载完会自动消失) -->
+<div id="loader">
+    <div class="spinner"></div>
+    <p style="margin-top: 15px; color: #666; font-size: 14px;">正在加载游戏资源...</p>
+</div>
+
+<div id="app" v-cloak>
+    <!-- 扫码界面 -->
+    <div v-if="isScanning" class="scan-box">
+        <button @click="stopScan" style="position:absolute; top:20px; right:20px; z-index:2001; background:white; border:none; width:36px; height:36px; border-radius:50%; font-weight:bold;">✕</button>
+        <div id="reader" style="width:100%; margin-top:60px;"></div>
+        <p style="color:white; text-align:center; margin-top:20px;">请对准房主的二维码</p>
+    </div>
+
+    <div class="container">
+        <!-- 头部 -->
+        <div class="glass header">
+            <span>21点 <small style="font-size:12px; font-weight:normal; opacity:0.7;">{{ mode === 'LOCAL' ? '单机模式' : '联机模式' }}</small></span>
+            <div v-if="state !== 'MENU'" style="font-size:12px; font-weight:normal;">
+                我是: <span class="role-tag" :class="amIBanker ? 'bg-host' : 'bg-guest'">{{ amIBanker ? '庄家' : '闲家' }}</span>
+            </div>
+        </div>
+
+        <!-- 菜单 -->
+        <div v-if="state === 'MENU'" class="glass" style="text-align:center; padding: 40px 20px;">
+            <button class="btn" @click="startLocalMode">
+                <i class="ri-user-smile-line"></i> 单机练习 (VS 电脑)
+            </button>
+            <div style="height: 1px; background: #ddd; margin: 15px 0;"></div>
+            <button class="btn btn-outline" @click="createRoom">
+                <i class="ri-signal-tower-line"></i> 创建联机房间 (房主)
+            </button>
+            <button class="btn btn-outline" @click="startScan">
+                <i class="ri-qr-scan-2-line"></i> 扫码加入房间 (闲家)
+            </button>
+            <div style="margin-top:15px; font-size:12px; color:#999;">{{ msg }}</div>
+        </div>
+
+        <!-- 联机等待 -->
+        <div v-if="state === 'WAIT'" class="glass" style="text-align:center;">
+            <div id="qrcode-box" style="background:white; padding:10px; border-radius:8px; display:inline-block;"></div>
+            <p style="font-size:13px; color:#666;">请闲家扫码加入</p>
+            <button class="btn btn-outline" @click="resetToMenu">取消</button>
+        </div>
+
+        <!-- 游戏区域 -->
+        <div v-if="['BET', 'PLAYING', 'RESULT'].includes(state)">
+            
+            <!-- 上方区域 (对手/电脑) -->
+            <div class="glass">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:#666; margin-bottom:5px;">
+                    <span>{{ amIBanker ? '闲家 (对手)' : (mode==='LOCAL'?'电脑':'庄家') }}</span>
+                    <span>{{ amIBanker ? '下注: $'+bet : '' }}</span>
+                </div>
+                <!-- 牌区 -->
+                <div class="cards-row">
+                    <div v-for="(c, i) in topHandDisplay" :key="i" class="card" :class="{red: ['♥','♦'].includes(c.suit), 'card-back': c.hidden}">
+                        <template v-if="!c.hidden">
+                            <div style="text-align:left">{{ c.rank }}</div>
+                            <div style="font-size:24px; align-self:center">{{ c.suit }}</div>
+                        </template>
+                        <div v-if="topIsFiveDragon && !c.hidden" class="tag">五小龙</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 提示条 -->
+            <div style="text-align:center; font-size:13px; font-weight:bold; color:var(--primary); margin:10px 0;">
+                {{ statusTip }}
+            </div>
+
+            <!-- 下方区域 (我) -->
+            <div class="glass" style="border:2px solid var(--primary);">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:#666; margin-bottom:5px;">
+                    <span>{{ amIBanker ? '庄家 (我)' : '闲家 (我)' }}</span>
+                    <span>{{ amIBanker ? '' : '下注: $'+bet }}</span>
+                </div>
+                <div class="cards-row">
+                    <div v-for="(c, i) in bottomHand" :key="i" class="card" :class="{red: ['♥','♦'].includes(c.suit)}">
+                        <div style="text-align:left">{{ c.rank }}</div>
+                        <div style="font-size:24px; align-self:center">{{ c.suit }}</div>
+                        <div v-if="bottomIsFiveDragon" class="tag">五小龙</div>
+                    </div>
+                </div>
+                <div style="text-align:center; font-weight:bold; margin-top:5px;">
+                    {{ bottomScore }} 点 <span v-if="bottomScore>21" style="color:#ff4d4f">(爆牌)</span>
+                </div>
+            </div>
+
+            <!-- 底部操作栏 -->
+            <div class="glass" style="position:fixed; bottom:0; left:0; width:100%; border-radius:20px 20px 0 0; margin:0; box-sizing:border-box; z-index:100; box-shadow: 0 -5px 20px rgba(0,0,0,0.1);">
+                
+                <!-- 1. 下注阶段 -->
+                <div v-if="state === 'BET'">
+                    <div v-if="!amIBanker"> <!-- 闲家操作 -->
+                        <div class="btn-group">
+                            <button class="btn btn-outline" @click="changeBet(0.5)">减倍 /2</button>
+                            <button class="btn btn-outline" @click="changeBet(2)">加倍 x2</button>
+                        </div>
+                        <button class="btn btn-success" @click="confirmBet">下注 ${{ bet }} 并发牌</button>
+                    </div>
+                    <div v-else style="text-align:center; color:#999; padding:10px;">等待闲家下注...</div>
+                </div>
+
+                <!-- 2. 打牌阶段 -->
+                <div v-if="state === 'PLAYING'">
+                    <div v-if="isMyTurn">
+                        <div class="btn-group">
+                            <button class="btn" @click="doAction('HIT')">要牌</button>
+                            <button class="btn btn-danger" @click="doAction('STAND')">停牌</button>
+                        </div>
+                    </div>
+                    <div v-else style="text-align:center; color:#999; padding:10px;">
+                        对方正在思考...
+                    </div>
+                </div>
+
+                <!-- 3. 结算阶段 -->
+                <div v-if="state === 'RESULT'">
+                    <div style="text-align:center; font-size:18px; font-weight:900; color:var(--primary); margin-bottom:10px;">
+                        {{ resultText }}
+                    </div>
+                    <button v-if="canRestart" class="btn" @click="nextRound">下一局</button>
+                    <div v-else style="text-align:center; color:#999;">等待房主开始...</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 脚本放在最后，并使用 defer 提高加载速度 -->
+<script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.min.js"></script>
+<script src="https://cdn.staticfile.org/peerjs/1.4.7/peerjs.min.js"></script>
+<script src="https://cdn.staticfile.org/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.staticfile.org/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+    // 等待库加载完成
+    window.onload = function() {
+        // 隐藏加载条
+        document.getElementById('loader').classList.add('fade-out');
+        
+        const { createApp, ref, computed, nextTick, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                // --- 系统状态 ---
+                const mode = ref('LOCAL'); // LOCAL, ONLINE
+                const state = ref('MENU'); // MENU, WAIT, BET, PLAYING, RESULT
+                const msg = ref('');
+                
+                // --- 游戏数据 ---
+                // 约定：hand1 永远是房主/AI(默认庄)，hand2 永远是闲家/玩家
+                // 谁是庄家由 bankerIndex 决定 (1=hand1, 2=hand2)
+                const hand1 = ref([]); 
+                const hand2 = ref([]);
+                const bankerIndex = ref(1); // 1 or 2
+                const bet = ref(100);
+
+                // --- 联机对象 ---
+                const isHost = ref(false); // 我是否是房主/AI端
+                const peer = ref(null);
+                const conn = ref(null);
+                const isScanning = ref(false);
+                let scanner = null;
+
+                // --- 计算属性 ---
+                // "我" 是哪一手牌？
+                // 单机：玩家永远是 hand2 (hand1是AI)
+                // 联机：房主是 hand1, 客机是 hand2
+                const myHandIndex = computed(() => {
+                    if (mode.value === 'LOCAL') return 2; 
+                    return isHost.value ? 1 : 2;
+                });
+
+                const amIBanker = computed(() => myHandIndex.value === bankerIndex.value);
+
+                const bottomHand = computed(() => myHandIndex.value === 1 ? hand1.value : hand2.value);
+                const topHand = computed(() => myHandIndex.value === 1 ? hand2.value : hand1.value);
+                
+                // 顶部手牌显示逻辑（隐藏暗牌）
+                const topHandDisplay = computed(() => {
+                    const raw = topHand.value;
+                    const opponentIsBanker = !amIBanker.value;
+                    // 如果对手是庄家，且还没结束，第一张是暗牌
+                    if (opponentIsBanker && (state.value === 'BET' || state.value === 'PLAYING')) {
+                        return raw.map((c, i) => i === 0 ? c : { ...c, hidden: true });
+                    }
+                    return raw.map(c => ({ ...c, hidden: false }));
+                });
+
+                const getScore = (cards) => {
+                    let s = 0, a = 0;
+                    cards.forEach(c => { s += c.val; if(c.rank === 'A') a++; });
+                    while(s > 21 && a > 0) { s -= 10; a--; }
+                    return s;
+                };
+
+                const bottomScore = computed(() => getScore(bottomHand.value));
+                const topScore = computed(() => getScore(topHand.value));
+                
+                const bottomIsFiveDragon = computed(() => bottomHand.value.length >= 5 && bottomScore.value <= 21);
+                const topIsFiveDragon = computed(() => topHand.value.length >= 5 && topScore.value <= 21);
+
+                // 判断是否轮到我操作
+                const isMyTurn = computed(() => {
+                    // 逻辑：BET -> 闲家操作 -> 庄家操作 -> RESULT
+                    // 这里简化：谁不是庄家谁先动。状态机由 Host/AI 控制。
+                    // 状态约定：PLAYING 阶段，通过一个变量 turnIndex 控制谁动？
+                    // 简化版：BET完 -> 闲家动 -> 庄家动。我们用 currentActor 变量
+                    return currentActor.value === myHandIndex.value;
+                });
+
+                const currentActor = ref(2); // 谁正在行动？(默认闲家先)
+
+                const statusTip = computed(() => {
+                    if (state.value === 'BET') return '请下注';
+                    if (state.value === 'PLAYING') {
+                        if (currentActor.value === myHandIndex.value) return '轮到你行动';
+                        return '对方行动中...';
+                    }
+                    return '本局结束';
+                });
+
+                const resultText = computed(() => {
+                    if (state.value !== 'RESULT') return '';
+                    const s1 = getScore(hand1.value);
+                    const s2 = getScore(hand2.value);
+                    const h1_5 = hand1.value.length >= 5 && s1 <= 21;
+                    const h2_5 = hand2.value.length >= 5 && s2 <= 21;
+
+                    // 1 = 庄家(默认), 2 = 闲家(默认)
+                    // 我们需要算出胜负，然后根据"我是谁"来显示文案
+                    
+                    let winner = 0; // 0=平, 1=hand1赢, 2=hand2赢
+                    
+                    // 规则判定
+                    if (s2 > 21) winner = 1; // 闲爆，庄赢
+                    else if (s1 > 21) winner = 2; // 庄爆，闲赢
+                    else if (h2_5 && !h1_5) winner = 2; // 闲五小龙
+                    else if (h1_5 && !h2_5) winner = 1; // 庄五小龙
+                    else if (s1 > s2) winner = 1;
+                    else if (s1 < s2) winner = 2;
+                    else winner = 0;
+
+                    if (winner === 0) return "平局 (Push)";
+                    
+                    const iWon = (winner === myHandIndex.value);
+                    const moneyTxt = amIBanker.value ? '' : (iWon ? `(+${bet.value})` : `(-${bet.value})`);
+                    return iWon ? `你赢了! ${moneyTxt}` : `你输了! ${moneyTxt}`;
+                });
+                
+                const canRestart = computed(() => {
+                    if (mode.value === 'LOCAL') return true;
+                    return isHost.value; // 只有房主能点下一局
+                });
+
+                // --- 核心逻辑 ---
+                const deck = ref([]);
+                const createDeck = () => {
+                    const s = ['♠','♥','♣','♦'], r = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+                    let d = [];
+                    s.forEach(ss => r.forEach(rr => {
+                        let v = parseInt(rr);
+                        if(['J','Q','K'].includes(rr)) v = 10;
+                        if(rr === 'A') v = 11;
+                        d.push({suit:ss, rank:rr, val:v});
+                    }));
+                    return d.sort(()=>Math.random()-0.5);
+                };
+
+                // --- 单机模式 ---
+                const startLocalMode = () => {
+                    mode.value = 'LOCAL';
+                    isHost.value = true; // 本地逻辑由本机控制
+                    bankerIndex.value = 1; // 默认电脑(hand1)是庄
+                    startNewRound();
+                };
+
+                const startNewRound = () => {
+                    deck.value = createDeck();
+                    hand1.value = [deck.value.pop(), deck.value.pop()]; // 电脑/房主
+                    hand2.value = [deck.value.pop(), deck.value.pop()]; // 玩家/客机
+                    state.value = 'BET';
+                    
+                    // 确定先手：永远是闲家先手。
+                    // 如果 bankerIndex=1, 闲家是2。如果 bankerIndex=2, 闲家是1。
+                    currentActor.value = (bankerIndex.value === 1) ? 2 : 1;
+                    
+                    sync();
+                };
+
+                // AI 逻辑
+                const runAI = async () => {
+                    // 简单的延迟模拟思考
+                    if (mode.value === 'LOCAL' && currentActor.value === 1) {
+                        // 电脑行动 (hand1)
+                        setTimeout(() => {
+                            const s = getScore(hand1.value);
+                            // 庄家法则：小于17必须要在，大于等于17停
+                            // 稍微智能一点：如果是五小龙前夕(4张牌且分低)，倾向于要牌
+                            if (s < 17 || (hand1.value.length === 4 && s < 18)) {
+                                hand1.value.push(deck.value.pop());
+                                checkBustOr5('AI_HIT');
+                            } else {
+                                handleStand();
+                            }
+                        }, 800);
+                    }
+                };
+
+                // --- 交互动作 ---
+                const changeBet = (mul) => {
+                    bet.value = Math.floor(bet.value * mul);
+                    if(bet.value<10) bet.value=10;
+                    if(mode.value === 'ONLINE' && !isHost.value) {
+                         // 客机不需要发包，因为这只是本地改显示，确认下注才发包
+                    }
+                };
+
+                const confirmBet = () => {
+                    // 检查天胡 (2张牌21点)
+                    const s1 = getScore(hand1.value);
+                    const s2 = getScore(hand2.value);
+                    if (s1 === 21 || s2 === 21) {
+                        finishRound();
+                    } else {
+                        state.value = 'PLAYING';
+                        // 如果单机且我是庄，那就是电脑先动(极少情况)，一般单机我是闲
+                        if (mode.value === 'LOCAL' && currentActor.value === 1) runAI();
+                    }
+                    if (mode.value === 'ONLINE' && !isHost.value) {
+                        conn.value.send({ type: 'ACT', act: 'BET', val: bet.value });
+                    }
+                    sync();
+                };
+
+                const doAction = (act) => {
+                    // 如果是客机，发送指令
+                    if (mode.value === 'ONLINE' && !isHost.value) {
+                        conn.value.send({ type: 'ACT', act: 'PLAY', val: act });
+                        return;
+                    }
+                    // 本地处理
+                    localPlay(act);
+                };
+
+                const localPlay = (act) => {
+                    const targetHand = (currentActor.value === 1) ? hand1 : hand2;
+                    
+                    if (act === 'HIT') {
+                        targetHand.value.push(deck.value.pop());
+                        checkBustOr5('HIT');
+                    } else {
+                        handleStand();
+                    }
+                    sync();
+                };
+
+                const checkBustOr5 = (trigger) => {
+                    const targetHand = (currentActor.value === 1) ? hand1 : hand2;
+                    const s = getScore(targetHand.value);
+                    const is5 = targetHand.value.length === 5 && s <= 21;
+                    
+                    if (s > 21 || is5) {
+                        // 爆牌或五小龙，强制换人或结束
+                        handleStand();
+                    } else {
+                        // 继续行动
+                        if (trigger === 'AI_HIT') runAI(); // AI 继续
+                        sync();
+                    }
+                };
+
+                const handleStand = () => {
+                    const bankerIdx = bankerIndex.value;
+                    const playerIdx = (bankerIdx === 1) ? 2 : 1;
+                    
+                    if (currentActor.value === playerIdx) {
+                        // 闲家停牌 -> 换庄家行动
+                        currentActor.value = bankerIdx;
+                        state.value = 'PLAYING'; // 确保UI更新
+                        // 如果是单机模式，庄家是 AI，触发 AI
+                        if (mode.value === 'LOCAL') runAI();
+                    } else {
+                        // 庄家停牌 -> 结算
+                        finishRound();
+                    }
+                    sync();
+                };
+
+                const finishRound = () => {
+                    state.value = 'RESULT';
+                    // 换庄检查 (你要求的规则：闲家2张牌21点则换庄)
+                    checkSwapBanker();
+                    sync();
+                };
+
+                const checkSwapBanker = () => {
+                    const s1 = getScore(hand1.value); // 房主/电脑
+                    const s2 = getScore(hand2.value); // 客机/玩家
+                    
+                    const bankerIdx = bankerIndex.value;
+                    // 如果闲家是 hand2 且 21点(2张) -> hand2 变庄
+                    if (bankerIdx === 1 && s2 === 21 && hand2.value.length === 2) {
+                        bankerIndex.value = 2;
+                    }
+                    // 如果闲家是 hand1 且 21点(2张) -> hand1 变庄
+                    else if (bankerIdx === 2 && s1 === 21 && hand1.value.length === 2) {
+                        bankerIndex.value = 1;
+                    }
+                };
+                
+                const nextRound = () => {
+                    if (isHost.value) {
+                        startNewRound();
+                    } else {
+                        conn.value.send({ type: 'ACT', act: 'NEXT' });
+                    }
+                };
+
+                // --- 联机模块 ---
+                const sync = () => {
+                    if (mode.value === 'ONLINE' && isHost.value && conn.value) {
+                        conn.value.send({
+                            type: 'SYNC',
+                            data: {
+                                st: state.value,
+                                h1: hand1.value,
+                                h2: hand2.value,
+                                bi: bankerIndex.value,
+                                ca: currentActor.value,
+                                bt: bet.value
+                            }
+                        });
+                    }
+                };
+
+                const createRoom = () => {
+                    mode.value = 'ONLINE';
+                    isHost.value = true;
+                    state.value = 'WAIT';
+                    bankerIndex.value = 1; // 房主默认先庄
+                    
+                    peer.value = new Peer();
+                    peer.value.on('open', id => {
+                        const url = location.href.split('?')[0] + '?join=' + id;
+                        nextTick(() => {
+                            document.getElementById('qrcode-box').innerHTML = "";
+                            new QRCode(document.getElementById('qrcode-box'), { text: url, width: 150, height: 150 });
+                        });
+                    });
+                    peer.value.on('connection', c => {
+                        conn.value = c;
+                        setupConn(c);
+                        startNewRound();
+                    });
+                };
+
+                const joinRoom = (id) => {
+                    mode.value = 'ONLINE';
+                    isHost.value = false;
+                    msg.value = "正在连接...";
+                    peer.value = new Peer();
+                    peer.value.on('open', () => {
+                        conn.value = peer.value.connect(id);
+                        setupConn(conn.value);
+                    });
+                };
+
+                const setupConn = (c) => {
+                    c.on('open', () => msg.value = "连接成功");
+                    c.on('data', d => {
+                        if (d.type === 'SYNC' && !isHost.value) {
+                            state.value = d.data.st;
+                            hand1.value = d.data.h1;
+                            hand2.value = d.data.h2;
+                            bankerIndex.value = d.data.bi;
+                            currentActor.value = d.data.ca;
+                            bet.value = d.data.bt;
+                        }
+                        if (d.type === 'ACT' && isHost.value) {
+                            if (d.act === 'BET') { bet.value = d.val; confirmBet(); }
+                            if (d.act === 'PLAY') localPlay(d.val);
+                            if (d.act === 'NEXT') startNewRound();
+                        }
+                    });
+                };
+                
+                const resetToMenu = () => {
+                    state.value = 'MENU';
+                    if(peer.value) peer.value.destroy();
+                };
+
+                // 扫码
+                const startScan = () => {
+                    isScanning.value = true;
+                    nextTick(() => {
+                        scanner = new Html5Qrcode("reader");
+                        scanner.start({ facingMode: "environment" }, { fps: 10 }, txt => {
+                            let id = txt;
+                            if(txt.includes('join=')) id = txt.split('join=')[1];
+                            joinRoom(id);
+                            stopScan();
+                        });
+                    });
+                };
+                const stopScan = () => {
+                    if(scanner) scanner.stop().then(()=>isScanning.value=false);
+                };
+
+                onMounted(() => {
+                    const p = new URLSearchParams(location.search);
+                    if(p.get('join')) joinRoom(p.get('join'));
+                });
+
+                return {
+                    mode, state, msg, isScanning, startScan, stopScan, resetToMenu,
+                    createRoom, startLocalMode,
+                    hand1, hand2, bet, 
+                    amIBanker, topHandDisplay, bottomHand, topHand, bottomScore, bottomIsFiveDragon, topIsFiveDragon,
+                    statusTip, resultText, canRestart, isMyTurn,
+                    changeBet, confirmBet, doAction, nextRound
+                };
+            }
+        }).mount('#app');
+    };
+</script>
+</body>
+</html>
