@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>数码评测排行榜 - 预设版</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --mi-orange: #ff6700; }
+        body { background: #ffffff; color: #333; font-family: -apple-system, "PingFang SC", sans-serif; }
+        
+        .sidebar-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        @media (max-width: 768px) {
+            .sidebar-fixed { position: fixed; top: 0; left: 0; z-index: 50; width: 85% !important; height: 100vh; box-shadow: 20px 0 50px rgba(0,0,0,0.1); }
+            .collapsed { transform: translateX(-100%); }
+            .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 40; }
+        }
+        @media (min-width: 769px) {
+            .collapsed { width: 0 !important; padding: 0 !important; overflow: hidden; opacity: 0; }
+        }
+
+        .rank-row { height: 62px; border-bottom: 1px solid #f8f8f8; }
+        @media (max-width: 640px) { .rank-row { height: 60px; padding: 0 8px; } }
+
+        .star-active { color: #ffb400; fill: #ffb400; }
+        .star-inactive { color: #f2f2f2; fill: #f2f2f2; }
+        
+        .tag-pill { font-size: 9px; padding: 1px 6px; border-radius: 4px; background: #f9f9f9; color: #999; border: 1px solid #eee; }
+        .price-label { color: var(--mi-orange); font-weight: 800; font-size: 11px; }
+
+        input { border: 1px solid #e5e7eb; border-radius: 10px; outline: none; }
+        input:focus { border-color: var(--mi-orange); }
+
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="bg-white">
+    <div id="app" v-cloak class="flex h-screen overflow-hidden">
+        
+        <!-- 遮罩层 -->
+        <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="overlay md:hidden"></div>
+
+        <!-- 左侧录入控制台 -->
+        <aside :class="['sidebar-transition sidebar-fixed w-72 h-full border-r border-gray-100 p-6 flex-shrink-0 bg-white flex flex-col', { 'collapsed': !isSidebarOpen }]">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-lg font-bold flex items-center">
+                    <span class="w-1.5 h-5 bg-[#ff6700] rounded-full mr-2"></span>
+                    管理评测
+                </h2>
+                <button @click="isSidebarOpen = false" class="text-gray-400 hover:text-orange-500 text-xs font-bold border px-2 py-1 rounded-lg">收起</button>
+            </div>
+            
+            <div class="space-y-6 overflow-y-auto flex-grow pr-1">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 block mb-2 uppercase">数码型号</label>
+                    <input v-model="newItem.name" placeholder="手动输入型号..." class="w-full text-sm p-3 bg-gray-50 border-none rounded-xl">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 block mb-2 uppercase">价格文字 (如 5999)</label>
+                    <input v-model="newItem.realPrice" placeholder="显示在型号后的价格" class="w-full text-sm p-3 bg-gray-50 border-none rounded-xl">
+                </div>
+
+                <div class="space-y-4">
+                    <div v-for="(label, key) in dimensions" :key="key">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-xs font-bold text-gray-500">{{label}}评分</span>
+                            <span class="text-xs font-black text-[#ff6700]">{{newItem[key]}}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <svg v-for="i in 10" :key="i" @click="newItem[key] = i"
+                                 :class="i <= newItem[key] ? 'star-active' : 'star-inactive'"
+                                 class="w-4 h-4 cursor-pointer transition-transform hover:scale-125" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <button @click="addItem" class="w-full bg-[#ff6700] text-white py-4 rounded-2xl font-bold shadow-lg shadow-orange-50 active:scale-95 transition-all">
+                    确定加入排名
+                </button>
+            </div>
+
+            <div class="pt-4 border-t flex gap-2">
+                <button @click="exportData" class="text-[9px] text-gray-400 py-1.5 flex-1 border rounded hover:bg-gray-50 transition-all">备份数据</button>
+                <button @click="importData" class="text-[9px] text-gray-400 py-1.5 flex-1 border rounded hover:bg-gray-50 transition-all">还原</button>
+            </div>
+        </aside>
+
+        <!-- 右侧主展示区 -->
+        <main class="flex-grow flex flex-col h-full bg-white relative">
+            <nav class="h-14 md:h-16 flex items-center justify-between px-4 border-b border-gray-50 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <button @click="isSidebarOpen = !isSidebarOpen" class="p-2 hover:bg-gray-50 rounded-lg">
+                        <svg v-if="!isSidebarOpen" class="w-6 h-6 text-[#ff6700]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                        <svg v-else class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <input v-model="rankingTitle" class="text-sm md:text-lg font-black border-none focus:ring-0 p-0 bg-transparent w-40 md:w-auto" placeholder="点击修改标题...">
+                </div>
+
+                <div class="flex bg-gray-100 p-1 rounded-xl gap-0.5 scale-90 md:scale-100">
+                    <button v-for="(label, key) in sortOptions" :key="key" @click="sortBy = key"
+                            :class="['px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all', sortBy === key ? 'bg-white text-[#ff6700] shadow-sm' : 'text-gray-400']">
+                        {{label}}
+                    </button>
+                </div>
+            </nav>
+
+            <div class="flex-grow overflow-y-auto">
+                <div class="min-w-[500px]">
+                    <div class="flex items-center px-4 py-2 text-[9px] font-bold text-gray-300 border-b border-gray-50 sticky top-0 bg-white z-10 uppercase tracking-widest">
+                        <div class="w-8 text-center">排名</div>
+                        <div class="w-10 ml-2">图片</div>
+                        <div class="flex-grow ml-3">型号/价格/标签</div>
+                        <div class="w-16 text-right">分值</div>
+                        <div class="w-10"></div>
+                    </div>
+
+                    <transition-group name="list">
+                        <div v-for="(item, index) in sortedItems" :key="item.id" class="rank-row flex items-center px-4 group">
+                            <div class="w-8 text-center font-black italic text-gray-200 text-xl">{{ index + 1 }}</div>
+                            <div class="w-10 h-10 rounded-xl bg-gray-50 flex-shrink-0 border border-gray-50 overflow-hidden ml-2 shadow-sm">
+                                <img :src="`https://tse1-mm.cn.bing.net/th?q=${encodeURIComponent(item.name + ' 产品图')}&w=120&h=120&c=7`" 
+                                     referrerpolicy="no-referrer"
+                                     class="w-full h-full object-cover">
+                            </div>
+
+                            <div class="flex-grow ml-3 overflow-hidden">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-xs md:text-sm text-gray-800 leading-none">{{ item.name }}</span>
+                                    <span v-if="item.realPrice" class="price-label">¥{{ item.realPrice }}</span>
+                                    <button @click="addTag(item)" class="text-[10px] text-gray-300 hover:text-[#ff6700] transition-colors">+标签</button>
+                                </div>
+                                <div class="flex flex-wrap gap-1 mt-1.5">
+                                    <span v-for="(tag, tIdx) in item.tags" :key="tIdx" @dblclick="removeTag(item, tIdx)" class="tag-pill">
+                                        {{ tag }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="w-16 text-right">
+                                <span class="text-2xl font-black text-[#ff6700] italic leading-none">
+                                    {{ sortBy === 'average' ? item.average : item[sortBy] }}
+                                </span>
+                            </div>
+
+                            <div class="w-10 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button @click="removeItem(item.id)" class="text-gray-300 hover:text-red-400 text-xl font-light">×</button>
+                            </div>
+                        </div>
+                    </transition-group>
+                    
+                    <div v-if="items.length === 0" class="py-24 text-center text-gray-200 italic text-sm">
+                        点击左侧面板录入你的首个产品
+                    </div>
+                </div>
+            </div>
+
+            <footer class="h-10 flex items-center justify-center border-t border-gray-50 text-[9px] text-gray-200 font-bold tracking-[0.4em] uppercase">
+                何岩制作 HEYAN PRODUCE
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // ==========================================
+        // 【在此修改默认备份码】
+        // 1. 在网页上编辑好后点击“备份数据”
+        // 2. 将得到的代码粘贴到下面引号中
+        // ==========================================
+        const DEFAULT_DATA_CODE = ""; 
+
+        const { createApp, ref, computed, reactive, watch } = Vue;
+
+        createApp({
+            setup() {
+                const isSidebarOpen = ref(window.innerWidth > 768);
+                const rankingTitle = ref(localStorage.getItem('digit_title_v9') || '数码产品综合评价榜');
+                const sortBy = ref('average');
+                
+                const dimensions = { camera: '影像', performance: '性能', value: '价格' };
+                const sortOptions = { average: '综合', camera: '影像', performance: '性能', value: '价格' };
+
+                // 优先从 LocalStorage 加载，如果没有则尝试从 DEFAULT_DATA_CODE 加载
+                const getInitialItems = () => {
+                    const localData = localStorage.getItem('digit_items_v9');
+                    if (localData) return JSON.parse(localData);
+                    
+                    if (DEFAULT_DATA_CODE) {
+                        try {
+                            return JSON.parse(decodeURIComponent(atob(DEFAULT_DATA_CODE)));
+                        } catch(e) {
+                            console.error("默认备份码无效");
+                            return [];
+                        }
+                    }
+                    return [];
+                };
+
+                const items = ref(getInitialItems());
+                const newItem = reactive({ name: '', realPrice: '', camera: 5, performance: 5, value: 5 });
+
+                const sortedItems = computed(() => {
+                    const list = items.value.map(p => ({
+                        ...p,
+                        average: ((p.camera + p.performance + p.value) / 3).toFixed(1)
+                    }));
+                    return list.sort((a, b) => {
+                        const valA = sortBy.value === 'average' ? parseFloat(a.average) : a[sortBy.value];
+                        const valB = sortBy.value === 'average' ? parseFloat(b.average) : b[sortBy.value];
+                        return valB - valA;
+                    });
+                });
+
+                const addItem = () => {
+                    if (!newItem.name) return alert('请输入型号名称');
+                    items.value.push({
+                        id: Date.now(),
+                        name: newItem.name,
+                        realPrice: newItem.realPrice,
+                        camera: newItem.camera,
+                        performance: newItem.performance,
+                        value: newItem.value,
+                        tags: []
+                    });
+                    newItem.name = ''; newItem.realPrice = '';
+                    if(window.innerWidth < 768) isSidebarOpen.value = false;
+                };
+
+                const addTag = (item) => {
+                    const tag = prompt('输入标签 (双击已生成的标签可删除):');
+                    if(tag && tag.trim()) {
+                        if(!item.tags) item.tags = [];
+                        item.tags.push(tag.trim());
+                    }
+                };
+
+                const removeTag = (item, idx) => item.tags.splice(idx, 1);
+
+                const removeItem = (id) => {
+                    if(confirm('确定删除此项吗？')) items.value = items.value.filter(p => p.id !== id);
+                };
+
+                const exportData = () => {
+                    const code = btoa(encodeURIComponent(JSON.stringify(items.value)));
+                    navigator.clipboard.writeText(code).then(() => {
+                        alert('备份码已复制到剪贴板：\n\n' + code);
+                    });
+                };
+
+                const importData = () => {
+                    const code = prompt('粘贴备份码还原:');
+                    if(code) {
+                        try {
+                            items.value = JSON.parse(decodeURIComponent(atob(code)));
+                            alert('还原成功');
+                        } catch(e) { alert('数据无效'); }
+                    }
+                };
+
+                watch(items, (val) => localStorage.setItem('digit_items_v9', JSON.stringify(val)), { deep: true });
+                watch(rankingTitle, (val) => localStorage.setItem('digit_title_v9', val));
+
+                return {
+                    items, newItem, dimensions, sortedItems, addItem, removeItem, 
+                    exportData, importData, isSidebarOpen, rankingTitle, sortBy, 
+                    sortOptions, addTag, removeTag
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
