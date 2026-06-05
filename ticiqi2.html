@@ -3,395 +3,574 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PROMPTER ARCH | 极简提词器</title>
+    <title>ARCH_PROMPTER v3</title>
     <style>
         :root {
             --bg: #000000;
-            --surface: #111111;
             --text: #ffffff;
-            --accent: #ffffff;
-            --border: #333333;
-            --font-main: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --ui-border: rgba(255,255,255,0.15);
+            --panel-bg: rgba(18,18,18,0.98);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body, html { 
+            width: 100%; height: 100%; 
+            background: var(--bg); color: var(--text);
+            font-family: -apple-system, "Inter", "SF Pro Display", sans-serif;
+            overflow: hidden; transition: background 0.3s, color 0.3s;
         }
 
-        body, html {
-            width: 100%;
-            height: 100%;
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: var(--font-main);
-            overflow: hidden; /* 防止body滚动，由内部容器滚动 */
-        }
-
-        /* --- 输入界面 --- */
+        /* --- 初始输入 --- */
         #setup-screen {
-            display: flex;
-            flex-direction: column;
-            padding: 40px 20px;
-            height: 100%;
-            max-width: 900px;
-            margin: 0 auto;
+            display: flex; flex-direction: column;
+            padding: 40px 24px; height: 100%; max-width: 800px; margin: 0 auto;
         }
-
-        h1 {
-            font-size: 12px;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            color: #555;
-            margin-bottom: 20px;
-            font-weight: 400;
+        h1 { font-size: 10px; letter-spacing: 5px; color: #666; margin-bottom: 20px; text-transform: uppercase; }
+        textarea { 
+            flex: 1; background: transparent; border: 1px solid var(--ui-border);
+            color: var(--text); padding: 20px; font-size: 18px; line-height: 1.6; outline: none; border-radius: 4px;
         }
-
-        textarea {
-            flex: 1;
-            background: #050505;
-            border: 1px solid var(--border);
-            color: #fff;
-            padding: 24px;
-            font-size: 18px;
-            line-height: 1.6;
-            border-radius: 2px;
-            outline: none;
-            resize: none;
-        }
-
         .start-btn {
-            background: #fff;
-            color: #000;
-            border: none;
-            padding: 20px;
-            font-weight: 900;
-            font-size: 16px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            cursor: pointer;
-            margin-top: 20px;
+            background: var(--text); color: var(--bg); border: none;
+            padding: 24px; margin-top: 24px; font-weight: 900; letter-spacing: 2px; cursor: pointer;
         }
 
-        /* --- 提词器界面 --- */
-        #prompter-screen {
-            display: none;
-            width: 100%;
-            height: 100%;
-            background: var(--bg);
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1000;
-            touch-action: pan-y; /* 允许在暂停时手势滚动 */
+        /* --- 提词器舞台 --- */
+        #prompter-screen { display: none; width: 100%; height: 100%; position: fixed; top: 0; left: 0; }
+        #prompter-screen.landscape { width: 100vh; height: 100vw; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(90deg); }
+
+        #scroll-view {
+            width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden;
+            padding-top: 45vh; /* 文字起始位置 */
+            scroll-behavior: auto; -webkit-overflow-scrolling: touch;
+        }
+        #scroll-view::-webkit-scrollbar { display: none; }
+
+        #text-content {
+            font-weight: 800; line-height: 1.5; text-align: left; /* 左对齐 */
+            white-space: pre-wrap; word-wrap: break-word; width: 100%;
+            padding: 0 40px 100vh 40px; /* 底部增加100vh空白，确保能滚完 */
         }
 
-        /* 横屏旋转 */
-        #prompter-screen.landscape-mode {
-            width: 100vh;
-            height: 100vw;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(90deg);
-        }
-
-        #scroll-container {
-            width: 100%;
-            height: 100%;
-            overflow-y: auto; /* 允许手动滚动 */
-            padding: 45vh 30px; /* 顶部留白，让起始文字位于中间 */
-            scroll-behavior: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        #scroll-container::-webkit-scrollbar { display: none; }
-
-        #prompter-text {
-            font-weight: 800;
-            line-height: 1.4;
-            text-align: left; /* 文字左对齐 */
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* 控制面板 */
+        /* --- 抽屉面板 --- */
         #control-panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(10, 10, 10, 0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid var(--border);
-            padding: 20px 24px 40px 24px;
-            display: none;
-            flex-direction: column;
-            gap: 25px;
-            z-index: 2000;
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: var(--panel-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border-top: 1px solid var(--ui-border);
+            transform: translateY(calc(100% - 40px));
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 2000; padding: 0 24px 40px;
         }
+        #control-panel.expanded { transform: translateY(0); }
 
-        .control-row {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        .drawer-handle { height: 40px; width: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .drawer-handle::after { content: ''; width: 40px; height: 4px; background: var(--ui-border); border-radius: 2px; }
+
+        .panel-content { display: flex; flex-direction: column; gap: 24px; }
+        .row { display: flex; flex-direction: column; gap: 8px; }
+        .label-group { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 1px; opacity: 0.5; text-transform: uppercase; }
+        .val-num { font-family: monospace; font-size: 14px; opacity: 1; color: var(--text); }
+        
+        input[type=range] { -webkit-appearance: none; height: 2px; background: var(--ui-border); outline: none; margin: 15px 0; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: var(--text); border-radius: 50%; border: 2px solid var(--bg); }
+
+        /* 配色/方向选择 */
+        .chip-group { display: flex; gap: 10px; }
+        .chip { 
+            flex: 1; padding: 12px; border: 1px solid var(--ui-border); font-size: 10px; 
+            text-align: center; cursor: pointer; font-weight: bold; text-transform: uppercase;
         }
+        .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
 
-        .label-wrap {
-            display: flex;
-            justify-content: space-between;
-            color: #666;
-            font-size: 11px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
+        /* 按钮 */
+        .btn-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+        .p-btn { 
+            border: 1px solid var(--ui-border); background: transparent; color: var(--text); 
+            padding: 18px; font-size: 12px; font-weight: 800; text-transform: uppercase; 
         }
+        .p-btn.primary { background: var(--text); color: var(--bg); border: none; font-size: 15px; }
 
-        .val-num { color: #fff; font-family: monospace; font-size: 14px; }
-
-        input[type=range] {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 2px;
-            background: #333;
-        }
-
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            background: #fff;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        /* 按钮组 */
-        .btn-group {
-            display: grid;
-            grid-template-columns: 2fr 1fr; /* 横屏按钮更大 */
-            gap: 12px;
-        }
-
-        .main-action-btn {
-            background: #fff;
-            color: #000;
-            border: none;
-            padding: 18px;
-            font-weight: 800;
-            text-transform: uppercase;
-            font-size: 14px;
-            letter-spacing: 1px;
-        }
-
-        .secondary-btn {
-            background: transparent;
-            color: #fff;
-            border: 1px solid #444;
-            padding: 18px;
-            font-size: 12px;
-            text-transform: uppercase;
-        }
-
-        /* 状态灯 */
-        .status-bar {
-            position: fixed;
-            top: 20px;
-            left: 25px;
-            z-index: 1500;
-            pointer-events: none;
-            font-size: 10px;
-            letter-spacing: 3px;
-            color: #444;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .dot { width: 6px; height: 6px; background: #444; border-radius: 50%; transition: 0.3s; }
-        .dot.active { background: #ff0000; box-shadow: 0 0 10px #ff0000; }
-
+        .status { position: fixed; top: 20px; left: 24px; font-size: 9px; letter-spacing: 3px; z-index: 1000; pointer-events: none; opacity: 0.4; }
     </style>
 </head>
 <body>
 
-    <!-- 输入界面 -->
     <div id="setup-screen">
-        <h1>PROMPTER / SYSTEM</h1>
-        <textarea id="input-text" placeholder="在此处键入或粘贴台词..."></textarea>
-        <button class="start-btn" onclick="startPrompter()">Start Session</button>
+        <h1>PROMPTER_SYSTEM / V3</h1>
+        <textarea id="text-input" placeholder="请在此输入台词..."></textarea>
+        <button class="start-btn" onclick="initPrompter()">进入播放模式</button>
     </div>
 
-    <!-- 提词器界面 -->
     <div id="prompter-screen">
-        <div class="status-bar">
-            <div id="dot" class="dot"></div>
-            <span id="status-text">IDLE</span>
+        <div class="status" id="status-tag">READY</div>
+        
+        <div id="scroll-view" onclick="onStageClick()">
+            <div id="text-content"></div>
         </div>
 
-        <!-- 容器：点击触发播放/暂停 -->
-        <div id="scroll-container">
-            <div id="prompter-text"></div>
-        </div>
-
-        <!-- 底部调节面板 -->
         <div id="control-panel">
-            <div class="control-row">
-                <div class="label-wrap">
-                    <span>Scroll Speed</span>
-                    <span class="val-num" id="speed-display">10</span>
+            <div class="drawer-handle" onclick="toggleDrawer()"></div>
+            <div class="panel-content">
+                
+                <div class="row">
+                    <div class="label-group"><span>滚动速度 (Speed)</span><span class="val-num" id="v-speed">10</span></div>
+                    <input type="range" id="speed-range" min="0" max="100" value="10">
                 </div>
-                <input type="range" id="speed-range" min="1" max="100" value="10">
-            </div>
 
-            <div class="control-row">
-                <div class="label-wrap">
-                    <span>Font Size</span>
-                    <span class="val-num" id="size-display">60</span>
+                <div class="row">
+                    <div class="label-group"><span>字体大小 (Size)</span><span class="val-num" id="v-size">60</span></div>
+                    <input type="range" id="size-range" min="20" max="250" value="60">
                 </div>
-                <input type="range" id="size-range" min="20" max="200" value="60">
-            </div>
 
-            <div class="btn-group">
-                <!-- 横屏按钮做大 -->
-                <button class="main-action-btn" onclick="toggleOrientation()">Switch Orientation / 切换横屏</button>
-                <button class="secondary-btn" onclick="toggleFullScreen()">Full Screen</button>
+                <div class="row">
+                    <div class="label-group"><span>配色 (Theme)</span></div>
+                    <div class="chip-group">
+                        <div class="chip active" onclick="applyTheme(0, this)">黑底白</div>
+                        <div class="chip" onclick="applyTheme(1, this)">白底黑</div>
+                        <div class="chip" onclick="applyTheme(2, this)">红底白</div>
+                    </div>
+                </div>
+
+                <div class="btn-grid">
+                    <button class="p-btn primary" onclick="toggleFS()">全屏模式 (Full Screen)</button>
+                    <button class="p-btn" onclick="toggleRotate()">横屏</button>
+                </div>
+                
+                <div class="btn-grid" style="grid-template-columns: 1fr 1fr;">
+                    <button class="p-btn" onclick="toggleLoop()" id="loop-btn">循环: 关</button>
+                    <button class="p-btn" onclick="exitSession()" style="color: #ff4444;">退出</button>
+                </div>
             </div>
-            <button class="secondary-btn" style="border-color: #ff000066; color: #ff4444;" onclick="stopPrompter()">Exit Session</button>
         </div>
     </div>
 
     <script>
-        const setupScreen = document.getElementById('setup-screen');
-        const prompterScreen = document.getElementById('prompter-screen');
-        const scrollContainer = document.getElementById('scroll-container');
-        const prompterText = document.getElementById('prompter-text');
-        const controlPanel = document.getElementById('control-panel');
-        
-        const speedRange = document.getElementById('speed-range');
-        const sizeRange = document.getElementById('size-range');
-        const speedDisplay = document.getElementById('speed-display');
-        const sizeDisplay = document.getElementById('size-display');
-        const dot = document.getElementById('dot');
-        const statusText = document.getElementById('status-text');
+        const state = {
+            isPlaying: false,
+            speed: 10,
+            fontSize: 60,
+            isLoop: false,
+            isLandscape: false,
+            lastTime: 0,
+            y: 0 // 位移累加器，确保亚像素精度
+        };
 
-        let isPlaying = false;
-        let scrollPos = 0;
-        let lastTime = 0;
-        let isLandscape = false;
+        const themes = [
+            { bg: '#000000', text: '#ffffff', ui: 'rgba(255,255,255,0.15)', panel: 'rgba(18,18,18,0.98)' },
+            { bg: '#ffffff', text: '#000000', ui: 'rgba(0,0,0,0.1)', panel: 'rgba(255,255,255,0.98)' },
+            { bg: '#aa0000', text: '#ffffff', ui: 'rgba(255,255,255,0.2)', panel: 'rgba(60,0,0,0.98)' }
+        ];
 
-        // 初始化/进入提词
-        function startPrompter() {
-            const content = document.getElementById('input-text').value.trim();
-            if(!content) return;
+        const el = {
+            view: document.getElementById('scroll-view'),
+            txt: document.getElementById('text-content'),
+            panel: document.getElementById('control-panel'),
+            status: document.getElementById('status-tag'),
+            speedInp: document.getElementById('speed-range'),
+            sizeInp: document.getElementById('size-range')
+        };
 
-            prompterText.innerText = content;
-            setupScreen.style.display = 'none';
-            prompterScreen.style.display = 'block';
+        function initPrompter() {
+            const t = document.getElementById('text-input').value.trim();
+            if(!t) return;
+            el.txt.innerText = t;
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('prompter-screen').style.display = 'block';
             
-            // 初始样式同步
-            updateTextStyle();
+            el.txt.style.fontSize = state.fontSize + 'px';
+            state.y = 0;
+            el.view.scrollTop = 0;
             pause();
-            
-            // 滚动回顶
-            scrollPos = 0;
-            scrollContainer.scrollTop = 0;
         }
 
-        function stopPrompter() {
-            isPlaying = false;
-            setupScreen.style.display = 'flex';
-            prompterScreen.style.display = 'none';
-            if (document.fullscreenElement) document.exitFullscreen();
+        function applyTheme(idx, btn) {
+            const t = themes[idx];
+            document.documentElement.style.setProperty('--bg', t.bg);
+            document.documentElement.style.setProperty('--text', t.text);
+            document.documentElement.style.setProperty('--ui-border', t.ui);
+            document.documentElement.style.setProperty('--panel-bg', t.panel);
+            
+            document.querySelectorAll('.chip-group .chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
         }
 
-        // 核心滚动逻辑
-        function scrollLoop(timestamp) {
-            if (!isPlaying) return;
-
-            if (!lastTime) lastTime = timestamp;
-            const delta = timestamp - lastTime;
-            lastTime = timestamp;
-
-            // 增加滚动位置 (默认速度 10)
-            const step = speedRange.value / 20; 
-            scrollPos += step;
-            
-            scrollContainer.scrollTop = scrollPos;
-
-            // 检查是否滚动到底部
-            if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight + 500) {
-                pause();
+        function onStageClick() {
+            // 如果面板展开，点击非控制区先收起面板
+            if(el.panel.classList.contains('expanded')) {
+                el.panel.classList.remove('expanded');
             } else {
-                requestAnimationFrame(scrollLoop);
+                state.isPlaying ? pause() : play();
             }
-        }
-
-        // 播放与暂停切换
-        function togglePlay() {
-            if (isPlaying) pause();
-            else play();
         }
 
         function play() {
-            isPlaying = true;
-            controlPanel.style.display = 'none';
-            dot.classList.add('active');
-            statusText.innerText = "RUNNING";
-            lastTime = performance.now();
-            requestAnimationFrame(scrollLoop);
+            state.isPlaying = true;
+            el.panel.classList.remove('expanded');
+            el.status.innerText = "RUNNING";
+            state.y = el.view.scrollTop; // 从当前手动滚动的位置开始
+            state.lastTime = performance.now();
+            requestAnimationFrame(scrollEngine);
         }
 
         function pause() {
-            isPlaying = false;
-            controlPanel.style.display = 'flex';
-            dot.classList.remove('active');
-            statusText.innerText = "PAUSED";
-            
-            // 重要：暂停时同步当前的滚动位置，以便手动滚动后能从新位置继续
-            scrollPos = scrollContainer.scrollTop;
+            state.isPlaying = false;
+            el.status.innerText = "PAUSED";
+            el.panel.classList.add('expanded');
         }
 
-        // 监听手动滚动：当用户在暂停状态手动滑动屏幕时，更新内部变量
-        scrollContainer.addEventListener('scroll', () => {
-            if (!isPlaying) {
-                scrollPos = scrollContainer.scrollTop;
+        function scrollEngine(ts) {
+            if(!state.isPlaying) return;
+            
+            const dt = ts - state.lastTime;
+            state.lastTime = ts;
+            
+            // 速度系数微调：即使是10也能看到明显移动
+            // 每毫秒移动的像素 = 速度 * 0.005
+            const pixelsPerFrame = state.speed * (dt / 10); 
+            
+            state.y += (state.speed * 0.08); // 基础步进
+            el.view.scrollTop = state.y;
+
+            // 检测结束 (文字高度 + 顶部留白 - 视口高度)
+            if (el.view.scrollTop + el.view.clientHeight >= el.view.scrollHeight - 10) {
+                if (state.isLoop) {
+                    state.y = 0;
+                    el.view.scrollTop = 0;
+                } else {
+                    pause();
+                }
+            }
+
+            requestAnimationFrame(scrollEngine);
+        }
+
+        // 监听手动滚动更新累加器，防止播放跳回旧位置
+        el.view.addEventListener('scroll', () => {
+            if(!state.isPlaying) {
+                state.y = el.view.scrollTop;
             }
         });
 
-        // 容器点击事件 (避开控制面板)
-        scrollContainer.addEventListener('click', togglePlay);
+        function toggleDrawer() { el.panel.classList.toggle('expanded'); }
 
-        // UI 更新
-        speedRange.oninput = () => speedDisplay.innerText = speedRange.value;
-        sizeRange.oninput = () => {
-            sizeDisplay.innerText = sizeRange.value;
-            updateTextStyle();
+        el.speedInp.oninput = (e) => {
+            state.speed = parseInt(e.target.value);
+            document.getElementById('v-speed').innerText = state.speed;
+        };
+        el.sizeInp.oninput = (e) => {
+            state.fontSize = e.target.value;
+            document.getElementById('v-size').innerText = state.fontSize;
+            el.txt.style.fontSize = state.fontSize + 'px';
         };
 
-        function updateTextStyle() {
-            prompterText.style.fontSize = sizeRange.value + 'px';
+        function toggleRotate() {
+            state.isLandscape = !state.isLandscape;
+            document.getElementById('prompter-screen').classList.toggle('landscape', state.isLandscape);
         }
 
-        // 横屏切换
-        function toggleOrientation() {
-            isLandscape = !isLandscape;
-            prompterScreen.classList.toggle('landscape-mode', isLandscape);
-            // 旋转后可能需要校准滚动位置
-            setTimeout(() => {
-                scrollPos = scrollContainer.scrollTop;
-            }, 300);
+        function toggleFS() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
         }
 
-        // 全屏切换
-        function toggleFullScreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
+        function toggleLoop() {
+            state.isLoop = !state.isLoop;
+            document.getElementById('loop-btn').innerText = `循环: ${state.isLoop ? '开' : '关'}`;
+        }
+
+        function exitSession() {
+            state.isPlaying = false;
+            document.getElementById('setup-screen').style.display = 'flex';
+            document.getElementById('prompter-screen').style.display = 'none';
+        }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ARCH_PROMPTER v3</title>
+    <style>
+        :root {
+            --bg: #000000;
+            --text: #ffffff;
+            --ui-border: rgba(255,255,255,0.15);
+            --panel-bg: rgba(18,18,18,0.98);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body, html { 
+            width: 100%; height: 100%; 
+            background: var(--bg); color: var(--text);
+            font-family: -apple-system, "Inter", "SF Pro Display", sans-serif;
+            overflow: hidden; transition: background 0.3s, color 0.3s;
+        }
+
+        /* --- 初始输入 --- */
+        #setup-screen {
+            display: flex; flex-direction: column;
+            padding: 40px 24px; height: 100%; max-width: 800px; margin: 0 auto;
+        }
+        h1 { font-size: 10px; letter-spacing: 5px; color: #666; margin-bottom: 20px; text-transform: uppercase; }
+        textarea { 
+            flex: 1; background: transparent; border: 1px solid var(--ui-border);
+            color: var(--text); padding: 20px; font-size: 18px; line-height: 1.6; outline: none; border-radius: 4px;
+        }
+        .start-btn {
+            background: var(--text); color: var(--bg); border: none;
+            padding: 24px; margin-top: 24px; font-weight: 900; letter-spacing: 2px; cursor: pointer;
+        }
+
+        /* --- 提词器舞台 --- */
+        #prompter-screen { display: none; width: 100%; height: 100%; position: fixed; top: 0; left: 0; }
+        #prompter-screen.landscape { width: 100vh; height: 100vw; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(90deg); }
+
+        #scroll-view {
+            width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden;
+            padding-top: 45vh; /* 文字起始位置 */
+            scroll-behavior: auto; -webkit-overflow-scrolling: touch;
+        }
+        #scroll-view::-webkit-scrollbar { display: none; }
+
+        #text-content {
+            font-weight: 800; line-height: 1.5; text-align: left; /* 左对齐 */
+            white-space: pre-wrap; word-wrap: break-word; width: 100%;
+            padding: 0 40px 100vh 40px; /* 底部增加100vh空白，确保能滚完 */
+        }
+
+        /* --- 抽屉面板 --- */
+        #control-panel {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: var(--panel-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border-top: 1px solid var(--ui-border);
+            transform: translateY(calc(100% - 40px));
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 2000; padding: 0 24px 40px;
+        }
+        #control-panel.expanded { transform: translateY(0); }
+
+        .drawer-handle { height: 40px; width: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .drawer-handle::after { content: ''; width: 40px; height: 4px; background: var(--ui-border); border-radius: 2px; }
+
+        .panel-content { display: flex; flex-direction: column; gap: 24px; }
+        .row { display: flex; flex-direction: column; gap: 8px; }
+        .label-group { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 1px; opacity: 0.5; text-transform: uppercase; }
+        .val-num { font-family: monospace; font-size: 14px; opacity: 1; color: var(--text); }
+        
+        input[type=range] { -webkit-appearance: none; height: 2px; background: var(--ui-border); outline: none; margin: 15px 0; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: var(--text); border-radius: 50%; border: 2px solid var(--bg); }
+
+        /* 配色/方向选择 */
+        .chip-group { display: flex; gap: 10px; }
+        .chip { 
+            flex: 1; padding: 12px; border: 1px solid var(--ui-border); font-size: 10px; 
+            text-align: center; cursor: pointer; font-weight: bold; text-transform: uppercase;
+        }
+        .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+        /* 按钮 */
+        .btn-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+        .p-btn { 
+            border: 1px solid var(--ui-border); background: transparent; color: var(--text); 
+            padding: 18px; font-size: 12px; font-weight: 800; text-transform: uppercase; 
+        }
+        .p-btn.primary { background: var(--text); color: var(--bg); border: none; font-size: 15px; }
+
+        .status { position: fixed; top: 20px; left: 24px; font-size: 9px; letter-spacing: 3px; z-index: 1000; pointer-events: none; opacity: 0.4; }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <h1>PROMPTER_SYSTEM / V3</h1>
+        <textarea id="text-input" placeholder="请在此输入台词..."></textarea>
+        <button class="start-btn" onclick="initPrompter()">进入播放模式</button>
+    </div>
+
+    <div id="prompter-screen">
+        <div class="status" id="status-tag">READY</div>
+        
+        <div id="scroll-view" onclick="onStageClick()">
+            <div id="text-content"></div>
+        </div>
+
+        <div id="control-panel">
+            <div class="drawer-handle" onclick="toggleDrawer()"></div>
+            <div class="panel-content">
+                
+                <div class="row">
+                    <div class="label-group"><span>滚动速度 (Speed)</span><span class="val-num" id="v-speed">10</span></div>
+                    <input type="range" id="speed-range" min="0" max="100" value="10">
+                </div>
+
+                <div class="row">
+                    <div class="label-group"><span>字体大小 (Size)</span><span class="val-num" id="v-size">60</span></div>
+                    <input type="range" id="size-range" min="20" max="250" value="60">
+                </div>
+
+                <div class="row">
+                    <div class="label-group"><span>配色 (Theme)</span></div>
+                    <div class="chip-group">
+                        <div class="chip active" onclick="applyTheme(0, this)">黑底白</div>
+                        <div class="chip" onclick="applyTheme(1, this)">白底黑</div>
+                        <div class="chip" onclick="applyTheme(2, this)">红底白</div>
+                    </div>
+                </div>
+
+                <div class="btn-grid">
+                    <button class="p-btn primary" onclick="toggleFS()">全屏模式 (Full Screen)</button>
+                    <button class="p-btn" onclick="toggleRotate()">横屏</button>
+                </div>
+                
+                <div class="btn-grid" style="grid-template-columns: 1fr 1fr;">
+                    <button class="p-btn" onclick="toggleLoop()" id="loop-btn">循环: 关</button>
+                    <button class="p-btn" onclick="exitSession()" style="color: #ff4444;">退出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            isPlaying: false,
+            speed: 10,
+            fontSize: 60,
+            isLoop: false,
+            isLandscape: false,
+            lastTime: 0,
+            y: 0 // 位移累加器，确保亚像素精度
+        };
+
+        const themes = [
+            { bg: '#000000', text: '#ffffff', ui: 'rgba(255,255,255,0.15)', panel: 'rgba(18,18,18,0.98)' },
+            { bg: '#ffffff', text: '#000000', ui: 'rgba(0,0,0,0.1)', panel: 'rgba(255,255,255,0.98)' },
+            { bg: '#aa0000', text: '#ffffff', ui: 'rgba(255,255,255,0.2)', panel: 'rgba(60,0,0,0.98)' }
+        ];
+
+        const el = {
+            view: document.getElementById('scroll-view'),
+            txt: document.getElementById('text-content'),
+            panel: document.getElementById('control-panel'),
+            status: document.getElementById('status-tag'),
+            speedInp: document.getElementById('speed-range'),
+            sizeInp: document.getElementById('size-range')
+        };
+
+        function initPrompter() {
+            const t = document.getElementById('text-input').value.trim();
+            if(!t) return;
+            el.txt.innerText = t;
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('prompter-screen').style.display = 'block';
+            
+            el.txt.style.fontSize = state.fontSize + 'px';
+            state.y = 0;
+            el.view.scrollTop = 0;
+            pause();
+        }
+
+        function applyTheme(idx, btn) {
+            const t = themes[idx];
+            document.documentElement.style.setProperty('--bg', t.bg);
+            document.documentElement.style.setProperty('--text', t.text);
+            document.documentElement.style.setProperty('--ui-border', t.ui);
+            document.documentElement.style.setProperty('--panel-bg', t.panel);
+            
+            document.querySelectorAll('.chip-group .chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function onStageClick() {
+            // 如果面板展开，点击非控制区先收起面板
+            if(el.panel.classList.contains('expanded')) {
+                el.panel.classList.remove('expanded');
             } else {
-                document.exitFullscreen();
+                state.isPlaying ? pause() : play();
             }
+        }
+
+        function play() {
+            state.isPlaying = true;
+            el.panel.classList.remove('expanded');
+            el.status.innerText = "RUNNING";
+            state.y = el.view.scrollTop; // 从当前手动滚动的位置开始
+            state.lastTime = performance.now();
+            requestAnimationFrame(scrollEngine);
+        }
+
+        function pause() {
+            state.isPlaying = false;
+            el.status.innerText = "PAUSED";
+            el.panel.classList.add('expanded');
+        }
+
+        function scrollEngine(ts) {
+            if(!state.isPlaying) return;
+            
+            const dt = ts - state.lastTime;
+            state.lastTime = ts;
+            
+            // 速度系数微调：即使是10也能看到明显移动
+            // 每毫秒移动的像素 = 速度 * 0.005
+            const pixelsPerFrame = state.speed * (dt / 10); 
+            
+            state.y += (state.speed * 0.08); // 基础步进
+            el.view.scrollTop = state.y;
+
+            // 检测结束 (文字高度 + 顶部留白 - 视口高度)
+            if (el.view.scrollTop + el.view.clientHeight >= el.view.scrollHeight - 10) {
+                if (state.isLoop) {
+                    state.y = 0;
+                    el.view.scrollTop = 0;
+                } else {
+                    pause();
+                }
+            }
+
+            requestAnimationFrame(scrollEngine);
+        }
+
+        // 监听手动滚动更新累加器，防止播放跳回旧位置
+        el.view.addEventListener('scroll', () => {
+            if(!state.isPlaying) {
+                state.y = el.view.scrollTop;
+            }
+        });
+
+        function toggleDrawer() { el.panel.classList.toggle('expanded'); }
+
+        el.speedInp.oninput = (e) => {
+            state.speed = parseInt(e.target.value);
+            document.getElementById('v-speed').innerText = state.speed;
+        };
+        el.sizeInp.oninput = (e) => {
+            state.fontSize = e.target.value;
+            document.getElementById('v-size').innerText = state.fontSize;
+            el.txt.style.fontSize = state.fontSize + 'px';
+        };
+
+        function toggleRotate() {
+            state.isLandscape = !state.isLandscape;
+            document.getElementById('prompter-screen').classList.toggle('landscape', state.isLandscape);
+        }
+
+        function toggleFS() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        }
+
+        function toggleLoop() {
+            state.isLoop = !state.isLoop;
+            document.getElementById('loop-btn').innerText = `循环: ${state.isLoop ? '开' : '关'}`;
+        }
+
+        function exitSession() {
+            state.isPlaying = false;
+            document.getElementById('setup-screen').style.display = 'flex';
+            document.getElementById('prompter-screen').style.display = 'none';
         }
     </script>
 </body>
