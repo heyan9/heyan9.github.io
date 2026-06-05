@@ -8,8 +8,8 @@
         :root {
             --bg: #000000;
             --text: #ffffff;
-            --ui-border: rgba(255,255,255,0.2);
-            --panel-bg: rgba(15,15,15,0.9);
+            --accent: rgba(255, 255, 255, 0.2);
+            --panel-bg: rgba(20, 20, 20, 0.95);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -17,34 +17,34 @@
         body, html { 
             width: 100%; height: 100%; 
             background: var(--bg); color: var(--text);
-            font-family: -apple-system, "Noto Sans SC", sans-serif;
+            font-family: -apple-system, sans-serif;
             overflow: hidden; transition: background 0.3s;
         }
 
-        /* --- 输入界面 --- */
+        /* --- 初始界面 --- */
         #setup-screen {
             display: flex; flex-direction: column;
             padding: 30px 20px; height: 100%; max-width: 600px; margin: 0 auto;
         }
-        header { margin-bottom: 20px; text-align: center; }
-        header h1 { font-size: 14px; letter-spacing: 4px; color: #888; font-weight: 400; }
-
+        h1 { font-size: 14px; letter-spacing: 2px; color: #666; margin-bottom: 15px; text-align: center; }
         textarea { 
-            flex: 1; background: #111; border: 1px solid var(--ui-border);
-            color: #fff; padding: 20px; font-size: 18px; line-height: 1.6; outline: none; border-radius: 12px;
+            flex: 1; background: #111; border: 1px solid #333;
+            color: #fff; padding: 20px; font-size: 18px; line-height: 1.6; outline: none; border-radius: 10px;
         }
         .start-btn {
             background: #fff; color: #000; border: none;
-            padding: 22px; margin-top: 20px; font-weight: bold; border-radius: 12px; cursor: pointer; font-size: 18px;
+            padding: 20px; margin-top: 20px; font-weight: bold; border-radius: 10px; cursor: pointer; font-size: 18px;
         }
 
         /* --- 提词器舞台 --- */
         #prompter-screen { display: none; width: 100%; height: 100%; position: fixed; top: 0; left: 0; }
+        
+        /* 强制旋转逻辑 */
         #prompter-screen.landscape { width: 100vh; height: 100vw; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(90deg); }
 
         #scroll-view {
             width: 100%; height: 100%; overflow-y: auto; 
-            padding: 45vh 25px 100vh 25px; /* 底部预留高度供文字滑出 */
+            padding: 45vh 30px 100vh 30px; 
             scroll-behavior: auto; -webkit-overflow-scrolling: touch;
         }
         #scroll-view::-webkit-scrollbar { display: none; }
@@ -54,89 +54,92 @@
             white-space: pre-wrap; word-wrap: break-word; width: 100%;
         }
 
-        /* --- 两级控制面板 --- */
+        /* --- 悬浮控制中心 (核心改进) --- */
         #control-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: var(--panel-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border-top: 1px solid var(--ui-border);
-            display: none; flex-direction: column; z-index: 2000;
-            padding-bottom: calc(10px + env(safe-area-inset-bottom)); /* 适配手机底部安全区 */
+            position: fixed; 
+            bottom: 40px; /* 向上浮动，避开系统手势 */
+            left: 5%; width: 90%;
+            background: var(--panel-bg); 
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            display: none; flex-direction: column; z-index: 5000;
+            padding: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        /* 第一层：常用调节 (速度/字号) */
-        .bar-main {
-            display: flex; align-items: center; gap: 12px; padding: 15px 20px;
+        /* 第一行：功能控制 */
+        .panel-row-top {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px;
         }
-        .bar-item { flex: 1; display: flex; align-items: center; gap: 10px; }
-        .bar-item label { font-size: 11px; opacity: 0.6; white-space: nowrap; font-weight: bold; }
-        .bar-item span { font-size: 14px; font-family: monospace; width: 25px; text-align: center; }
+        .btn-item {
+            background: rgba(255,255,255,0.1); border: 1px solid var(--accent);
+            color: #fff; padding: 10px 2px; font-size: 11px; border-radius: 8px;
+            text-align: center; font-weight: bold;
+        }
+        .btn-item.active { background: #fff; color: #000; }
+
+        /* 第二行：滑动条 */
+        .panel-row-bottom { display: flex; flex-direction: column; gap: 12px; }
+        .slider-wrap { display: flex; align-items: center; gap: 10px; }
+        .slider-wrap label { font-size: 11px; width: 30px; opacity: 0.7; }
+        .slider-wrap span { font-size: 12px; width: 25px; font-family: monospace; }
         
-        input[type=range] { -webkit-appearance: none; flex: 1; height: 2px; background: var(--ui-border); outline: none; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: var(--text); border-radius: 50%; border: 1px solid #888; }
+        input[type=range] { -webkit-appearance: none; flex: 1; height: 3px; background: var(--accent); outline: none; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: #fff; border-radius: 50%; }
 
-        .adv-toggle { background: var(--text); color: var(--bg); border: none; padding: 10px 18px; font-size: 12px; border-radius: 6px; font-weight: bold; }
-
-        /* 第二层：高级功能 (配色/全屏等) */
-        #bar-advanced {
-            display: none; padding: 10px 20px 20px; border-top: 1px solid var(--ui-border);
-            grid-template-columns: repeat(3, 1fr); gap: 10px;
+        /* 特大号全屏按钮 */
+        .big-btn {
+            background: #fff; color: #000; border: none; padding: 12px; 
+            margin-top: 15px; border-radius: 8px; font-weight: 900; font-size: 14px;
         }
 
-        .opt-btn {
-            background: rgba(128,128,128,0.1); border: 1px solid var(--ui-border); color: var(--text);
-            padding: 12px 5px; font-size: 11px; border-radius: 6px; cursor: pointer; text-align: center;
-        }
-        .opt-btn.active { background: var(--text); color: var(--bg); font-weight: bold; }
-        .full-row-btn { grid-column: span 3; background: #fff; color: #000; font-weight: 900; margin-top: 5px; font-size: 14px; }
-
-        /* 呼吸状态灯 */
-        .dot { position: fixed; top: 20px; left: 20px; font-size: 10px; letter-spacing: 2px; opacity: 0.3; pointer-events: none; }
+        .status-tag { position: fixed; top: 20px; left: 20px; font-size: 10px; opacity: 0.3; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <!-- 输入界面 -->
     <div id="setup-screen">
-        <header><h1>提词器 何岩开发</h1></header>
-        <textarea id="text-input" placeholder="请在这里输入或粘贴台词..."></textarea>
-        <button class="start-btn" onclick="init()">开始使用</button>
+        <h1>提词器 何岩开发</h1>
+        <textarea id="text-input" placeholder="请粘贴台词..."></textarea>
+        <button class="start-btn" onclick="startApp()">开启提词</button>
     </div>
 
-    <!-- 提词器界面 -->
+    <!-- 提词界面 -->
     <div id="prompter-screen">
-        <div class="dot" id="status-tag">准备就绪</div>
+        <div class="status-tag" id="status-tag">待命</div>
         
-        <div id="scroll-view" onclick="handleStageClick()">
+        <div id="scroll-view" onclick="togglePlay()">
             <div id="text-content"></div>
         </div>
 
-        <!-- 极简控制台 -->
+        <!-- 悬浮控制中心 -->
         <div id="control-panel">
-            <!-- 一级菜单：基础调节 -->
-            <div class="bar-main">
-                <div class="bar-item">
+            <!-- 功能按钮 -->
+            <div class="panel-row-top">
+                <div class="btn-item" id="theme-btn" onclick="nextTheme()">配色</div>
+                <div class="btn-item" id="loop-btn" onclick="toggleLoop()">循环:关</div>
+                <div class="btn-item" onclick="toggleRotate()">旋转</div>
+                <div class="btn-item" onclick="exitApp()" style="color:#ff4444">退出</div>
+            </div>
+
+            <!-- 调节滑块 -->
+            <div class="panel-row-bottom">
+                <div class="slider-wrap">
                     <label>速度</label>
                     <input type="range" id="speed-range" min="0" max="100" value="10">
                     <span id="v-speed">10</span>
                 </div>
-                <div class="bar-item">
+                <div class="slider-wrap">
                     <label>字号</label>
                     <input type="range" id="size-range" min="20" max="300" value="60">
                     <span id="v-size">60</span>
                 </div>
-                <button class="adv-toggle" onclick="toggleAdv()">高级</button>
             </div>
 
-            <!-- 二级菜单：隐藏功能 -->
-            <div id="bar-advanced">
-                <button class="opt-btn active" onclick="applyTheme(0, this)">黑底白</button>
-                <button class="opt-btn" onclick="applyTheme(1, this)">白底黑</button>
-                <button class="opt-btn" onclick="applyTheme(2, this)">红底白</button>
-                <button class="opt-btn" onclick="toggleLoop()" id="loop-btn">循环: 关</button>
-                <button class="opt-btn" onclick="toggleRotate()">旋转横屏</button>
-                <button class="opt-btn" onclick="exitSession()" style="color: #ff4444;">退出</button>
-                <button class="opt-btn full-row-btn" onclick="toggleFullscreen()">进入全屏模式</button>
-            </div>
+            <!-- 全屏按钮 -->
+            <button class="big-btn" onclick="toggleFS()">全 屏 模 式</button>
         </div>
     </div>
 
@@ -145,106 +148,107 @@
             playing: false,
             speed: 10,
             size: 60,
+            themeIdx: 0,
             loop: false,
             landscape: false,
-            lastTime: 0,
-            y: 0
+            y: 0,
+            lastTime: 0
         };
 
         const themes = [
-            { bg: '#000000', text: '#ffffff', ui: 'rgba(255,255,255,0.2)', panel: 'rgba(15,15,15,0.9)' },
-            { bg: '#ffffff', text: '#000000', ui: 'rgba(0,0,0,0.1)', panel: 'rgba(245,245,245,0.9)' },
-            { bg: '#990000', text: '#ffffff', ui: 'rgba(255,255,255,0.3)', panel: 'rgba(60,0,0,0.9)' }
+            { name: "黑底白", bg: "#000000", text: "#ffffff", acc: "rgba(255,255,255,0.2)" },
+            { name: "白底黑", bg: "#ffffff", text: "#000000", acc: "rgba(0,0,0,0.1)" },
+            { name: "红底白", bg: "#aa0000", text: "#ffffff", acc: "rgba(255,255,255,0.3)" }
         ];
 
         const el = {
             view: document.getElementById('scroll-view'),
             txt: document.getElementById('text-content'),
             panel: document.getElementById('control-panel'),
-            adv: document.getElementById('bar-advanced'),
             status: document.getElementById('status-tag')
         };
 
-        function init() {
-            const content = document.getElementById('text-input').value.trim();
-            if(!content) return alert("请输入台词");
-            
-            el.txt.innerText = content;
+        function startApp() {
+            const val = document.getElementById('text-input').value.trim();
+            if(!val) return;
+            el.txt.innerText = val;
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('prompter-screen').style.display = 'block';
-            
             state.y = 0;
             el.view.scrollTop = 0;
-            updateFont();
+            updateDisplay();
             pause();
         }
 
-        function updateFont() {
-            el.txt.style.fontSize = state.size + 'px';
-        }
-
-        function handleStageClick() {
-            // 如果高级菜单开着，点击文字区域先收回菜单
-            if(el.adv.style.display === 'grid') {
-                el.adv.style.display = 'none';
-            } else {
-                state.playing ? pause() : play();
-            }
+        function togglePlay() {
+            state.playing ? pause() : play();
         }
 
         function play() {
             state.playing = true;
             el.panel.style.display = 'none';
-            el.status.innerText = "正在播放";
+            el.status.innerText = "播放中";
             state.y = el.view.scrollTop;
             state.lastTime = performance.now();
-            requestAnimationFrame(engine);
+            requestAnimationFrame(loop);
         }
 
         function pause() {
             state.playing = false;
             el.panel.style.display = 'flex';
-            el.status.innerText = "暂停中";
+            el.status.innerText = "暂停";
         }
 
-        function engine(ts) {
+        function loop(ts) {
             if(!state.playing) return;
             const dt = ts - state.lastTime;
             state.lastTime = ts;
 
-            // 滚动步进公式
+            // 速度算法：state.speed 为 10 时会有稳定的慢速
             state.y += (state.speed * 0.08);
             el.view.scrollTop = state.y;
 
-            // 检查是否到底
             if (el.view.scrollTop + el.view.clientHeight >= el.view.scrollHeight - 5) {
-                if (state.loop) {
-                    state.y = 0; el.view.scrollTop = 0;
-                } else {
-                    pause();
-                }
+                if (state.loop) { state.y = 0; el.view.scrollTop = 0; } 
+                else { pause(); }
             }
-            requestAnimationFrame(engine);
+            requestAnimationFrame(loop);
         }
 
-        // 暂停时同步手动滑动的坐标
+        // 同步滑动
         el.view.addEventListener('scroll', () => {
             if(!state.playing) state.y = el.view.scrollTop;
         });
 
-        // 核心交互功能
-        function toggleAdv() {
-            el.adv.style.display = el.adv.style.display === 'grid' ? 'none' : 'grid';
-        }
-
-        function applyTheme(idx, btn) {
-            const t = themes[idx];
+        // 功能函数
+        function nextTheme() {
+            state.themeIdx = (state.themeIdx + 1) % themes.length;
+            const t = themes[state.themeIdx];
             document.documentElement.style.setProperty('--bg', t.bg);
             document.documentElement.style.setProperty('--text', t.text);
-            document.documentElement.style.setProperty('--ui-border', t.ui);
-            document.documentElement.style.setProperty('--panel-bg', t.panel);
-            document.querySelectorAll('#bar-advanced .opt-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            document.documentElement.style.setProperty('--accent', t.acc);
+            document.getElementById('theme-btn').innerText = t.name;
+        }
+
+        function toggleLoop() {
+            state.loop = !state.loop;
+            const btn = document.getElementById('loop-btn');
+            btn.innerText = state.loop ? "循环:开" : "循环:关";
+            btn.classList.toggle('active', state.loop);
+        }
+
+        function toggleRotate() {
+            state.landscape = !state.landscape;
+            document.getElementById('prompter-screen').classList.toggle('landscape', state.landscape);
+        }
+
+        function toggleFS() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        }
+
+        function updateDisplay() {
+            el.txt.style.fontSize = state.size + 'px';
         }
 
         document.getElementById('speed-range').oninput = (e) => {
@@ -254,31 +258,11 @@
         document.getElementById('size-range').oninput = (e) => {
             state.size = e.target.value;
             document.getElementById('v-size').innerText = state.size;
-            updateFont();
+            updateDisplay();
         };
 
-        function toggleRotate() {
-            state.landscape = !state.landscape;
-            document.getElementById('prompter-screen').classList.toggle('landscape', state.landscape);
-            el.adv.style.display = 'none';
-        }
-
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-            else document.exitFullscreen();
-            el.adv.style.display = 'none';
-        }
-
-        function toggleLoop() {
-            state.loop = !state.loop;
-            document.getElementById('loop-btn').innerText = `循环: ${state.loop ? '开' : '关'}`;
-            document.getElementById('loop-btn').classList.toggle('active', state.loop);
-        }
-
-        function exitSession() {
-            if(confirm("确定退出提词模式吗？")) {
-                location.reload();
-            }
+        function exitApp() {
+            if(confirm("退出提词器？")) location.reload();
         }
     </script>
 </body>
