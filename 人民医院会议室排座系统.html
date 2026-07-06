@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>智慧排位系统 V3.0 - heyan 开发</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --soft-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            --card-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            --bg-light: #f8f9fb;
+            --slot-border: 1px solid #e0e0e0; /* 浅灰色框线，确保导出可见 */
+            --table-border: 2px solid #d0d0d0;
+            --text-main: #333;
+        }
+
+        body {
+            margin: 0; display: flex; height: 100vh; overflow: hidden;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif; 
+            background: #f0f2f5; color: var(--text-main);
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 310px; background: #fff; border-right: 1px solid #ddd;
+            display: flex; flex-direction: column; transition: transform 0.3s;
+            position: relative; z-index: 100; flex-shrink: 0;
+        }
+        .sidebar.collapsed { transform: translateX(-310px); }
+        .sidebar-content { padding: 20px; width: 270px; display: flex; flex-direction: column; height: 100%; }
+
+        .toggle-btn {
+            position: absolute; right: -25px; top: 50%; width: 25px; height: 60px;
+            background: #fff; border: 1px solid #ddd; border-left: none;
+            border-radius: 0 10px 10px 0; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; transform: translateY(-50%);
+        }
+
+        .control-section { margin-bottom: 18px; padding: 15px; border-radius: 12px; background: #fff; border: 1px solid #f0f0f0; box-shadow: var(--soft-shadow); }
+        .label { font-size: 13px; font-weight: bold; margin-bottom: 8px; display: block; color: #666; }
+
+        textarea {
+            width: 100%; height: 60px; border: 1px solid #e8e8e8; border-radius: 8px;
+            padding: 8px; box-sizing: border-box; resize: none; margin-bottom: 8px; font-family: inherit;
+        }
+
+        button {
+            padding: 9px 12px; border: 1px solid #dcdcdc; background: #fff;
+            color: var(--text-main); border-radius: 20px; cursor: pointer;
+            font-weight: bold; transition: 0.2s; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        button:hover { background: #fdfdfd; border-color: #bbb; box-shadow: 0 4px 8px rgba(0,0,0,0.08); }
+        .btn-full { width: 100%; margin-top: 5px; }
+
+        #name-pool {
+            flex: 1; border-radius: 12px; padding: 10px; overflow-y: auto; 
+            display: flex; flex-wrap: wrap; gap: 8px; background: #fafafa; 
+            border: 1px inset #eee; align-content: flex-start;
+        }
+
+        /* 画布区 */
+        .stage-wrapper { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+        #capture-area {
+            padding: 80px 120px; background: #fff; display: flex; align-self: center;
+            flex-direction: column; align-items: center; min-width: 1600px;
+            transform-origin: top center;
+        }
+
+        /* 标题：圆润且有导出存在感 */
+        .screen-wrap { width: 100%; display: flex; justify-content: center; margin-bottom: 60px; }
+        .screen {
+            min-width: 600px; text-align: center; border: 1px solid #eee;
+            border-radius: 40px; font-size: 32px; font-weight: bold; padding: 15px 50px; 
+            outline: none; background: #fff; box-shadow: var(--soft-shadow);
+        }
+
+        /* 座位框：浅灰色描边确保导出图片可见 */
+        .chair-slot {
+            width: 96px; height: 48px; border: var(--slot-border); border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; background: #fdfdfd;
+        }
+        
+        /* 人物名牌 */
+        .person-tag {
+            width: 90px; height: 42px; background: #fff;
+            color: #000; border: 1px solid #eee; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: bold; cursor: grab; user-select: none;
+            box-shadow: var(--card-shadow);
+            z-index: 5;
+        }
+        
+        /* 解决鬼影的关键：拖拽时原位变淡 */
+        .person-tag.dragging {
+            opacity: 0.1;
+        }
+
+        .delete-tag {
+            position: absolute; top: -10px; right: -10px; width: 20px; height: 20px;
+            background: #fff; color: #ff4757; border-radius: 50%;
+            display: none; align-items: center; justify-content: center;
+            font-size: 14px; cursor: pointer; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .person-tag:hover .delete-tag { display: flex; }
+
+        /* 317布局：浅灰描边长桌 */
+        #layout-317-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .table-317 {
+            width: 240px; height: 600px; background: #fff;
+            border: var(--table-border); border-radius: 120px; 
+            display: flex; align-items: center; justify-content: center;
+            color: #444; font-size: 30px; font-weight: bold;
+            writing-mode: vertical-rl; letter-spacing: 12px; margin: 0 80px;
+            box-shadow: var(--soft-shadow);
+        }
+        .col-317 { display: flex; flex-direction: column; gap: 12px; }
+
+        /* 学术报告厅：居中布局 */
+        #layout-academic-wrapper { 
+            display: flex; flex-direction: column; align-items: center; width: 100%;
+        }
+        .acad-row { 
+            display: flex; gap: 30px; margin-bottom: 20px; align-items: center; 
+            justify-content: center; width: 100%;
+        }
+        .row-num { width: 80px; font-weight: bold; color: #aaa; text-align: right; }
+
+        /* 悬浮工具栏 */
+        .toolbar {
+            position: fixed; bottom: 30px; right: 30px; display: flex; gap: 15px; align-items: center;
+        }
+        .dev-credit { font-size: 12px; color: #999; }
+        .btn-export { background: #fff; padding: 12px 25px; border-radius: 30px; border: 1px solid #ddd; }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+    <div class="toggle-btn" onclick="toggleSidebar()" id="toggle-icon">◀</div>
+    <div class="sidebar-content">
+        <h2 style="font-size: 18px; margin-bottom: 20px; text-align: center;">智能排位系统</h2>
+        
+        <div class="control-section">
+            <label class="label">当前布局</label>
+            <select id="layout-type" onchange="switchLayout()" style="width:100%; padding:8px; border-radius:6px; border:1px solid #ddd;">
+                <option value="317">317 会议室 (对坐式)</option>
+                <option value="academic">学术报告厅 (阶梯式)</option>
+            </select>
+        </div>
+
+        <div class="control-section">
+            <label class="label">画布比例</label>
+            <input type="range" min="30" max="110" value="65" style="width:100%; accent-color: #333;" oninput="adjustZoom(this.value)">
+        </div>
+
+        <div class="control-section">
+            <label class="label" id="stats">人员池</label>
+            <textarea id="name-input" placeholder="输入姓名，支持空格、顿号分隔..."></textarea>
+            <button class="btn-full" onclick="generateNames()">生成名牌</button>
+        </div>
+
+        <div class="control-section" style="background:none; border:none; box-shadow:none;">
+            <button class="btn-full" onclick="exportCode()">复制存档代码</button>
+            <button class="btn-full" onclick="importCode()" style="margin-top:10px;">导入存档代码</button>
+        </div>
+        
+        <div id="name-pool" ondrop="dropToPool(event)" ondragover="allowDrop(event)"></div>
+    </div>
+</div>
+
+<div class="stage-wrapper">
+    <div id="capture-area">
+        <div class="screen-wrap">
+            <div class="screen" id="meeting-title" contenteditable="true">会议排位平面图（点击可编辑）</div>
+        </div>
+
+        <!-- 317 布局 -->
+        <div id="layout-317-wrapper">
+            <div style="display: flex; align-items: center;">
+                <div id="317-left-2" class="col-317"></div>
+                <div id="317-left-1" class="col-317"></div>
+                <div class="table-317">会 议 桌</div>
+                <div id="317-right-1" class="col-317"></div>
+                <div id="317-right-2" class="col-317"></div>
+            </div>
+            <div style="margin-top:50px; display:flex; flex-direction:column; gap:15px; align-items:center;">
+                <div id="317-b1" style="display:flex; gap:15px;"></div>
+                <div id="317-b2" style="display:flex; gap:15px;"></div>
+            </div>
+        </div>
+
+        <!-- 学术报告厅 -->
+        <div id="layout-academic-wrapper" class="hidden">
+            <div style="margin-bottom:30px; font-size:22px; font-weight:bold; padding:10px 60px; border-radius:30px; border:1px solid #ddd; background:#fff;">主 席 台</div>
+            <div id="acad-podium" style="display:flex; gap:15px; padding:20px; margin-bottom:80px; justify-content: center;"></div>
+            <div id="acad-audience" style="width: 100%;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="toolbar">
+    <div class="dev-credit">HE YAN DESIGN SYSTEM</div>
+    <button class="btn-export" style="border-color:#1D6F42; color:#1D6F42;" onclick="exportToExcel()">导出 Excel</button>
+    <button class="btn-export" style="background:#333; color:#fff;" onclick="exportImage()">导出高清平面图 (PNG)</button>
+</div>
+
+<script>
+    let draggedElement = null;
+    const defaultNames = ["王锐", "金林阳", "熊鹰", "张略", "毛丽红", "李建强", "黄亮琴", "刘毅", "甘军", "刘学良"];
+
+    window.onload = () => {
+        init317();
+        initAcademic();
+        const pool = document.getElementById('name-pool');
+        defaultNames.forEach(n => pool.appendChild(createTag(n)));
+        switchLayout();
+        adjustZoom(65);
+    };
+
+    function init317() {
+        const createSlots = (id, count) => {
+            const el = document.getElementById(id); el.innerHTML = '';
+            for(let i=0; i<count; i++) el.appendChild(createSlot(`317-${id}-${i}`));
+        };
+        createSlots('317-left-2', 12); createSlots('317-left-1', 12);
+        createSlots('317-right-1', 12); createSlots('317-right-2', 12);
+        createSlots('317-b1', 4); createSlots('317-b2', 8);
+    }
+
+    function initAcademic() {
+        const p = document.getElementById('acad-podium'); p.innerHTML = '';
+        for(let i=0; i<9; i++) p.appendChild(createSlot(`acad-p-${i}`));
+
+        const aud = document.getElementById('acad-audience'); aud.innerHTML = '';
+        for(let r=1; r<=10; r++){
+            const row = document.createElement('div'); row.className = 'acad-row';
+            row.innerHTML = `<div class="row-num">${r} 排</div>`;
+            const cfg = [{id:'l', c:6}, {id:'m', c:8}, {id:'r', c:6}];
+            cfg.forEach(c => {
+                const grp = document.createElement('div'); grp.style.display='flex'; grp.style.gap='6px';
+                for(let s=0; s<c.c; s++) grp.appendChild(createSlot(`acad-${r}-${c.id}-${s}`));
+                row.appendChild(grp);
+            });
+            aud.appendChild(row);
+        }
+    }
+
+    function createSlot(id) {
+        const s = document.createElement('div'); s.className = 'chair-slot'; s.id = id;
+        s.ondragover = e => { e.preventDefault(); s.style.background = '#f0f0f0'; };
+        s.ondragleave = () => s.style.background = '#fdfdfd';
+        s.ondrop = dropToSlot;
+        return s;
+    }
+
+    function createTag(name) {
+        const t = document.createElement('div'); t.className = 'person-tag'; t.draggable = true;
+        t.id = 'tag-' + Math.random().toString(36).substr(2, 9);
+        t.innerHTML = `${name}<div class="delete-tag" onclick="this.parentElement.remove(); updateStats();">×</div>`;
+        
+        t.ondragstart = e => { 
+            draggedElement = t; 
+            // 优化鬼影的核心：延迟改变原元素样式
+            setTimeout(() => {
+                t.classList.add('dragging');
+            }, 0);
+            e.dataTransfer.effectAllowed = 'move';
+        };
+        t.ondragend = () => { 
+            t.classList.remove('dragging'); 
+            draggedElement = null; 
+        };
+        return t;
+    }
+
+    function generateNames() {
+        const raw = document.getElementById('name-input').value;
+        const names = raw.split(/[\s,，;；||\n\t、]+/).filter(n => n.trim().length > 0);
+        names.forEach(n => document.getElementById('name-pool').appendChild(createTag(n)));
+        document.getElementById('name-input').value = '';
+        updateStats();
+    }
+
+    function dropToSlot(e) {
+        e.preventDefault();
+        const slot = e.currentTarget;
+        slot.style.background = '#fdfdfd';
+        if(slot.firstChild) {
+            const current = slot.firstChild;
+            if(draggedElement.parentNode.classList.contains('chair-slot')) {
+                draggedElement.parentNode.appendChild(current);
+            } else {
+                document.getElementById('name-pool').appendChild(current);
+            }
+        }
+        slot.appendChild(draggedElement);
+        updateStats();
+    }
+
+    function allowDrop(e) { e.preventDefault(); }
+
+    function dropToPool(e) {
+        e.preventDefault();
+        document.getElementById('name-pool').appendChild(draggedElement);
+        updateStats();
+    }
+
+    function toggleSidebar() {
+        const sb = document.getElementById('sidebar');
+        const icon = document.getElementById('toggle-icon');
+        sb.classList.toggle('collapsed');
+        icon.innerText = sb.classList.contains('collapsed') ? '▶' : '◀';
+    }
+
+    function adjustZoom(v) {
+        document.getElementById('capture-area').style.transform = `scale(${v/100})`;
+    }
+
+    function switchLayout() {
+        const v = document.getElementById('layout-type').value;
+        document.getElementById('layout-317-wrapper').classList.toggle('hidden', v !== '317');
+        document.getElementById('layout-academic-wrapper').classList.toggle('hidden', v !== 'academic');
+        updateStats();
+    }
+
+    function updateStats() {
+        const seated = document.querySelectorAll('.chair-slot .person-tag').length;
+        document.getElementById('stats').innerText = `人员池 (已就座 ${seated})`;
+    }
+
+    function exportCode() {
+        const data = {
+            title: document.getElementById('meeting-title').innerText,
+            layout: document.getElementById('layout-type').value,
+            pool: Array.from(document.getElementById('name-pool').children).map(c => c.innerText.replace('×','')),
+            seats: {}
+        };
+        document.querySelectorAll('.chair-slot').forEach(s => {
+            if(s.firstChild) data.seats[s.id] = s.firstChild.innerText.replace('×','');
+        });
+        const code = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+        navigator.clipboard.writeText(code).then(() => alert('存档代码已成功复制！'));
+    }
+
+    function importCode() {
+        const code = prompt('请粘贴存档代码：');
+        if(!code) return;
+        try {
+            const data = JSON.parse(decodeURIComponent(escape(atob(code))));
+            document.getElementById('meeting-title').innerText = data.title;
+            document.getElementById('layout-type').value = data.layout;
+            switchLayout();
+            const pool = document.getElementById('name-pool'); pool.innerHTML = '';
+            data.pool.forEach(n => pool.appendChild(createTag(n)));
+            document.querySelectorAll('.chair-slot').forEach(s => s.innerHTML = '');
+            for(let id in data.seats) {
+                const slot = document.getElementById(id);
+                if(slot) slot.appendChild(createTag(data.seats[id]));
+            }
+            updateStats();
+        } catch(e) { alert('存档解析失败，请检查代码完整性。'); }
+    }
+
+    function exportToExcel() {
+        const title = document.getElementById('meeting-title').innerText;
+        let data = [[title], ["座位详细清单"], ["位置ID", "姓名"]];
+        document.querySelectorAll('.chair-slot').forEach(slot => {
+            if(slot.firstChild) {
+                data.push([slot.id, slot.firstChild.innerText.replace('×','')]);
+            }
+        });
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Seats");
+        XLSX.writeFile(wb, `${title}.xlsx`);
+    }
+
+    function exportImage() {
+        const area = document.getElementById('capture-area');
+        const oldT = area.style.transform;
+        area.style.transform = 'scale(1)'; // 恢复 1:1 比例导出，防止模糊
+        
+        html2canvas(area, { 
+            scale: 2, 
+            backgroundColor: '#ffffff',
+            logging: false,
+            useCORS: true 
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = document.getElementById('meeting-title').innerText + '.png';
+            link.href = canvas.toDataURL('image/png'); 
+            link.click();
+            area.style.transform = oldT; // 恢复缩放
+        });
+    }
+</script>
+
+</body>
+</html>
