@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F1观赛网</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--red:#FF1E00;--bg:#0a0a0a;--bg2:#111;--card:#151515;--line:#2e2e2e;--txt:#fff;--mut:#9a9a9a;--hd:#000;--gh:#262626}
+[data-theme=light]{--bg:#f2f2f2;--bg2:#fafafa;--card:#fff;--line:#dcdcdc;--txt:#111;--mut:#666;--hd:#fff;--gh:#111}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--txt);font-family:"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.5;overflow-x:hidden}
+a{color:inherit}
+header{position:sticky;top:0;z-index:20;transition:transform .3s ease;background:var(--hd);border-bottom:3px solid var(--red);display:flex;align-items:center;gap:8px;padding:6px 14px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:900;font-size:17px;font-style:italic;white-space:nowrap}
+.logo img{height:22px}
+.hr{display:flex;align-items:center;gap:4px;margin-left:auto}
+button,.btn{background:var(--red);color:#fff;border:0;padding:5px 10px;font-weight:700;cursor:pointer;font-size:12px;white-space:nowrap;text-decoration:none;display:inline-block;font-family:inherit}
+button.ghost,button.ic{background:var(--gh);color:#fff}
+.btn.s{background:var(--txt);color:var(--bg)}
+#who{font-size:12px;color:var(--mut);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-hide{transform:translateY(-100%)}
+.chk{height:8px;background:repeating-linear-gradient(90deg,var(--txt) 0 12px,var(--bg) 12px 24px)}
+main{max-width:1100px;margin:auto;padding:20px 16px 40px}
+h2{font-size:19px;letter-spacing:2px;border-left:8px solid var(--red);padding-left:12px;margin:34px 0 12px;font-style:italic}
+.card{background:var(--card);border:1px solid var(--line);padding:16px}
+.hero{border-left:8px solid var(--red)}
+.hero small{color:var(--red);font-weight:800;letter-spacing:2px}
+.hero h1{font-size:clamp(24px,6vw,42px);font-style:italic;font-weight:900;line-height:1.15}
+.hero .sub{color:var(--mut);margin-top:6px}
+.cd{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.cd div{background:var(--hd);color:var(--txt);border:1px solid var(--line);border-top:4px solid var(--red);padding:8px 14px;text-align:center;min-width:64px}
+.cd b{font-size:26px;display:block}.cd small{color:var(--mut)}
+.mut{color:var(--mut);font-size:13px}
+.tbar{display:flex;gap:6px;margin-bottom:10px}
+select{flex:1;min-width:0;background:var(--card);color:var(--txt);border:1px solid var(--line);padding:8px;font-size:14px}
+.tbar button{padding:8px 14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+svg.track{width:100%;max-height:240px;display:block}
+.time{font-size:30px;font-weight:900;color:var(--red);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips span{border:1px solid var(--line);padding:2px 8px;font-size:12px}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{background:var(--gh);padding:8px 14px;font-size:13px}
+.tabs button.on{background:var(--red)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--mut);font-weight:600;font-size:12px;border-bottom:2px solid var(--red);padding:6px 8px;white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:nth-child(2) td:first-child,tr:nth-child(2) td b{color:var(--red)}
+td.p{font-weight:900;width:36px}td.pt{font-weight:800}
+td small{color:var(--mut)}
+.sess{display:flex;justify-content:space-between;gap:8px;padding:9px 12px;margin-bottom:6px;flex-wrap:wrap;border-left:6px solid var(--line);background:var(--bg2)}
+.sess.r{border-color:var(--red)}.sess.next{border-color:var(--red);background:var(--hd)}
+.sess.past{opacity:.5}.sess .rl{color:var(--red);font-weight:700;margin-left:8px}.sess .n{font-weight:700}.sess .t{color:var(--mut);font-variant-numeric:tabular-nums}
+.gal{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}
+.gal figure{flex:none;width:min(400px,82%);scroll-snap-align:start;position:relative;aspect-ratio:16/9;background:var(--bg2);overflow:hidden;border-bottom:4px solid var(--red)}
+.gal img{width:100%;height:100%;object-fit:cover;display:block}
+.gal figcaption small{display:block;font-weight:400;opacity:.8;margin-top:2px}.gal figcaption{position:absolute;left:0;right:0;bottom:0;padding:24px 10px 8px;background:linear-gradient(transparent,#000d);color:#fff;font-size:13px;font-weight:600}
+.live{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.live a{text-decoration:none;padding:18px;display:block;color:#fff;background:var(--red);border:2px solid var(--red);transition:.2s}
+.live a:hover{background:#000}
+.live b{font-size:18px;display:block}.live span{opacity:.85;font-size:13px}
+details.n{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--red);margin-bottom:8px}
+details.n summary{padding:12px 14px;cursor:pointer;font-weight:700;list-style:none;display:flex;gap:8px;justify-content:space-between;align-items:flex-start}
+details.n summary::-webkit-details-marker{display:none}
+details.n summary::after{content:"＋";color:var(--red);font-weight:900;flex:none}
+details.n[open] summary::after{content:"－"}
+details.n .bd{padding:0 14px 14px;font-size:14px;color:var(--txt);border-top:1px solid var(--line);padding-top:10px}
+details.n .bd .pp{display:block;margin-bottom:10px;line-height:1.7}details.n .bd .pp.o{color:var(--mut)}.sbar{display:flex;gap:6px;margin-bottom:8px}
+details.n .bd small{display:block;color:var(--mut);margin-top:8px}
+details.n .bd a{color:var(--red);font-weight:700;text-decoration:none;display:inline-block;margin-top:8px}
+textarea,input{width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--txt);padding:10px;font-size:15px;font-family:inherit}
+.msg{padding:12px 0;border-bottom:1px solid var(--line)}.msg small{color:var(--mut)}.msg b{color:var(--red)}
+.modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.on{display:flex}.modal .card{width:100%;max-width:380px;border-top:5px solid var(--red)}
+.modal input{margin:8px 0}.err{color:var(--red);font-size:13px;min-height:18px}
+footer{text-align:center;padding:24px;color:var(--mut);background:var(--hd);border-top:3px solid var(--red)}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.live{grid-template-columns:1fr}}
+@media(max-width:640px){
+ header{padding:5px 8px;gap:4px}.logo{font-size:14px;gap:5px}.logo img{height:18px}
+ #who{display:none}button,.btn{padding:5px 7px;font-size:11px}
+ main{padding:12px 10px 30px}h2{font-size:16px;margin:24px 0 10px;padding-left:9px;border-left-width:6px}
+ .card{padding:12px}.hero h1{font-size:23px}
+ .cd{gap:6px}.cd div{min-width:0;flex:1;padding:6px 4px}.cd b{font-size:21px}
+ select{font-size:16px}.tbar button{padding:9px 12px}.time{font-size:27px}
+ .tabs button{flex:1;padding:8px 4px;font-size:12px}table{font-size:13px}
+ .sess{padding:8px 10px;font-size:14px}.gal figure{width:86%}textarea,input{font-size:16px}
+}
+@media(max-width:360px){.logo{font-size:13px}.logo img{height:16px}button,.btn{padding:5px 5px;font-size:10px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><img src="data:image/png;base64,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" alt="F1">观赛网</div>
+  <div class="hr">
+    <a class="btn s" href="https://heyan9.github.io" target="_blank" rel="noopener">何岩搜索站</a>
+    <button class="ic" id="bTheme" title="切换日间/夜间模式">☀️</button>
+    <span id="who"></span>
+    <button class="ghost" id="bLogin">登录</button><button id="bReg">注册</button><button class="ghost" id="bOut" style="display:none">退出</button>
+  </div>
+</header>
+<div class="chk"></div>
+
+<main>
+<section class="hero card">
+  <small>NEXT GRAND PRIX · 下一站</small>
+  <h1 id="raceName">加载中…</h1>
+  <div class="sub" id="raceSub"></div>
+  <div class="cd" id="cd"></div>
+</section>
+
+<h2>赛道</h2>
+<div class="tbar">
+  <button class="ghost" id="tp">◀</button>
+  <select id="trSel"></select>
+  <button class="ghost" id="tn">▶</button>
+</div>
+<div class="grid">
+  <div class="card"><svg class="track" id="svg" viewBox="0 0 800 520"></svg>
+    <div class="mut" id="trNote"></div></div>
+  <div class="card">
+    <div class="mut">本赛道排位赛最快圈速（杆位纪录）</div>
+    <div style="font-size:18px;font-weight:800;margin-top:6px" id="pn">加载中…</div>
+    <div class="mut" id="py"></div>
+    <div class="time" id="pt">--:--.---</div>
+    <div class="chips" id="info"></div>
+    <div class="mut" style="margin-top:10px">弯角</div><div id="clist" style="font-size:12px"></div>
+  </div>
+</div>
+
+<h2>赛程时间 · 本地时间</h2>
+<div class="card" id="sched">加载中…</div>
+
+<h2 id="stT">赛季积分榜</h2>
+<div class="sbar"><select id="seaSel"></select></div>
+<div class="tabs"><button class="on" data-k="d">车手积分</button><button data-k="c">车队积分</button><button data-k="w">分站冠军</button></div>
+<div class="card tw" id="stB">加载中…</div>
+
+<h2>赛场图片</h2>
+<div class="gal" id="gal"><div class="mut">加载中…</div></div>
+
+<h2>直播间</h2>
+<div class="live">
+  <a href="https://live.bilibili.com/23954427?live_from=84002&spm_id_from=333.337.0.0" target="_blank" rel="noopener"><b>🎙 解说 · 玛莎拉车</b><span>Bilibili 直播间</span></a>
+  <a href="https://sports.qq.com/kbsweb/#100360" target="_blank" rel="noopener"><b>📺 腾讯体育 F1 频道</b><span>腾讯体育</span></a>
+  <a href="https://www.yangshipin.cn/search/result?query=%E4%B8%96%E7%95%8C%E4%B8%80%E7%BA%A7%E6%96%B9%E7%A8%8B%E5%BC%8F%E8%B5%9B%E8%BD%A6" target="_blank" rel="noopener"><b>📡 央视频 F1 频道</b><span>央视频</span></a>
+</div>
+
+<h2>最新资讯 · 点击展开</h2>
+<div id="news"><div class="mut">加载中…</div></div>
+
+<h2>留言板</h2>
+<div class="card">
+  <textarea id="mt" rows="3" maxlength="300" placeholder="登录后即可留言…"></textarea>
+  <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center"><span class="err" id="me"></span><button id="mb">发表留言</button></div>
+  <div id="ml" style="margin-top:10px"></div>
+</div>
+</main>
+<footer>© F1观赛网 · 何岩制作</footer>
+
+<div class="modal" id="md"><div class="card">
+  <h3 id="mtit" style="margin-bottom:6px">登录</h3>
+  <input id="em" type="email" placeholder="邮箱"><input id="pw" type="password" placeholder="密码（至少6位）">
+  <div class="err" id="ae"></div>
+  <div style="display:flex;gap:8px;margin-top:6px"><button id="ok">确定</button><button class="ghost" id="cl">取消</button></div>
+  <button class="ghost" id="qq" style="width:100%;margin-top:12px;padding:10px;font-size:14px">🐧 使用 QQ 账号登录</button>
+</div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},
+  gj(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},sj(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+async function J(u,ms=8000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
+  try{const r=await fetch(u,{signal:c.signal});if(!r.ok)throw 0;return await r.json()}finally{clearTimeout(t)}}
+
+/* 主题：默认夜间 */
+function setTheme(t){document.documentElement.dataset.theme=t;$('bTheme').textContent=t==='dark'?'☀️':'🌙';LS.set('theme',t)}
+setTheme(LS.get('theme')==='light'?'light':'dark');
+$('bTheme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+
+/* 赛道清单 */
+const TR=[
+{id:'albert_park',zh:'澳大利亚 · 墨尔本阿尔伯特公园',mv:10,g:'albert park',len:5.278,t:14},
+{id:'shanghai',zh:'中国 · 上海国际赛车场',mv:49,g:'shanghai',len:5.451,t:16},
+{id:'suzuka',zh:'日本 · 铃鹿',mv:46,g:'suzuka',len:5.807,t:18},
+{id:'bahrain',zh:'巴林 · 萨基尔',mv:63,g:'bahrain',len:5.412,t:15},
+{id:'jeddah',zh:'沙特 · 吉达滨海赛道',mv:149,g:'jeddah',len:6.174,t:27},
+{id:'miami',zh:'美国 · 迈阿密',mv:151,g:'miami',len:5.412,t:19},
+{id:'villeneuve',zh:'加拿大 · 蒙特利尔',mv:23,g:'villeneuve',len:4.361,t:14},
+{id:'monaco',zh:'摩纳哥 · 蒙特卡洛',mv:22,g:'monaco',len:3.337,t:19},
+{id:'catalunya',zh:'西班牙 · 巴塞罗那',mv:15,g:'catalunya',len:4.657,t:14},
+{id:'red_bull_ring',zh:'奥地利 · 红牛环',mv:19,g:'red bull ring',len:4.318,t:10},
+{id:'silverstone',zh:'英国 · 银石',mv:2,g:'silverstone',len:5.891,t:18},
+{id:'spa',zh:'比利时 · 斯帕',mv:7,g:'francorchamps',len:7.004,t:19},
+{id:'hungaroring',zh:'匈牙利 · 匈格罗宁',mv:4,g:'hungaroring',len:4.381,t:14},
+{id:'zandvoort',zh:'荷兰 · 赞德沃特',mv:55,g:'zandvoort',len:4.259,t:14},
+{id:'monza',zh:'意大利 · 蒙扎',mv:39,g:'monza',len:5.793,t:11},
+{id:'madring',zh:'西班牙 · 马德里（新赛道）',mv:null,g:'madring',len:5.47,t:22},
+{id:'baku',zh:'阿塞拜疆 · 巴库',mv:144,g:'baku',len:6.003,t:20},
+{id:'marina_bay',zh:'新加坡 · 滨海湾',mv:61,g:'marina bay',len:4.940,t:19},
+{id:'americas',zh:'美国 · 奥斯汀美洲赛道',mv:9,g:'americas',len:5.513,t:20},
+{id:'rodriguez',zh:'墨西哥 · 墨西哥城',mv:65,g:'rodriguez',len:4.304,t:17},
+{id:'interlagos',zh:'巴西 · 圣保罗',mv:14,g:'carlos pace',len:4.309,t:15},
+{id:'vegas',zh:'美国 · 拉斯维加斯',mv:152,g:'las vegas',len:6.201,t:17},
+{id:'losail',zh:'卡塔尔 · 卢赛尔',mv:150,g:'losail',len:5.419,t:16},
+{id:'yas_marina',zh:'阿布扎比 · 亚斯码头',mv:70,g:'yas marina',len:5.281,t:16}
+];
+const CN={
+americas:{1:'上坡发卡',11:'长直道前发卡',20:'末弯'},
+spa:{1:'La Source',2:'Eau Rouge',3:'Raidillon',18:'Bus Stop'},
+monaco:{1:'Sainte Dévote',4:'Casino',6:'Grand Hotel 发卡',18:'Rascasse'},
+monza:{1:'Rettifilo',3:'Curva Grande',6:'Lesmo 1',7:'Lesmo 2',8:'Ascari',11:'Parabolica'},
+suzuka:{1:'First Curve',15:'130R',16:'Casio Triangle'},
+interlagos:{1:'Senna S',4:'Descida do Lago'},
+zandvoort:{1:'Tarzan',3:'Hugenholtz',14:'Arie Luyendyk'},
+villeneuve:{10:'L’Épingle 发卡',14:'冠军之墙'},
+shanghai:{1:'蜗牛弯',14:'发卡'}
+};
+const ZH_DRV={Verstappen:'维斯塔潘',Hamilton:'汉密尔顿',Norris:'诺里斯',Piastri:'皮亚斯特里',Leclerc:'勒克莱尔',Russell:'拉塞尔',Bottas:'博塔斯',Vettel:'维特尔',Sainz:'塞恩斯',Alonso:'阿隆索',Pérez:'佩雷兹',Perez:'佩雷兹',Rosberg:'罗斯伯格',Räikkönen:'莱科宁',Massa:'马萨',Button:'巴顿',Webber:'韦伯',Ricciardo:'里卡多',Schumacher:'舒马赫',Antonelli:'安东内利',Hülkenberg:'霍肯伯格',Hadjar:'哈贾尔',Lawson:'劳森',Lindblad:'林德布拉德',Stroll:'斯特罗尔',Gasly:'加斯利',Colapinto:'科拉平托',Ocon:'奥康',Bearman:'贝尔曼',Albon:'阿尔本',Bortoleto:'博尔托莱托',Tsunoda:'角田裕毅'};
+const ZH_TEAM=[['Red Bull','红牛'],['Racing Bulls','红牛二队'],['RB F1','红牛二队'],['Ferrari','法拉利'],['Mercedes','梅赛德斯'],['McLaren','迈凯伦'],['Aston Martin','阿斯顿马丁'],['Alpine','阿尔派'],['Williams','威廉姆斯'],['Haas','哈斯'],['Sauber','索伯'],['Audi','奥迪'],['Cadillac','凯迪拉克']];
+const zt=n=>{const f=ZH_TEAM.find(x=>(n||'').includes(x[0]));return f?f[1]:''};
+const dn=d=>`<b>${esc(d.familyName)}</b> ${ZH_DRV[d.familyName]||''} <small>${esc(d.givenName)}</small>`;
+
+/* 赛道绘制 */
+const norm=s=>(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const mem={};
+function slim(sh){const n=sh.pts.length,st=Math.max(1,Math.floor(n/180));return{src:sh.src,cor:sh.cor,pts:sh.pts.filter((_,i)=>i%st===0).map(p=>[+p[0].toFixed(2),+p[1].toFixed(2)])}}
+function fit(pts){
+  let x0=1e18,x1=-1e18,y0=1e18,y1=-1e18;
+  pts.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])});
+  const W=800,H=520,P=70,s=Math.min((W-2*P)/(x1-x0||1),(H-2*P)/(y1-y0||1));
+  const ox=(W-(x1-x0)*s)/2,oy=(H-(y1-y0)*s)/2;
+  return p=>[ox+(p[0]-x0)*s,oy+(p[1]-y0)*s];
+}
+async function getMV(t){
+  if(!t.mv)throw 0;
+  const d=await J(`https://api.multiviewer.app/api/v1/circuits/${t.mv}/${new Date().getFullYear()}`,7000);
+  const a=(d.rotation||0)*Math.PI/180,c=Math.cos(a),s=Math.sin(a),rot=(x,y)=>[x*c-y*s,-(x*s+y*c)];
+  return slim({src:'MultiViewer',pts:d.x.map((x,i)=>rot(x,d.y[i])),cor:(d.corners||[]).map(k=>({n:k.number,p:rot(k.trackPosition.x,k.trackPosition.y)}))});
+}
+async function getGeo(t){
+  if(!mem.geo)mem.geo=J('https://cdn.jsdelivr.net/gh/bacinger/f1-circuits@master/f1-circuits.geojson',12000);
+  const g=await mem.geo;
+  const f=g.features.find(f=>norm((f.properties.Name||'')+' '+(f.properties.Location||'')).includes(t.g));
+  if(!f)throw 0;
+  const co=f.geometry.coordinates,k=Math.cos(co[0][1]*Math.PI/180);
+  return slim({src:'f1-circuits',pts:co.map(c=>[c[0]*k,-c[1]]),cor:[]});
+}
+let tok=0;
+function render(t,sh){
+  const f=fit(sh.pts),P=sh.pts.map(f);
+  const d='M'+P.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L')+'Z';
+  const cx=P.reduce((a,p)=>a+p[0],0)/P.length,cy=P.reduce((a,p)=>a+p[1],0)/P.length;
+  let h=`<path d="${d}" fill="none" style="stroke:var(--txt)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" opacity=".85"/>
+  <circle cx="${P[0][0]}" cy="${P[0][1]}" r="8" fill="#FF1E00"/>`;
+  const names=CN[t.id]||{},list=[];
+  sh.cor.forEach(k=>{
+    const q=f(k.p),dx=q[0]-cx,dy=q[1]-cy,L=Math.hypot(dx,dy)||1,lx=q[0]+dx/L*20,ly=q[1]+dy/L*20,nm=names[k.n];
+    h+=`<circle cx="${lx}" cy="${ly}" r="9" fill="#FF1E00"/><text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${k.n}</text>`;
+    if(nm)h+=`<text x="${lx+(dx>=0?13:-13)}" y="${ly+4}" text-anchor="${dx>=0?'start':'end'}" font-size="13" font-weight="700" style="fill:var(--mut)">${esc(nm)}</text>`;
+    list.push(`T${k.n}${nm?' '+nm:''}`);
+  });
+  $('svg').innerHTML=h;
+  $('trNote').textContent='示意图 · 红点为起终点'+(sh.cor.length?'':'（此数据源无弯角编号）');
+  $('clist').innerHTML=list.length?list.map(esc).join(' · '):'暂无';
+}
+async function drawTrack(t){
+  const my=++tok;let rank=0;
+  const show=(sh,r)=>{if(my!==tok||r<=rank)return;rank=r;render(t,sh)};
+  const rk=sh=>sh.src==='MultiViewer'?3:1;
+  const c=LS.gj('sh_'+t.id);
+  if(c){show(c,rk(c));if(rk(c)===3)return}
+  else $('svg').innerHTML='<text x="400" y="260" style="fill:var(--mut)" text-anchor="middle" font-size="18">加载中…</text>';
+  const save=sh=>{LS.sj('sh_'+t.id,sh);return sh};
+  const a=getMV(t).then(sh=>{save(sh);show(sh,3)});
+  const b=getGeo(t).then(sh=>{if(rank<1)save(sh);show(sh,1)});
+  await Promise.allSettled([a,b]);
+  if(my===tok&&!rank){$('svg').innerHTML='<text x="400" y="260" style="fill:var(--mut)" text-anchor="middle" font-size="18">暂无该赛道轨迹数据</text>';$('trNote').textContent='';$('clist').textContent='暂无'}
+}
+async function drawRecord(t){
+  $('info').innerHTML=`<span>${t.len} km</span><span>${t.t} 弯</span><span>${esc(t.zh)}</span>`;
+  const k='rec_'+t.id;let b=LS.gj(k);
+  const paint=b=>{
+    if(!b){$('pn').textContent='暂无数据';$('py').textContent='';$('pt').textContent='--:--.---';return}
+    $('pn').innerHTML=dn(b.drv);$('py').textContent=b.year+' 赛季（2006年以来的杆位最快圈）';$('pt').textContent=b.s};
+  if(b)paint(b);else{$('pn').textContent='加载中…';$('py').textContent='';$('pt').textContent='--:--.---'}
+  if(b)return;
+  try{
+    const d=await J(`https://api.jolpi.ca/ergast/f1/circuits/${t.id}/qualifying/1.json?limit=100`);
+    b=null;
+    d.MRData.RaceTable.Races.forEach(r=>{const q=r.QualifyingResults[0];if(!q)return;
+      [q.Q1,q.Q2,q.Q3].forEach(s=>{const m=s&&s.match(/^(\d+):(\d+\.\d+)$/);if(!m)return;
+        const ms=(+m[1]*60+ +m[2])*1000;if(!b||ms<b.ms)b={ms,s,year:r.season,drv:{givenName:q.Driver.givenName,familyName:q.Driver.familyName}}})});
+    if(b)LS.sj(k,b);
+    if(TR[cur]===t)paint(b);
+  }catch(e){if(TR[cur]===t)$('pn').textContent='圈速数据加载失败'}
+}
+let cur=Math.min(Math.max(+LS.get('trk')||18,0),TR.length-1),manual=false;
+function selTrack(i,auto){cur=(i+TR.length)%TR.length;if(!auto){manual=true;LS.set('trk',cur)}$('trSel').value=cur;drawTrack(TR[cur]);drawRecord(TR[cur])}
+$('trSel').innerHTML=TR.map((t,i)=>`<option value="${i}">${i+1}. ${t.zh}</option>`).join('');
+$('trSel').onchange=e=>selTrack(+e.target.value);
+$('tp').onclick=()=>selTrack(cur-1);$('tn').onclick=()=>selTrack(cur+1);
+selTrack(cur,true); // 立即绘制，不等其它请求
+
+/* 赛程 */
+const NAMES={FirstPractice:'练习赛 FP1',SecondPractice:'练习赛 FP2',ThirdPractice:'练习赛 FP3',SprintQualifying:'冲刺排位赛',Sprint:'冲刺赛',Qualifying:'排位赛'};
+const FD={year:'numeric',month:'long',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false};
+const fmt=d=>d.toLocaleString('zh-CN',FD);
+const fday=s=>new Date(s+'T12:00:00').toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+const dt=o=>o&&new Date(o.date+'T'+(o.time||'12:00:00Z'));
+let target=null,SESS=[];
+async function loadSched(){
+  let r;
+  try{r=(await J('https://api.jolpi.ca/ergast/f1/current/next.json')).MRData.RaceTable.Races[0]}catch(e){}
+  if(!r)r={raceName:"United States Grand Prix",date:"2026-10-18",time:"20:00:00Z",Circuit:{circuitId:'americas',circuitName:"Circuit of the Americas",Location:{locality:"Austin",country:"USA"}},
+    FirstPractice:{date:"2026-10-16",time:"17:30:00Z"},SecondPractice:{date:"2026-10-16",time:"21:00:00Z"},Qualifying:{date:"2026-10-17",time:"21:00:00Z"}};
+  const ti=TR.findIndex(t=>t.id===r.Circuit.circuitId);
+  $('raceName').textContent=(ti>=0?TR[ti].zh.split(' · ')[0]+' · ':'')+r.raceName;
+  $('raceSub').textContent=r.Circuit.circuitName+' · '+r.Circuit.Location.locality+', '+r.Circuit.Location.country;
+  SESS=[];
+  Object.keys(NAMES).forEach(k=>{if(r[k])SESS.push([NAMES[k],dt(r[k]),''])});
+  SESS.push(['正赛',dt(r),'r']);
+  $('raceSub').textContent+=' · '+fmt(dt(r));
+  drawSess();
+  if(ti>=0&&!manual&&ti!==cur)selTrack(ti,true);
+  tick();
+}
+function rel(d){const s=(d-new Date())/1000;if(s<-7200)return'已结束';if(s<=0)return'进行中';const D=Math.floor(s/86400),H=Math.floor(s%86400/3600),M=Math.floor(s%3600/60);return D?`${D}天${H}小时后`:H?`${H}小时${M}分后`:`${M}分钟后`}
+function drawSess(){
+  const now=new Date(),nx=SESS.find(x=>x[1]-now>-7200000);target=nx?nx[1]:null;
+  const o=-new Date().getTimezoneOffset()/60;
+  $('sched').innerHTML=SESS.map(x=>`<div class="sess ${x[2]} ${x===nx?'next':''} ${x[1]-now<-7200000?'past':''}"><span class="n">${x[0]}${x===nx?' ← 下一场':''}</span><span class="t">${fmt(x[1])}<span class="rl">${rel(x[1])}</span></span></div>`).join('')+`<div class="mut">时间已按你的本地时区显示：${Intl.DateTimeFormat().resolvedOptions().timeZone}（UTC${o>=0?'+':''}${o}）</div>`;
+}
+function tick(){
+  if(SESS.length&&new Date().getSeconds()===0)drawSess();
+  if(!target){$('cd').innerHTML='<div><b>—</b><small>暂无</small></div>';return}
+  const s=Math.max(0,Math.floor((target-new Date())/1000));
+  $('cd').innerHTML=[[Math.floor(s/86400),'天'],[Math.floor(s%86400/3600),'时'],[Math.floor(s%3600/60),'分'],[s%60,'秒']].map(x=>`<div><b>${String(x[0]).padStart(2,'0')}</b><small>${x[1]}</small></div>`).join('');
+}
+setInterval(tick,1000);loadSched();setInterval(loadSched,600000);
+
+/* 积分榜（可选赛季） */
+const ST={d:null,c:null,w:null,t:''};let stTab='d',season=LS.get('season')||'current';
+const YR=new Date().getFullYear();
+$('seaSel').innerHTML='<option value="current">'+YR+' 赛季（当前 · 实时更新）</option>'+Array.from({length:YR-1950},(_,i)=>YR-1-i).map(y=>`<option value="${y}">${y} 赛季</option>`).join('');
+$('seaSel').value=season;
+const circZh=id=>{const t=TR.find(x=>x.id===id);return t?t.zh:''};
+function stRender(){
+  $('stT').textContent=ST.t||'赛季积分榜';
+  const b=$('stB'),v=ST[stTab];
+  if(!v){b.textContent='加载中…';return}
+  if(!v.length){b.textContent=stTab==='c'?'该赛季没有车队积分榜或尚无数据':'该赛季暂无数据（可能尚未开赛）';return}
+  if(stTab==='d')b.innerHTML='<table><tr><th>名次</th><th>车手</th><th>车队</th><th>胜场</th><th>积分</th></tr>'+v.map(x=>`<tr><td class="p">${x.position}</td><td>${dn(x.Driver)}</td><td>${esc(zt(x.Constructors[0].name)||x.Constructors[0].name)}</td><td>${x.wins}</td><td class="pt">${x.points}</td></tr>`).join('')+'</table>';
+  else if(stTab==='c')b.innerHTML='<table><tr><th>名次</th><th>车队</th><th>胜场</th><th>积分</th></tr>'+v.map(x=>`<tr><td class="p">${x.position}</td><td><b>${esc(zt(x.Constructor.name)||x.Constructor.name)}</b> <small>${esc(x.Constructor.name)}</small></td><td>${x.wins}</td><td class="pt">${x.points}</td></tr>`).join('')+'</table>';
+  else b.innerHTML='<table><tr><th>站次</th><th>大奖赛</th><th>冠军车手</th><th>车队</th><th>日期</th></tr>'+v.map(r=>{const w=r.Results[0];return `<tr><td class="p">${r.round}</td><td><b>${esc(circZh(r.Circuit.circuitId)||r.Circuit.Location.country)}</b> <small>${esc(r.raceName)}</small></td><td>${dn(w.Driver)}</td><td>${esc(zt(w.Constructor.name)||w.Constructor.name)}</td><td>${esc(fday(r.date))}</td></tr>`}).join('')+'</table>';
+}
+async function loadStand(){
+  const my=season,K=k=>`st2_${my}_${k}`,base='https://api.jolpi.ca/ergast/f1/'+my;
+  ['d','c','w','t'].forEach(k=>ST[k]=LS.gj(K(k))||(k==='t'?'':null));stRender();
+  const put=(k,v)=>{LS.sj(K(k),v);if(my===season)ST[k]=v};
+  await Promise.allSettled([
+    J(base+'/driverstandings.json').then(j=>{const l=j.MRData.StandingsTable.StandingsLists[0],s=j.MRData.StandingsTable.season||(my==='current'?YR:my);
+      put('d',l?l.DriverStandings:[]);put('t',s+' 赛季积分榜'+(l?' · 第'+l.round+'站后':''))}),
+    J(base+'/constructorstandings.json').then(j=>{const l=j.MRData.StandingsTable.StandingsLists[0];put('c',l?l.ConstructorStandings:[])}),
+    J(base+'/results/1.json?limit=100',12000).then(j=>put('w',j.MRData.RaceTable.Races))
+  ]);
+  if(my===season)stRender();
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{stTab=b.dataset.k;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));stRender()});
+$('seaSel').onchange=e=>{season=e.target.value;LS.set('season',season);loadStand()};
+loadStand();setInterval(()=>{if(season==='current')loadStand()},300000);
+
+/* 翻译 */
+const tcache=LS.gj('tr')||{};
+async function tr(text){
+  if(!text)return'';
+  if(tcache[text])return tcache[text];
+  let out='';
+  try{const j=await J('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q='+encodeURIComponent(text));out=j[0].map(x=>x[0]).join('')}
+  catch(e){try{const j=await J('https://api.mymemory.translated.net/get?langpair=en|zh-CN&q='+encodeURIComponent(text.slice(0,450)));out=j.responseData.translatedText}catch(e2){}}
+  if(out&&text.length<200){tcache[text]=out;const ks=Object.keys(tcache);if(ks.length>120)delete tcache[ks[0]];LS.sj('tr',tcache)}
+  return out||text;
+}
+async function trLong(s){
+  const parts=s.match(/[^.!?]+[.!?]*\s*/g)||[s],ch=[];let c='';
+  parts.forEach(p=>{if((c+p).length>800){if(c)ch.push(c);c=p}else c+=p});if(c)ch.push(c);
+  return(await Promise.all(ch.map(tr))).join('');
+}
+
+/* 资讯 */
+const fullCache={};
+async function fullText(u){
+  if(fullCache[u]!==undefined)return fullCache[u];
+  let out='';
+  try{
+    const c=new AbortController(),tm=setTimeout(()=>c.abort(),20000);
+    const r=await fetch('https://r.jina.ai/'+u,{signal:c.signal});clearTimeout(tm);
+    if(!r.ok)throw 0;let s=await r.text();
+    const i=s.indexOf('Markdown Content:');if(i>=0)s=s.slice(i+17);
+    s=s.replace(/!\[[^\]]*\]\([^)]*\)/g,'').replace(/\[([^\]]*)\]\([^)]*\)/g,'$1').replace(/^#+\s*/gm,'').replace(/[*_`>]+/g,'');
+    out=s.split(/\n+/).map(x=>x.trim()).filter(x=>x.length>60).slice(0,40).join('\n').slice(0,9000);
+  }catch(e){}
+  return fullCache[u]=out;
+}
+const FEEDS=['https://www.motorsport.com/rss/f1/news/','https://www.autosport.com/rss/f1/news/'];
+const strip=h=>(h||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#?[a-z0-9]+;/gi,' ').replace(/\s+/g,' ').trim();
+function imgOf(i){
+  if(i.thumbnail)return i.thumbnail;
+  if(i.enclosure&&i.enclosure.link&&/\.(jpe?g|png|webp)|image/i.test(i.enclosure.link+(i.enclosure.type||'')))return i.enclosure.link;
+  const m=((i.content||'')+(i.description||'')).match(/<img[^>]+src=["']([^"']+)/i);return m?m[1]:'';
+}
+async function loadNews(){
+  let items=[];
+  await Promise.all(FEEDS.map(async f=>{try{
+    const j=await J('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(f),10000);
+    (j.items||[]).forEach(i=>items.push({t:i.title,l:i.link,body:strip(i.content||i.description).slice(0,1800),img:imgOf(i),pd:i.pubDate,ts:new Date((i.pubDate||'').replace(' ','T')+'Z').getTime()||0}));
+  }catch(e){}}));
+  const seen={};items=items.filter(i=>!seen[i.t]&&(seen[i.t]=1)).sort((a,b)=>b.ts-a.ts).slice(0,12);
+  if(!items.length){$('news').innerHTML='<div class="card"><a href="https://www.formula1.com/en/latest" target="_blank" rel="noopener">资讯加载失败，点击前往F1官网 →</a></div>';$('gal').innerHTML='';return}
+  const open={};document.querySelectorAll('#news details[open]').forEach(d=>open[d.dataset.l]=1);
+  $('news').innerHTML=items.map((i,k)=>`<details class="n" data-k="${k}" data-l="${esc(i.l)}"${open[i.l]?' open':''}><summary><span id="nt${k}">${esc(i.t)}</span></summary><div class="bd"><div id="nb${k}">展开后自动加载全文并翻译…</div><small>发布时间：${i.ts?fmt(new Date(i.ts)):'未知'} · 原标题：${esc(i.t)}</small><a href="${esc(i.l)}" target="_blank" rel="noopener" style="font-weight:400;font-size:12px;color:var(--mut)">原文页面</a></div></details>`).join('');
+  const withImg=items.filter(i=>i.img);
+  $('gal').innerHTML=withImg.map((i,k)=>`<figure><img src="${esc(i.img)}" referrerpolicy="no-referrer" loading="lazy" onerror="this.parentNode.remove()"><figcaption><span id="gc${k}">${esc(i.t)}</span><small>${i.ts?fmt(new Date(i.ts)):''}</small></figcaption></figure>`).join('')||'<div class="mut">暂无图片</div>';
+  document.querySelectorAll('#news details').forEach(d=>{
+    const k=+d.dataset.k,it=items[k];let done=0;
+    const go=async()=>{
+      if(done)return;done=1;const el=$('nb'+k);el.innerHTML='<span class="pp o">正在加载全文…</span>';
+      let txt=await fullText(it.l);if(!txt||txt.length<(it.body||'').length)txt=it.body||it.t;
+      const ps=txt.split('\n').map(x=>x.trim()).filter(Boolean);
+      el.innerHTML=ps.map((p,i)=>`<span class="pp o" id="p${k}_${i}">${esc(p)}</span>`).join('');
+      for(let i=0;i<ps.length;i+=4)await Promise.all(ps.slice(i,i+4).map(async(p,j)=>{const z=await trLong(p),e=$(`p${k}_${i+j}`);if(e){e.textContent=z;e.classList.remove('o')}}));
+    };
+    d.addEventListener('toggle',()=>{if(d.open)go()});if(d.open)go();
+  });
+  items.forEach(async(i,k)=>{const t=await tr(i.t);if($('nt'+k))$('nt'+k).textContent=t;const g=withImg.indexOf(i);if(g>=0&&$('gc'+g))$('gc'+g).textContent=t});
+}
+loadNews();setInterval(loadNews,900000);
+setInterval(()=>{const g=$('gal');if(!g||g.matches(':hover')||g.scrollWidth<=g.clientWidth)return;
+  const w=g.firstElementChild?g.firstElementChild.offsetWidth+12:300;
+  g.scrollLeft+w+g.clientWidth>=g.scrollWidth?g.scrollTo({left:0,behavior:'smooth'}):g.scrollBy({left:w,behavior:'smooth'})},4000);
+
+/* Supabase */
+const SB_URL='https://rxesvdcrgybakkuemlxx.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4ZXN2ZGNyZ3liYWtrdWVtbHh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzMjU0MjAsImV4cCI6MjA4MDkwMTQyMH0.bihuGXXPXPzC2CNojbvkqKNwyV6wGu_ZAQNihP2vYc0';
+const QQ_APPID=''; // ← 在 QQ互联(connect.qq.com) 申请网站应用后，把 APP ID 填在这里
+const QQH=location.hash; // QQ 回跳时 token 在 # 后面，先取出再清掉，避免被 Supabase 误解析
+if(/state=f1qq/.test(QQH))history.replaceState(null,'',location.pathname+location.search);
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const dname=u=>u?(u.user_metadata&&u.user_metadata.nickname)||u.email||'用户':'';
+let user=null,mode='login';
+function ui(){$('who').textContent=dname(user);$('bLogin').style.display=$('bReg').style.display=user?'none':'';$('bOut').style.display=user?'':'none';$('mt').placeholder=user?'说点什么吧…':'登录后即可留言…'}
+sb.auth.getSession().then(({data})=>{user=data.session?.user||null;ui()});
+sb.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;ui()});
+$('qq').onclick=()=>{
+  if(!QQ_APPID){$('ae').textContent='QQ 登录尚未配置：站长需先填写 QQ互联 AppID 并部署云函数';return}
+  location.href='https://graph.qq.com/oauth2.0/authorize?response_type=token&client_id='+QQ_APPID+'&redirect_uri='+encodeURIComponent(location.origin+location.pathname)+'&state=f1qq&scope=get_user_info';
+};
+(async()=>{
+  const m=QQH.match(/access_token=([^&]+)/);if(!m||!/state=f1qq/.test(QQH))return;
+  try{
+    const r=await fetch(SB_URL+'/functions/v1/qq-login',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify({access_token:m[1]})});
+    const j=await r.json();if(!j.token_hash)throw new Error(j.error||'云函数未返回登录凭证');
+    const {error}=await sb.auth.verifyOtp({token_hash:j.token_hash,type:'magiclink'});if(error)throw error;
+  }catch(e){alert('QQ 登录失败：'+(e.message||e))}
+})();
+function openM(m){mode=m;$('mtit').textContent=m==='login'?'登录':'注册';$('ae').textContent='';$('md').classList.add('on')}
+$('bLogin').onclick=()=>openM('login');$('bReg').onclick=()=>openM('reg');$('cl').onclick=()=>$('md').classList.remove('on');
+$('bOut').onclick=()=>sb.auth.signOut();
+$('ok').onclick=async()=>{
+  const email=$('em').value.trim(),password=$('pw').value;
+  const r=mode==='login'?await sb.auth.signInWithPassword({email,password}):await sb.auth.signUp({email,password});
+  if(r.error){$('ae').textContent=r.error.message;return}
+  if(mode==='reg'&&!r.data.session){$('ae').textContent='注册成功，请前往邮箱确认后登录';return}
+  $('md').classList.remove('on');
+};
+async function loadMsgs(){
+  const {data,error}=await sb.from('f1_messages').select('*').order('created_at',{ascending:false}).limit(50);
+  if(error){$('ml').innerHTML='<div class="err">留言加载失败：'+esc(error.message)+'</div>';return}
+  $('ml').innerHTML=data.length?data.map(m=>`<div class="msg"><b>${esc(m.user_email||'匿名')}</b> <small>${new Date(m.created_at).toLocaleString('zh-CN')}</small><div>${esc(m.content)}</div></div>`).join(''):'<div class="mut">还没有留言，来抢沙发！</div>';
+}
+$('mb').onclick=async()=>{
+  const t=$('mt').value.trim();$('me').textContent='';
+  if(!user){openM('login');return}
+  if(!t)return;
+  const {error}=await sb.from('f1_messages').insert({content:t,user_email:dname(user),user_id:user.id});
+  if(error){$('me').textContent=error.message;return}
+  $('mt').value='';loadMsgs();
+};
+loadMsgs();setInterval(loadMsgs,30000);
+
+/* 顶栏：下滑自动收起，上滑 / 鼠标移到最上方时显示 */
+(()=>{
+  const h=document.querySelector('header');let last=window.scrollY;
+  const show=()=>h.classList.remove('hdr-hide'),hide=()=>{if(!h.matches(':hover')&&!document.querySelector('.modal.on')&&!h.contains(document.activeElement))h.classList.add('hdr-hide')};
+  addEventListener('scroll',()=>{
+    const y=window.scrollY;
+    if(y<=60||y<last-4)show();
+    else if(y>last+4)hide();
+    last=y;
+  },{passive:true});
+  addEventListener('mousemove',e=>{if(e.clientY<=40)show()},{passive:true});
+  h.addEventListener('mouseenter',show);
+})();
+</script>
+</body>
+</html>
