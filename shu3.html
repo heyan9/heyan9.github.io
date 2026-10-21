@@ -3,17 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>数码评测排行榜</title>
+    <title>数码评测 · 夯到拉排行榜</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --mi-orange: #ff6700; }
-        body { background: #ffffff; color: #333; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+        :root {
+            --bg: #ffffff; --panel: #ffffff; --field: #f3f3f4; --line: #ececee;
+            --text: #222222; --mute: #85878e; --faint: #b4b6bc;
+            --hang: #f0443a; --top: #ff9a1f; --ren: #ffd43b; --normal: #e9e6dc; --la: #8d949e;
+        }
+        html, body { background: var(--bg); color: var(--text); font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+        button { cursor: pointer; }
 
         /* 侧边栏 */
         .sidebar-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         @media (max-width: 768px) {
-            .sidebar-fixed { position: fixed; top: 0; left: 0; z-index: 50; width: 85% !important; height: 100vh; box-shadow: 20px 0 50px rgba(0,0,0,0.1); }
+            .sidebar-fixed { position: fixed; top: 0; left: 0; z-index: 50; width: 88% !important; height: 100vh; box-shadow: 20px 0 50px rgba(0,0,0,0.1); }
             .collapsed { transform: translateX(-100%); }
             .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 40; }
         }
@@ -21,66 +26,92 @@
             .collapsed { width: 0 !important; padding: 0 !important; overflow: hidden; opacity: 0; }
         }
 
-        .list-container { max-width: 900px; margin: 0 auto; }
-        .rank-row { min-height: 64px; border-bottom: 1px solid #f2f2f2; cursor: pointer; }
-        .rank-row:active { background: #fafafa; }
-        @media (max-width: 640px) { .rank-row { min-height: 58px; } }
+        .panel { background: var(--panel); }
+        .inp { background: var(--field); color: var(--text); border: 1px solid transparent; border-radius: 10px; outline: none; width: 100%; font-size: 14px; padding: 11px 12px; }
+        .inp:focus { border-color: #b8bac0; }
+        .inp::placeholder { color: var(--faint); }
+
+        .btn-main { background: #222; color: #fff; font-weight: 800; border-radius: 14px; padding: 13px; width: 100%; }
+        .btn-main:active { transform: scale(.97); }
+        .btn-line { border: 1px solid #dcdde1; color: var(--text); font-weight: 700; border-radius: 14px; padding: 11px; font-size: 13px; }
+        .btn-warn { border: 1px solid #f3c2be; color: #e5453b; font-weight: 700; border-radius: 12px; padding: 4px 10px; font-size: 12px; flex-shrink: 0; }
+        .btn-soft { border: 1px solid #dcdde1; color: #6f7178; font-weight: 700; border-radius: 12px; padding: 4px 10px; font-size: 12px; flex-shrink: 0; }
+        button:disabled { opacity: .45; }
 
         .star-active { color: #ffb400; fill: #ffb400; }
-        .star-inactive { color: #f2f2f2; fill: #f2f2f2; }
+        .star-inactive { color: #e4e5e8; fill: #e4e5e8; }
 
-        .tag-pill { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: #f9f9f9; color: #999; border: 1px solid #eee; white-space: nowrap; }
-        .price-label { color: var(--mi-orange); font-weight: bold; font-size: 12px; }
-
-        input[type=text], input[type=number] { border: 1px solid #e5e7eb; border-radius: 10px; outline: none; }
-        input[type=text]:focus, input[type=number]:focus { border-color: var(--mi-orange); }
-
+        /* 榜单切换 */
         .tabs::-webkit-scrollbar { display: none; }
         .tabs { scrollbar-width: none; }
-        .tab { padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: #f5f5f5; color: #999; flex-shrink: 0; }
-        .tab.on { background: var(--mi-orange); color: #fff; }
+        .tab { padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--field); color: var(--mute); flex-shrink: 0; }
+        .tab.on { background: #222; color: #fff; }
+        .chip { padding: 4px 11px; font-size: 11px; font-weight: 700; border-radius: 8px; flex-shrink: 0; border: 1px solid var(--line); color: var(--mute); }
+        .chip.on { border-color: var(--text); color: var(--text); }
 
-        .toast { position: fixed; left: 50%; bottom: 56px; transform: translateX(-50%); background: rgba(30,30,30,.92); color: #fff; font-size: 13px; padding: 10px 18px; border-radius: 12px; z-index: 100; max-width: 85%; }
+        /* 夯到拉 分档 */
+        .list-container { max-width: 900px; margin: 0 auto; padding: 10px 0 24px; }
+        .band { display: flex; margin-bottom: 8px; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-height: 64px; }
+        .tier-label { width: 78px; flex-shrink: 0; display: flex; justify-content: center; align-items: flex-start; color: #17181a; }
+        .tier-label > div { position: sticky; top: 14px; padding: 10px 4px; text-align: center; }
+        .tier-name { font-weight: 900; line-height: 1.1; }
+        .tier-name.big { font-size: 38px; }
+        .tier-name.mid { font-size: 20px; }
+        .tier-range { font-size: 10px; font-weight: 700; opacity: .7; margin-top: 4px; }
+        @media (max-width: 640px) { .tier-label { width: 62px; } .tier-name.big { font-size: 32px; } .tier-name.mid { font-size: 17px; } }
+
+        .rank-row { display: flex; align-items: center; padding: 9px 12px 9px 10px; border-bottom: 1px solid var(--line); cursor: pointer; min-height: 62px; }
+        .rank-row:last-child { border-bottom: 0; }
+        .rank-row:active { background: #f7f7f8; }
+        .rank-no { width: 26px; text-align: center; font-weight: 900; font-style: italic; color: var(--faint); font-size: 15px; flex-shrink: 0; }
+        .thumb { width: 42px; height: 42px; border-radius: 10px; background: var(--field); overflow: hidden; flex-shrink: 0; margin-left: 4px; }
+        .thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .item-name { font-weight: 800; font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .price-label { color: #ff6700; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+        .tag-pill { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--field); color: var(--mute); white-space: nowrap; }
+        .sub { font-size: 10px; color: var(--faint); }
+        .score { font-size: 25px; font-weight: 900; font-style: italic; line-height: 1; }
+        .score-cap { font-size: 10px; color: var(--faint); margin-top: 3px; }
+        .empty { padding: 20px 14px; font-size: 12px; color: var(--faint); }
+
+        .toast { position: fixed; left: 50%; bottom: 56px; transform: translateX(-50%); background: #222; color: #fff; font-size: 13px; font-weight: 700; padding: 10px 18px; border-radius: 12px; z-index: 100; max-width: 85%; }
         .sheet { animation: sheet-in .22s ease-out; }
         @keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
         @media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
 
+        :focus-visible { outline: 2px solid #222; outline-offset: 2px; }
         [v-cloak] { display: none; }
     </style>
 </head>
-<body class="bg-white">
+<body>
     <div id="app" v-cloak class="flex h-screen overflow-hidden">
 
-        <!-- 侧边栏遮罩 -->
         <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="overlay md:hidden"></div>
 
         <!-- 左侧管理台 -->
-        <aside :class="['sidebar-transition sidebar-fixed w-72 h-full border-r border-gray-100 p-6 flex-shrink-0 bg-white flex flex-col', { 'collapsed': !isSidebarOpen }]">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-lg font-bold flex items-center">
-                    <span class="w-1.5 h-5 bg-[#ff6700] rounded-full mr-2"></span>
-                    管理台
-                </h2>
-                <button @click="isSidebarOpen = false" class="text-gray-400 hover:text-orange-500 text-xs font-bold border px-2 py-1 rounded-lg">收起</button>
+        <aside :class="['sidebar-transition sidebar-fixed w-72 h-full p-6 flex-shrink-0 flex flex-col panel', { 'collapsed': !isSidebarOpen }]" style="border-right:1px solid var(--line)">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-lg font-black">管理台</h2>
+                <button @click="isSidebarOpen = false" class="btn-soft">收起</button>
             </div>
 
             <div class="space-y-7 overflow-y-auto flex-grow pr-1">
-                <p class="text-[11px] text-gray-400 leading-relaxed">
-                    录入机型、新建/删除榜单都需要管理密码，每次打开网页只需输入一次。
-                    <span v-if="adminPw" class="text-green-600 font-bold">（已解锁）</span>
+                <p class="text-[11px] leading-relaxed" style="color:var(--mute)">
+                    录入、新建、删除、重置评分都需要管理密码，每次打开网页只输入一次。
+                    <span v-if="adminPw" class="font-bold" style="color:#1a9b42">（已解锁）</span>
                 </p>
 
                 <!-- 录入机型 -->
                 <section>
-                    <h3 class="text-xs font-bold text-gray-700 mb-3">录入到「{{ currentRanking ? currentRanking.name : '' }}」</h3>
+                    <h3 class="text-xs font-bold mb-3">录入到「{{ currentRanking ? currentRanking.name : '' }}」</h3>
                     <div class="space-y-4">
-                        <input type="text" v-model="newItem.name" placeholder="型号名称..." class="w-full text-sm p-3 bg-gray-100 border-none rounded-xl">
-                        <input type="text" v-model="newItem.real_price" placeholder="显示价格，如 5999" class="w-full text-sm p-3 bg-gray-100 border-none rounded-xl">
+                        <input type="text" v-model="newItem.name" placeholder="型号名称..." class="inp">
+                        <input type="text" v-model="newItem.real_price" placeholder="显示价格，如 5999" class="inp">
 
-                        <div v-for="k in dimKeys" :key="k">
+                        <div v-for="(k, ki) in dimKeys" :key="k">
                             <div class="flex justify-between mb-1">
-                                <span class="text-xs font-bold text-gray-500">{{ labels[dimKeys.indexOf(k)] }}评分</span>
-                                <span class="text-xs font-black text-[#ff6700]">{{ newItem[k] }}</span>
+                                <span class="text-xs font-bold" style="color:var(--mute)">{{ labels[ki] }}评分</span>
+                                <span class="text-xs font-black">{{ newItem[k] }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <svg v-for="i in 10" :key="i" @click="newItem[k] = i"
@@ -91,178 +122,176 @@
                             </div>
                         </div>
 
-                        <button @click="addItem" :disabled="busy" class="w-full bg-[#ff6700] text-white py-3.5 rounded-2xl font-bold active:scale-95 transition-all disabled:opacity-50">
-                            确认加入排名
-                        </button>
+                        <button @click="addItem" :disabled="busy" class="btn-main">确认加入排名</button>
+                    </div>
+                </section>
+
+                <!-- 管理当前榜单的项目 -->
+                <section class="pt-5" style="border-top:1px solid var(--line)">
+                    <h3 class="text-xs font-bold mb-1">管理项目 · {{ currentRanking ? currentRanking.name : '' }}</h3>
+                    <p class="text-[10px] mb-3" style="color:var(--faint)">重置评分只清空大众打分，编辑评分不变</p>
+                    <div v-if="!currentItems.length" class="text-xs" style="color:var(--faint)">这个榜单还没有项目</div>
+                    <div v-for="it in currentItems" :key="it.id" class="flex items-center gap-2 py-2" style="border-bottom:1px solid var(--line)">
+                        <div class="min-w-0 flex-grow">
+                            <div class="text-sm truncate">{{ it.name }}</div>
+                            <div class="sub">{{ statOf(it).n ? statOf(it).n + '人打分' : '暂无人打分' }}</div>
+                        </div>
+                        <button @click="resetItem(it)" class="btn-soft">重置</button>
+                        <button @click="deleteItem(it)" class="btn-warn">删除</button>
                     </div>
                 </section>
 
                 <!-- 新建榜单 -->
-                <section class="pt-5 border-t border-gray-100">
-                    <h3 class="text-xs font-bold text-gray-700 mb-3">新建榜单</h3>
+                <section class="pt-5" style="border-top:1px solid var(--line)">
+                    <h3 class="text-xs font-bold mb-3">新建榜单</h3>
                     <div class="space-y-3">
-                        <input type="text" v-model="newRanking.name" placeholder="榜单名称，如 平板排行" class="w-full text-sm p-3 bg-gray-100 border-none rounded-xl">
+                        <input type="text" v-model="newRanking.name" placeholder="榜单名称，如 平板排行" class="inp">
                         <div class="grid grid-cols-3 gap-2">
-                            <input v-for="(_, i) in newRanking.labels" :key="i" type="text" v-model="newRanking.labels[i]" :placeholder="'维度' + (i + 1)" class="w-full text-xs p-2.5 bg-gray-100 border-none rounded-xl text-center">
+                            <input v-for="(_, i) in newRanking.labels" :key="i" type="text" v-model="newRanking.labels[i]" :placeholder="'维度' + (i + 1)" class="inp text-center" style="font-size:12px;padding:10px 4px">
                         </div>
-                        <p class="text-[10px] text-gray-300">三个评分维度的名称，例如：音质 降噪 价格</p>
-                        <button @click="createRanking" :disabled="busy" class="w-full border border-[#ff6700] text-[#ff6700] py-3 rounded-2xl font-bold text-sm active:scale-95 transition-all disabled:opacity-50">
-                            创建榜单
-                        </button>
+                        <p class="text-[10px]" style="color:var(--faint)">三个评分维度的名称，例如：音质 降噪 价格</p>
+                        <button @click="createRanking" :disabled="busy" class="btn-line w-full">创建榜单</button>
                     </div>
                 </section>
 
-                <!-- 删除榜单 -->
-                <section class="pt-5 border-t border-gray-100">
-                    <h3 class="text-xs font-bold text-gray-700 mb-3">删除榜单</h3>
-                    <div class="space-y-1">
-                        <div v-for="r in rankings" :key="r.id" class="flex items-center justify-between py-2 text-sm text-gray-600">
-                            <span class="truncate">{{ r.name }}</span>
-                            <button @click="deleteRanking(r)" class="text-xs text-red-400 border border-red-100 px-2 py-0.5 rounded-lg flex-shrink-0 ml-2">删除</button>
-                        </div>
+                <!-- 榜单操作 -->
+                <section class="pt-5" style="border-top:1px solid var(--line)">
+                    <h3 class="text-xs font-bold mb-3">榜单操作</h3>
+                    <div v-for="r in rankings" :key="r.id" class="flex items-center gap-2 py-2" style="border-bottom:1px solid var(--line)">
+                        <span class="truncate text-sm flex-grow">{{ r.name }}</span>
+                        <button @click="resetRanking(r)" class="btn-soft">重置评分</button>
+                        <button @click="deleteRanking(r)" class="btn-warn">删除</button>
                     </div>
                 </section>
             </div>
         </aside>
 
         <!-- 右侧主展示区 -->
-        <main class="flex-grow flex flex-col h-full bg-white relative min-w-0">
+        <main class="flex-grow flex flex-col h-full relative min-w-0">
 
-            <!-- 顶部导航 -->
-            <nav class="h-14 md:h-16 flex items-center justify-between px-4 border-b border-gray-100 flex-shrink-0 z-20 bg-white">
+            <nav class="h-14 md:h-16 flex items-center justify-between px-4 flex-shrink-0 z-20" style="border-bottom:1px solid var(--line)">
                 <div class="flex items-center gap-3 min-w-0">
-                    <button @click="isSidebarOpen = !isSidebarOpen" class="p-2 hover:bg-gray-50 rounded-lg flex-shrink-0">
-                        <svg v-if="!isSidebarOpen" class="w-6 h-6 text-[#ff6700]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-                        <svg v-else class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <button @click="isSidebarOpen = !isSidebarOpen" class="p-2 rounded-lg flex-shrink-0" aria-label="菜单">
+                        <svg v-if="!isSidebarOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                        <svg v-else class="w-6 h-6" style="color:var(--faint)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
-                    <h1 class="text-sm md:text-lg font-black truncate">{{ currentRanking ? currentRanking.name : '数码评测排行榜' }}</h1>
+                    <h1 class="text-base md:text-lg font-black truncate">{{ currentRanking ? currentRanking.name : '数码评测排行榜' }}</h1>
                 </div>
 
-                <!-- 评分来源 -->
-                <div class="flex bg-gray-100 p-1 rounded-xl gap-0.5 flex-shrink-0">
+                <div class="flex p-1 rounded-xl gap-0.5 flex-shrink-0" style="background:var(--field)">
                     <button v-for="(label, key) in sourceOptions" :key="key" @click="source = key"
-                            :class="['px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all', source === key ? 'bg-white text-[#ff6700] shadow-sm' : 'text-gray-400']">
+                            class="px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all"
+                            :style="source === key ? 'background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.12)' : 'color:var(--mute)'">
                         {{ label }}
                     </button>
                 </div>
             </nav>
 
-            <!-- 榜单切换 -->
-            <div class="tabs flex gap-2 overflow-x-auto px-4 py-2.5 border-b border-gray-50 flex-shrink-0">
+            <div class="tabs flex gap-2 overflow-x-auto px-4 py-2.5 flex-shrink-0">
                 <button v-for="r in rankings" :key="r.id" @click="selectRanking(r.id)" :class="['tab', { on: r.id === currentId }]">{{ r.name }}</button>
             </div>
 
-            <!-- 排序维度 -->
-            <div class="flex items-center gap-1.5 px-4 py-2 flex-shrink-0 overflow-x-auto tabs">
-                <span class="text-[10px] text-gray-300 font-bold mr-1 flex-shrink-0">按</span>
-                <button v-for="o in sortOptions" :key="o.key" @click="sortBy = o.key"
-                        :class="['px-2.5 py-1 text-[11px] font-bold rounded-lg flex-shrink-0 border', sortBy === o.key ? 'border-[#ff6700] text-[#ff6700]' : 'border-gray-100 text-gray-400']">
-                    {{ o.label }}
-                </button>
-                <span class="text-[10px] text-gray-300 font-bold ml-1 flex-shrink-0">排序</span>
+            <div class="tabs flex items-center gap-1.5 px-4 pb-2.5 flex-shrink-0 overflow-x-auto" style="border-bottom:1px solid var(--line)">
+                <span class="sub flex-shrink-0 mr-1">按</span>
+                <button v-for="o in sortOptions" :key="o.key" @click="sortBy = o.key" :class="['chip', { on: sortBy === o.key }]">{{ o.label }}</button>
+                <span class="sub flex-shrink-0 ml-1">分档排序</span>
             </div>
 
-            <!-- 列表内容 -->
             <div class="flex-grow overflow-y-auto px-2 md:px-4">
                 <div class="list-container">
-                    <div class="flex items-center px-4 py-3 text-[10px] font-bold text-gray-300 border-b border-gray-50 sticky top-0 bg-white z-10">
-                        <div class="w-8 text-center flex-shrink-0">排名</div>
-                        <div class="w-10 ml-2 flex-shrink-0">图片</div>
-                        <div class="flex-grow ml-3">型号名称与评价标签</div>
-                        <div class="w-16 text-right flex-shrink-0 mr-1 md:mr-6">{{ sourceOptions[source] }}分</div>
-                    </div>
-
-                    <div v-if="loading" class="py-24 text-center text-gray-300 text-sm">加载中…</div>
+                    <div v-if="loading" class="py-24 text-center text-sm" style="color:var(--faint)">加载中…</div>
 
                     <div v-else-if="loadError" class="py-16 px-6 text-center">
-                        <p class="text-sm text-red-400 font-bold mb-2">数据库连接失败</p>
-                        <p class="text-xs text-gray-400 break-all mb-4">{{ loadError }}</p>
-                        <p class="text-xs text-gray-300 mb-4">请确认已在 Supabase 的 SQL Editor 运行过 supabase_setup.sql</p>
-                        <button @click="loadAll" class="text-xs border border-[#ff6700] text-[#ff6700] px-4 py-2 rounded-xl font-bold">重试</button>
+                        <p class="text-sm font-bold mb-2" style="color:#e5453b">数据库连接失败</p>
+                        <p class="text-xs break-all mb-4" style="color:var(--mute)">{{ loadError }}</p>
+                        <p class="text-xs mb-4" style="color:var(--faint)">请确认已在 Supabase 的 SQL Editor 运行过 supabase_setup.sql</p>
+                        <button @click="loadAll" class="btn-line">重试</button>
                     </div>
 
                     <template v-else>
-                        <div v-for="(item, index) in sortedItems" :key="item.id" @click="openItem(item)" class="rank-row flex items-center px-4 py-2">
-                            <div class="w-8 text-center font-black italic text-gray-200 text-xl flex-shrink-0">{{ index + 1 }}</div>
-
-                            <div class="w-10 h-10 rounded-xl bg-gray-50 flex-shrink-0 border border-gray-50 overflow-hidden ml-2">
-                                <img :src="`https://tse1-mm.cn.bing.net/th?q=${encodeURIComponent(item.name + ' 产品图')}&w=120&h=120&c=7`"
-                                     referrerpolicy="no-referrer" loading="lazy" class="w-full h-full object-cover">
-                            </div>
-
-                            <div class="flex-grow ml-3 overflow-hidden">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-bold text-xs md:text-sm text-gray-800 leading-tight truncate">{{ item.name }}</span>
-                                    <span v-if="item.real_price" class="price-label flex-shrink-0">¥{{ item.real_price }}</span>
-                                </div>
-                                <div class="flex flex-wrap gap-1 mt-1">
-                                    <span v-for="(tag, tIdx) in item.tags" :key="tIdx" class="tag-pill">{{ tag }}</span>
-                                    <span class="text-[10px] text-gray-300">
-                                        <template v-if="statOf(item).n">大众 {{ fmt(valueOf(item, 'avg', 'public'), true) }} · {{ statOf(item).n }}人打分</template>
-                                        <template v-else>暂无人打分</template>
-                                    </span>
+                        <div v-for="b in bands" :key="b.key" class="band">
+                            <div class="tier-label" :style="{ background: b.color }">
+                                <div>
+                                    <div :class="['tier-name', b.name.length === 1 ? 'big' : 'mid']">{{ b.name }}</div>
+                                    <div class="tier-range">{{ b.range }}</div>
                                 </div>
                             </div>
-
-                            <div class="w-16 text-right flex-shrink-0 mr-1 md:mr-6">
-                                <span class="text-2xl font-black text-[#ff6700] italic leading-none">
-                                    {{ fmt(valueOf(item, sortBy, source), sortBy === 'avg') }}
-                                </span>
+                            <div class="flex-grow min-w-0">
+                                <div v-for="e in b.entries" :key="e.item.id" @click="openItem(e.item)" class="rank-row">
+                                    <div class="rank-no">{{ e.rank }}</div>
+                                    <div class="thumb">
+                                        <img :src="`https://tse1-mm.cn.bing.net/th?q=${encodeURIComponent(e.item.name + ' 产品图')}&w=120&h=120&c=7`"
+                                             referrerpolicy="no-referrer" loading="lazy" alt="">
+                                    </div>
+                                    <div class="flex-grow ml-3 overflow-hidden">
+                                        <div class="flex items-center gap-2">
+                                            <span class="item-name">{{ e.item.name }}</span>
+                                            <span v-if="e.item.real_price" class="price-label">¥{{ e.item.real_price }}</span>
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-1 mt-1">
+                                            <span v-for="(tag, tIdx) in e.item.tags" :key="tIdx" class="tag-pill">{{ tag }}</span>
+                                            <span class="sub">{{ e.n ? e.n + '人打分' : '暂无人打分' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-14 text-right flex-shrink-0">
+                                        <div class="score" :style="{ color: b.text }">{{ e.v.toFixed(1) }}</div>
+                                        <div class="score-cap">{{ e.from === 'public' ? '大众分' : '编辑分' }}</div>
+                                    </div>
+                                </div>
+                                <div v-if="!b.entries.length" class="empty">暂无</div>
                             </div>
                         </div>
 
-                        <div v-if="currentItems.length === 0" class="py-24 text-center text-gray-300 italic text-sm">
+                        <div v-if="currentItems.length === 0" class="py-16 text-center text-sm" style="color:var(--faint)">
                             这个榜单还没有机型，点击左上角菜单录入
                         </div>
                     </template>
                 </div>
             </div>
 
-            <footer class="h-10 flex items-center justify-center border-t border-gray-50 text-[9px] text-gray-300 font-bold tracking-[0.4em] uppercase flex-shrink-0">
+            <footer class="h-10 flex items-center justify-center text-[9px] font-bold tracking-[0.4em] uppercase flex-shrink-0" style="border-top:1px solid var(--line);color:var(--faint)">
                 何岩制作 HEYAN PRODUCE
             </footer>
         </main>
 
         <!-- 机型详情 / 打分 -->
         <div v-if="active" class="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
-            <div class="absolute inset-0 bg-black/40" @click="closeItem"></div>
-            <div class="sheet relative bg-white w-full md:max-w-md rounded-t-3xl md:rounded-3xl p-5 max-h-[90vh] overflow-y-auto">
+            <div class="absolute inset-0" style="background:rgba(0,0,0,.4)" @click="closeItem"></div>
+            <div class="sheet panel relative w-full md:max-w-md rounded-t-3xl md:rounded-3xl p-5 max-h-[90vh] overflow-y-auto">
                 <div class="flex items-start justify-between mb-4">
                     <div class="min-w-0">
                         <h3 class="text-lg font-black truncate">{{ active.name }}</h3>
                         <p v-if="active.real_price" class="price-label mt-0.5">¥{{ active.real_price }}</p>
                     </div>
-                    <button @click="closeItem" class="text-gray-300 text-2xl leading-none px-2">×</button>
+                    <button @click="closeItem" class="text-2xl leading-none px-2" style="color:var(--mute)" aria-label="关闭">×</button>
                 </div>
 
-                <!-- 编辑 vs 大众 -->
-                <div class="rounded-2xl border border-gray-100 overflow-hidden mb-5">
-                    <div class="grid grid-cols-3 text-[11px] font-bold text-gray-400 bg-gray-50 px-4 py-2">
-                        <div>维度</div><div class="text-center">编辑评分</div><div class="text-center">大众评分</div>
+                <div class="rounded-2xl overflow-hidden mb-5" style="border:1px solid var(--line)">
+                    <div class="grid grid-cols-3 text-[11px] font-bold px-4 py-2" style="background:var(--field);color:var(--mute)">
+                        <div>维度</div><div class="text-center">大众评分</div><div class="text-center">编辑评分</div>
                     </div>
-                    <div v-for="(l, i) in labels" :key="i" class="grid grid-cols-3 px-4 py-2.5 text-sm border-t border-gray-50">
-                        <div class="text-gray-600">{{ l }}</div>
-                        <div class="text-center font-black text-gray-800">{{ fmt(valueOf(active, dimKeys[i], 'editor')) }}</div>
-                        <div class="text-center font-black text-[#ff6700]">{{ fmt(valueOf(active, dimKeys[i], 'public')) }}</div>
+                    <div v-for="(l, i) in labels" :key="i" class="grid grid-cols-3 px-4 py-2.5 text-sm" style="border-top:1px solid var(--line)">
+                        <div style="color:var(--mute)">{{ l }}</div>
+                        <div class="text-center font-black">{{ fmt(raw(active, dimKeys[i], 'public')) }}</div>
+                        <div class="text-center font-black" style="color:var(--mute)">{{ fmt(raw(active, dimKeys[i], 'editor')) }}</div>
                     </div>
-                    <div class="grid grid-cols-3 px-4 py-2.5 text-sm border-t border-gray-100 bg-gray-50/60">
-                        <div class="text-gray-600 font-bold">综合</div>
-                        <div class="text-center font-black">{{ fmt(valueOf(active, 'avg', 'editor'), true) }}</div>
-                        <div class="text-center font-black text-[#ff6700]">{{ fmt(valueOf(active, 'avg', 'public'), true) }}</div>
+                    <div class="grid grid-cols-3 px-4 py-2.5 text-sm" style="border-top:1px solid var(--line);background:var(--field)">
+                        <div class="font-bold">综合</div>
+                        <div class="text-center font-black">{{ fmt(raw(active, 'avg', 'public'), true) }}</div>
+                        <div class="text-center font-black" style="color:var(--mute)">{{ fmt(raw(active, 'avg', 'editor'), true) }}</div>
                     </div>
-                    <div class="px-4 py-2 text-[11px] text-gray-400 border-t border-gray-50">
+                    <div class="px-4 py-2 text-[11px]" style="border-top:1px solid var(--line);color:var(--mute)">
                         {{ statOf(active).n ? statOf(active).n + ' 人参与了大众打分' : '还没有人打分，来当第一个' }}
                     </div>
                 </div>
 
-                <!-- 我来打分 -->
                 <div class="mb-2">
                     <h4 class="text-sm font-bold mb-3">{{ myVotes[active.id] ? '修改我的打分' : '我来打分' }}</h4>
                     <div class="space-y-4">
                         <div v-for="(k, i) in dimKeys" :key="k">
                             <div class="flex justify-between mb-1">
-                                <span class="text-xs font-bold text-gray-500">{{ labels[i] }}</span>
-                                <span class="text-xs font-black text-[#ff6700]">{{ vote[k] || '未选' }}</span>
+                                <span class="text-xs font-bold" style="color:var(--mute)">{{ labels[i] }}</span>
+                                <span class="text-xs font-black">{{ vote[k] || '未选' }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <svg v-for="n in 10" :key="n" @click="vote[k] = n"
@@ -273,29 +302,27 @@
                             </div>
                         </div>
                     </div>
-                    <button @click="submitVote" :disabled="busy" class="w-full mt-5 bg-[#ff6700] text-white py-3.5 rounded-2xl font-bold active:scale-95 transition-all disabled:opacity-50">
-                        {{ myVotes[active.id] ? '更新打分' : '提交打分' }}
-                    </button>
-                    <p class="text-[10px] text-gray-300 text-center mt-2">每台设备对每个机型只计一票，可随时修改</p>
+                    <button @click="submitVote" :disabled="busy" class="btn-main mt-5">{{ myVotes[active.id] ? '更新打分' : '提交打分' }}</button>
+                    <p class="text-[10px] text-center mt-2" style="color:var(--faint)">每台设备对每个机型只计一票，可随时修改</p>
                 </div>
 
-                <!-- 管理 -->
-                <div class="mt-6 pt-4 border-t border-gray-100">
-                    <button v-if="!editing" @click="startEdit" class="text-xs text-gray-400 font-bold">编辑 / 删除这个机型（需要密码）</button>
+                <div class="mt-6 pt-4" style="border-top:1px solid var(--line)">
+                    <button v-if="!editing" @click="startEdit" class="btn-line w-full">管理：编辑 / 重置评分 / 删除（需要密码）</button>
                     <div v-else class="space-y-3">
                         <h4 class="text-sm font-bold">编辑机型</h4>
-                        <input type="text" v-model="draft.name" placeholder="型号名称" class="w-full text-sm p-3 bg-gray-100 border-none rounded-xl">
-                        <input type="text" v-model="draft.real_price" placeholder="显示价格" class="w-full text-sm p-3 bg-gray-100 border-none rounded-xl">
+                        <input type="text" v-model="draft.name" placeholder="型号名称" class="inp">
+                        <input type="text" v-model="draft.real_price" placeholder="显示价格" class="inp">
                         <div class="grid grid-cols-3 gap-2">
                             <div v-for="(k, i) in dimKeys" :key="k">
-                                <div class="text-[10px] text-gray-400 font-bold mb-1">{{ labels[i] }}</div>
-                                <input type="number" min="0" max="10" step="0.5" v-model.number="draft[k]" class="w-full text-sm p-2.5 bg-gray-100 border-none rounded-xl text-center">
+                                <div class="text-[10px] font-bold mb-1" style="color:var(--mute)">{{ labels[i] }}</div>
+                                <input type="number" min="0" max="10" step="0.5" v-model.number="draft[k]" class="inp text-center" style="padding:10px 4px">
                             </div>
                         </div>
-                        <input type="text" v-model="draft.tags" placeholder="标签，用逗号或空格分开" class="w-full text-sm p-3 bg-gray-100 border-none rounded-xl">
+                        <input type="text" v-model="draft.tags" placeholder="标签，用逗号或空格分开" class="inp">
+                        <button @click="saveEdit" :disabled="busy" class="btn-main">保存修改</button>
                         <div class="flex gap-2">
-                            <button @click="saveEdit" :disabled="busy" class="flex-1 bg-gray-900 text-white py-3 rounded-2xl text-sm font-bold disabled:opacity-50">保存修改</button>
-                            <button @click="deleteItem" :disabled="busy" class="px-5 border border-red-200 text-red-400 py-3 rounded-2xl text-sm font-bold disabled:opacity-50">删除</button>
+                            <button @click="resetItem(active)" :disabled="busy" class="btn-line flex-1">重置大众评分</button>
+                            <button @click="deleteItem(active)" :disabled="busy" class="btn-line flex-1" style="border-color:#f3c2be;color:#e5453b">删除机型</button>
                         </div>
                     </div>
                 </div>
@@ -306,10 +333,8 @@
     </div>
 
     <script>
-        // ==========================================
-        // Supabase 配置（anon 公钥本来就设计为可公开放在网页里，
-        // 真正的写入保护在数据库端：只有函数能写，且要密码）
-        // ==========================================
+        // anon 公钥本来就设计为可公开放在网页里；
+        // 写入保护在数据库端：只有函数能写，且需要管理密码
         const SB_URL = 'https://rxesvdcrgybakkuemlxx.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4ZXN2ZGNyZ3liYWtrdWVtbHh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzMjU0MjAsImV4cCI6MjA4MDkwMTQyMH0.bihuGXXPXPzC2CNojbvkqKNwyV6wGu_ZAQNihP2vYc0';
 
@@ -335,11 +360,22 @@
 
         const { createApp, ref, reactive, computed, onMounted } = Vue;
 
+        // 夯到拉分档：从高到低，取第一个 min 不大于分数的档
+        const TIERS = [
+            { key: 'hang',   name: '夯',    range: '9分以上',   min: 9,         color: 'var(--hang)',   text: '#e0352b' },
+            { key: 'top',    name: '顶级',  range: '7.5–9分',   min: 7.5,       color: 'var(--top)',    text: '#ec7f00' },
+            { key: 'ren',    name: '人上人', range: '6–7.5分',   min: 6,         color: 'var(--ren)',    text: '#d1a000' },
+            { key: 'normal', name: '一般',  range: '3–6分',     min: 3,         color: 'var(--normal)', text: '#8d8878' },
+            { key: 'la',     name: '拉完了', range: '1–3分',     min: -Infinity, color: 'var(--la)',     text: '#7b828c' }
+        ];
+        const tierOf = (v) => TIERS.find(t => v >= t.min);
+
         createApp({
             setup() {
                 const STAR = 'M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z';
                 const dimKeys = ['s1', 's2', 's3'];
-                const sourceOptions = { editor: '编辑', public: '大众' };
+                // 大众优先：有人打分就用大众分，没人打分时回退到编辑分
+                const sourceOptions = { public: '大众优先', editor: '仅编辑' };
 
                 const isSidebarOpen = ref(window.innerWidth > 768);
                 const loading = ref(true);
@@ -357,7 +393,7 @@
                 const items = ref([]);
                 const stats = ref({});
                 const currentId = ref(localStorage.getItem('digit_current_ranking') || '');
-                const source = ref('editor');
+                const source = ref('public');
                 const sortBy = ref('avg');
 
                 const adminPw = ref('');
@@ -368,7 +404,6 @@
                 const newItem = reactive({ name: '', real_price: '', s1: 5, s2: 5, s3: 5 });
                 const newRanking = reactive({ name: '', labels: ['', '', ''] });
 
-                // 本机身份与投票记录
                 const voterId = (() => {
                     let v = localStorage.getItem('digit_voter_id');
                     if (!v) {
@@ -378,6 +413,7 @@
                     return v;
                 })();
                 const myVotes = ref(JSON.parse(localStorage.getItem('digit_my_votes') || '{}'));
+                const saveMyVotes = () => localStorage.setItem('digit_my_votes', JSON.stringify(myVotes.value));
 
                 const currentRanking = computed(() => rankings.value.find(r => r.id === currentId.value) || null);
                 const labels = computed(() => currentRanking.value ? currentRanking.value.labels : ['维度1', '维度2', '维度3']);
@@ -389,8 +425,8 @@
 
                 const statOf = (item) => stats.value[item.id] || { n: 0 };
 
-                // 取分：src = editor / public；key = avg / s1 / s2 / s3
-                const valueOf = (item, key, src) => {
+                // 取原始分：src = editor / public；key = avg / s1 / s2 / s3；大众无人打分时返回 null
+                const raw = (item, key, src) => {
                     if (src === 'editor') {
                         return key === 'avg' ? (item.s1 + item.s2 + item.s3) / 3 : item[key];
                     }
@@ -403,17 +439,23 @@
                     return one ? Number(v).toFixed(1) : String(+Number(v).toFixed(1));
                 };
 
-                const sortedItems = computed(() => {
-                    return [...currentItems.value].sort((a, b) => {
-                        const va = valueOf(a, sortBy.value, source.value);
-                        const vb = valueOf(b, sortBy.value, source.value);
-                        if (va === null && vb === null) return 0;
-                        if (va === null) return 1;
-                        if (vb === null) return -1;
-                        if (vb !== va) return vb - va;
-                        return (statOf(b).n || 0) - (statOf(a).n || 0);
+                // 排好序的条目：大众优先，没人打分时回退编辑分
+                const entries = computed(() => {
+                    const arr = currentItems.value.map(item => {
+                        let v = null, from = 'editor';
+                        if (source.value === 'public') {
+                            const p = raw(item, sortBy.value, 'public');
+                            if (p !== null) { v = p; from = 'public'; }
+                        }
+                        if (v === null) v = raw(item, sortBy.value, 'editor');
+                        v = Math.round(v * 10) / 10;
+                        return { item, v, from, n: statOf(item).n || 0 };
                     });
+                    arr.sort((a, b) => b.v - a.v || b.n - a.n);
+                    arr.forEach((e, i) => (e.rank = i + 1));
+                    return arr;
                 });
+                const bands = computed(() => TIERS.map(t => ({ ...t, entries: entries.value.filter(e => tierOf(e.v).key === t.key) })));
 
                 // ---------- 加载 ----------
                 const loadAll = async () => {
@@ -430,8 +472,18 @@
                         const map = {};
                         s.forEach(x => (map[x.item_id] = { n: x.n, a1: Number(x.a1), a2: Number(x.a2), a3: Number(x.a3) }));
                         stats.value = map;
+
+                        // 评分被重置或机型被删后，清掉本机残留的"我的打分"
+                        const mv = { ...myVotes.value };
+                        let changed = false;
+                        Object.keys(mv).forEach(id => { if (!map[id]) { delete mv[id]; changed = true; } });
+                        if (changed) { myVotes.value = mv; saveMyVotes(); }
+
                         if (!r.find(x => x.id === currentId.value)) currentId.value = r[0] ? r[0].id : '';
-                        if (active.value) active.value = items.value.find(x => x.id === active.value.id) || null;
+                        if (active.value) {
+                            active.value = items.value.find(x => x.id === active.value.id) || null;
+                            if (active.value && !myVotes.value[active.value.id]) { vote.s1 = vote.s2 = vote.s3 = 0; }
+                        }
                     } catch (e) {
                         loadError.value = e.message;
                     } finally {
@@ -460,7 +512,6 @@
                     return false;
                 };
 
-                // 执行需要密码的写入，成功后刷新数据
                 const adminCall = async (fn, body, okMsg) => {
                     if (!(await ensureAdmin())) return false;
                     busy.value = true;
@@ -471,6 +522,7 @@
                         return true;
                     } catch (e) {
                         if (/bad password/i.test(e.message)) { adminPw.value = ''; showToast('密码错误'); }
+                        else if (/could not find the function/i.test(e.message)) showToast('数据库缺少新函数，请先运行 supabase_update.sql');
                         else showToast('操作失败：' + e.message);
                         return false;
                     } finally {
@@ -506,8 +558,24 @@
                 };
 
                 const deleteRanking = async (r) => {
-                    if (!confirm(`确认删除「${r.name}」？榜单内所有机型和大众打分都会一并删除，无法恢复。`)) return;
+                    if (!confirm(`确认删除榜单「${r.name}」？榜单内所有机型和大众打分都会一并删除，无法恢复。`)) return;
                     await adminCall('admin_delete_ranking', { p_id: r.id }, '榜单已删除');
+                };
+
+                const resetRanking = async (r) => {
+                    if (!confirm(`确认重置「${r.name}」的评分？该榜单所有机型的大众打分都会清空，编辑评分不变，无法恢复。`)) return;
+                    await adminCall('admin_reset_ranking_votes', { p_ranking: r.id }, '榜单评分已重置');
+                };
+
+                const deleteItem = async (item) => {
+                    if (!confirm(`确认删除「${item.name}」？该机型的大众打分也会一并删除，无法恢复。`)) return;
+                    const ok = await adminCall('admin_delete_item', { p_id: item.id }, '已删除');
+                    if (ok && active.value && active.value.id === item.id) closeItem();
+                };
+
+                const resetItem = async (item) => {
+                    if (!confirm(`确认重置「${item.name}」的评分？所有人对它的打分都会清空，编辑评分不变，无法恢复。`)) return;
+                    await adminCall('admin_reset_item_votes', { p_id: item.id }, '评分已重置');
                 };
 
                 // ---------- 机型详情 ----------
@@ -527,7 +595,7 @@
                     try {
                         await rpc('submit_vote', { p_item: active.value.id, p_voter: voterId, p_s1: vote.s1, p_s2: vote.s2, p_s3: vote.s3 });
                         myVotes.value = { ...myVotes.value, [active.value.id]: [vote.s1, vote.s2, vote.s3] };
-                        localStorage.setItem('digit_my_votes', JSON.stringify(myVotes.value));
+                        saveMyVotes();
                         await loadAll();
                         showToast('打分成功，谢谢参与');
                     } catch (e) {
@@ -555,21 +623,15 @@
                     }, '已保存');
                 };
 
-                const deleteItem = async () => {
-                    if (!confirm(`确认删除「${active.value.name}」？该机型的大众打分也会一并删除。`)) return;
-                    const ok = await adminCall('admin_delete_item', { p_id: active.value.id }, '已删除');
-                    if (ok) closeItem();
-                };
-
                 onMounted(loadAll);
 
                 return {
                     STAR, dimKeys, sourceOptions, isSidebarOpen, loading, loadError, busy, toast,
                     rankings, currentId, currentRanking, labels, source, sortBy, sortOptions,
-                    currentItems, sortedItems, statOf, valueOf, fmt, adminPw,
+                    currentItems, bands, statOf, raw, fmt, adminPw,
                     active, editing, draft, vote, myVotes, newItem, newRanking,
-                    loadAll, selectRanking, addItem, createRanking, deleteRanking,
-                    openItem, closeItem, submitVote, startEdit, saveEdit, deleteItem
+                    loadAll, selectRanking, addItem, createRanking, deleteRanking, resetRanking,
+                    deleteItem, resetItem, openItem, closeItem, submitVote, startEdit, saveEdit
                 };
             }
         }).mount('#app');
