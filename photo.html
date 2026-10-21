@@ -101,7 +101,7 @@ header.hide{transform:translateY(-110%)}
 
 <script>
 // cdn：图片读取地址。默认用 Supabase 自己的域名；如果以后有了加速/反代地址，填在这里即可（不带结尾斜杠）
-const CFG = { url: 'https://npdytmouxpomsggcqdnn.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wZHl0bW91eHBvbXNnZ2NxZG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1Mzc1NjQsImV4cCI6MjEwODExMzU2NH0.WA_E8ug3M7UYZfHDoj-jkAWltWfJci9Cc-R6nXA2rtc', bucket: 'photos', cdn: 'heyan-img.icemare7.workers.dev' };
+const CFG = { url: 'https://npdytmouxpomsggcqdnn.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wZHl0bW91eHBvbXNnZ2NxZG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1Mzc1NjQsImV4cCI6MjEwODExMzU2NH0.WA_E8ug3M7UYZfHDoj-jkAWltWfJci9Cc-R6nXA2rtc', bucket: 'photos', cdn: '' };
 
 const $ = id => document.getElementById(id);
 const PUB = `${CFG.cdn || CFG.url}/storage/v1/object/public/${CFG.bucket}/`;
