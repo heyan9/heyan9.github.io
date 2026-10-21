@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>何岩机场 - Heyan Airport Hub</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        zhihu: {
+                            DEFAULT: '#0066ff',
+                            hover: '#0052cc',
+                            dark: '#0040a8',
+                            light: '#eef5ff',
+                            surface: 'rgba(255, 255, 255, 0.85)',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            font-size: 13px; /* 整体调小字号 */
+        }
+
+        /* Pure White Glassmorphism Styles */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 2px 10px rgba(0, 102, 255, 0.03);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 102, 255, 0.08);
+            border-color: rgba(0, 102, 255, 0.3);
+            background: #ffffff;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0066ff;
+        }
+
+        /* Typing animation indicator */
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12 bg-slate-50">
+
+    <!-- Header Navigation Bar -->
+    <header class="w-full bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
+            
+            <!-- Logo & Title Section -->
+            <div class="flex items-center gap-3">
+                <!-- Logo Image from specified path with fallback -->
+                <div class="h-9 w-9 flex items-center justify-center rounded-lg bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
+                    <img src="img/logo3.png" alt="何岩机场 Logo" class="h-full w-full object-contain" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\"fa-solid fa-plane text-zhihu text-base\"></i>';">
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-slate-800 text-sm tracking-tight">何岩机场</h1>
+                        <span class="text-[10px] text-zhihu bg-blue-50 px-1.5 py-0.5 rounded font-mono border border-blue-100">Heyan Hub</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-none mt-0.5">Heyan Airport Services & Network Navigation</p>
+                </div>
+            </div>
+
+            <!-- Header Right Menu -->
+            <div class="flex items-center gap-4">
+                <div id="currentTime" class="hidden sm:block text-[11px] font-mono text-slate-400 bg-slate-100 px-2.5 py-1 rounded-md">
+                    00:00:00
+                </div>
+                <button onclick="toggleAiModal()" class="px-3 py-1.5 rounded-lg bg-zhihu hover:bg-zhihu-hover text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-sparkles text-xs"></i>
+                    <span>AI 助手 / AI Assistant</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-6xl mx-auto px-4 pt-6 space-y-6">
+
+        <!-- Banner Announcement Card -->
+        <div class="glass-panel rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-l-4 border-l-zhihu">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-50 text-zhihu flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-bullhorn text-xs"></i>
+                </div>
+                <div>
+                    <h2 class="text-xs font-bold text-slate-800">何岩机场导航枢纽 / Heyan Hub Portal</h2>
+                    <p class="text-[11px] text-slate-500 mt-0.5">提供极速稳健的机场订阅服务与必备网络链接集合。</p>
+                </div>
+            </div>
+            <div class="text-[11px] text-slate-400 bg-white px-2.5 py-1 rounded border border-slate-200 shrink-0">
+                <i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i>系统就绪 / Status: Normal
+            </div>
+        </div>
+
+        <!-- 卡片板块 2：良心云订阅链接一键复制 -->
+        <section class="w-full">
+            <div class="glass-panel rounded-xl p-4 bg-white/90">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-1.5 text-zhihu font-bold text-xs">
+                            <i class="fa-solid fa-key text-xs"></i>
+                            <span>良心云订阅链接 / Subscription Link</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">可在 Clash, Shadowrocket, V2Ray 等客户端直接一键导入。</p>
+                    </div>
+
+                    <!-- Subscription Copy Bar -->
+                    <div class="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200/80 w-full md:w-auto md:min-w-[420px]">
+                        <input id="subUrl" type="text" readonly value="https://sub.7777793.xyz/api/v1/client/subscribe?token=4c79d2406e2d8347b7038e83409c4084" 
+                            class="bg-transparent text-[11px] text-slate-600 px-2 py-1 w-full focus:outline-none font-mono truncate select-all">
+                        <button id="copyBtn" onclick="copySubscription()" class="px-3 py-1.5 bg-zhihu hover:bg-zhihu-hover text-white text-xs font-medium rounded-md transition-all flex items-center gap-1.5 whitespace-nowrap shadow-xs">
+                            <i id="copyIcon" class="fa-regular fa-copy text-xs"></i>
+                            <span id="copyText">一键复制 / Copy</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 卡片板块 1：常用机场及链接 -->
+        <section class="space-y-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+                    <i class="fa-solid fa-plane-departure text-zhihu"></i>
+                    <h2>常用机场及链接 / Common Airports & Links</h2>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <!-- 良心云 -->
+                <a href="https://xn--9kqz23b19z.com/" target="_blank" rel="noopener noreferrer" class="glass-card rounded-xl p-3.5 flex flex-col justify-between group">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-zhihu flex items-center justify-center font-bold text-sm group-hover:bg-zhihu group-hover:text-white transition-colors">
+                                <i class="fa-solid fa-cloud"></i>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-medium border border-emerald-100">稳定推荐</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-xs group-hover:text-zhihu transition-colors">良心云 / Liangxin Cloud</h3>
+                            <p class="text-[11px] text-slate-400 mt-0.5 line-clamp-2">优质高速线路，高性价比机场节点平台。</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 group-hover:text-zhihu">
+                        <span>访问官网 / Visit</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </div>
+                </a>
+
+                <!-- OneLight -->
+                <a href="https://onelighter.site/#/dashboard" target="_blank" rel="noopener noreferrer" class="glass-card rounded-xl p-3.5 flex flex-col justify-between group">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center font-bold text-sm group-hover:bg-cyan-500 group-hover:text-white transition-colors">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-600 font-medium border border-cyan-100">免费好用</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-xs group-hover:text-zhihu transition-colors">OneLight / 免费好用</h3>
+                            <p class="text-[11px] text-slate-400 mt-0.5 line-clamp-2">免费轻量极速接入控制面板与仪表盘。</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 group-hover:text-zhihu">
+                        <span>控制台 / Dashboard</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </div>
+                </a>
+
+                <!-- 绿茶VPN -->
+                <a href="https://cc.greatfire.org/zh/provider/%E7%BB%BF%E8%8C%B6vpn" target="_blank" rel="noopener noreferrer" class="glass-card rounded-xl p-3.5 flex flex-col justify-between group">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                                <i class="fa-brands fa-android"></i>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium border border-amber-100">安卓专享</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-xs group-hover:text-zhihu transition-colors">绿茶 VPN / Green Tea VPN</h3>
+                            <p class="text-[11px] text-slate-400 mt-0.5 line-clamp-2">安卓手机便捷连接与极速加速工具。</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 group-hover:text-zhihu">
+                        <span>详情查看 / Info</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </div>
+                </a>
+
+                <!-- 付费机场推荐 -->
+                <a href="https://cc.greatfire.org/zh/?sort=speed&dir=desc" target="_blank" rel="noopener noreferrer" class="glass-card rounded-xl p-3.5 flex flex-col justify-between group">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                                <i class="fa-solid fa-ranking-star"></i>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 font-medium border border-purple-100">速度排行榜</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-xs group-hover:text-zhihu transition-colors">付费机场推荐 / Paid Airports</h3>
+                            <p class="text-[11px] text-slate-400 mt-0.5 line-clamp-2">实时测速排行，挑选高质量付费节点通道。</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 group-hover:text-zhihu">
+                        <span>查看榜单 / Ranking</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 卡片板块 3：常用境外网站 -->
+        <section class="space-y-3">
+            <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+                <i class="fa-solid fa-globe text-zhihu"></i>
+                <h2>常用境外网站 / Common Overseas Sites</h2>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                <!-- 谷歌 -->
+                <a href="https://www.google.com.hk/" target="_blank" rel="noopener noreferrer" class="glass-card rounded-lg p-3 flex items-center gap-2.5 group">
+                    <div class="w-7 h-7 rounded bg-blue-50 text-blue-500 flex items-center justify-center text-xs shrink-0 group-hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-google"></i>
+                    </div>
+                    <div class="truncate">
+                        <span class="text-xs font-semibold text-slate-700 block truncate group-hover:text-zhihu">谷歌 Google</span>
+                        <span class="text-[10px] text-slate-400 block truncate">Google Search</span>
+                    </div>
+                </a>
+
+                <!-- YouTube -->
+                <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" class="glass-card rounded-lg p-3 flex items-center gap-2.5 group">
+                    <div class="w-7 h-7 rounded bg-red-50 text-red-500 flex items-center justify-center text-xs shrink-0 group-hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-youtube"></i>
+                    </div>
+                    <div class="truncate">
+                        <span class="text-xs font-semibold text-slate-700 block truncate group-hover:text-zhihu">油管 YouTube</span>
+                        <span class="text-[10px] text-slate-400 block truncate">Video Platform</span>
+                    </div>
+                </a>
+
+                <!-- GitHub -->
+                <a href="https://github.com/" target="_blank" rel="noopener noreferrer" class="glass-card rounded-lg p-3 flex items-center gap-2.5 group">
+                    <div class="w-7 h-7 rounded bg-slate-900 text-white flex items-center justify-center text-xs shrink-0 group-hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-github"></i>
+                    </div>
+                    <div class="truncate">
+                        <span class="text-xs font-semibold text-slate-700 block truncate group-hover:text-zhihu">GitHub</span>
+                        <span class="text-[10px] text-slate-400 block truncate">Code Host</span>
+                    </div>
+                </a>
+
+                <!-- Wikipedia -->
+                <a href="https://www.wikipedia.org/" target="_blank" rel="noopener noreferrer" class="glass-card rounded-lg p-3 flex items-center gap-2.5 group">
+                    <div class="w-7 h-7 rounded bg-slate-100 text-slate-700 flex items-center justify-center text-xs shrink-0 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-book"></i>
+                    </div>
+                    <div class="truncate">
+                        <span class="text-xs font-semibold text-slate-700 block truncate group-hover:text-zhihu">维基百科</span>
+                        <span class="text-[10px] text-slate-400 block truncate">Wikipedia</span>
+                    </div>
+                </a>
+
+                <!-- Twitter / X -->
+                <a href="https://x.com/" target="_blank" rel="noopener noreferrer" class="glass-card rounded-lg p-3 flex items-center gap-2.5 group">
+                    <div class="w-7 h-7 rounded bg-slate-900 text-white flex items-center justify-center text-xs shrink-0 group-hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-x-twitter"></i>
+                    </div>
+                    <div class="truncate">
+                        <span class="text-xs font-semibold text-slate-700 block truncate group-hover:text-zhihu">X (Twitter)</span>
+                        <span class="text-[10px] text-slate-400 block truncate">Social Media</span>
+                    </div>
+                </a>
+
+                <!-- ChatGPT -->
+                <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer" class="glass-card rounded-lg p-3 flex items-center gap-2.5 group">
+                    <div class="w-7 h-7 rounded bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs shrink-0 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div class="truncate">
+                        <span class="text-xs font-semibold text-slate-700 block truncate group-hover:text-zhihu">ChatGPT</span>
+                        <span class="text-[10px] text-slate-400 block truncate">AI Assistant</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-6xl mx-auto px-4 mt-12 pt-6 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-2">
+        <div>
+            © 何岩机场 Heyan Airport Hub. All rights reserved.
+        </div>
+        <div class="flex items-center gap-3">
+            <span>知乎蓝极简风 / Zhihu Blue UI</span>
+            <span>·</span>
+            <span>无障碍高效导航</span>
+        </div>
+    </footer>
+
+    <!-- Floating AI Assistant Button -->
+    <button onclick="toggleAiModal()" class="fixed bottom-5 right-5 w-12 h-12 rounded-full bg-zhihu hover:bg-zhihu-hover text-white shadow-lg shadow-blue-500/30 flex items-center justify-center text-lg transition-all duration-300 hover:scale-105 z-40">
+        <i class="fa-solid fa-robot"></i>
+    </button>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-5 right-5 transform translate-y-[-80px] opacity-0 transition-all duration-300 bg-slate-800 text-white px-3.5 py-2 rounded-lg shadow-xl flex items-center gap-2 text-xs z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastText">订阅链接已成功复制！</span>
+    </div>
+
+    <!-- Built-in AI Assistant Modal -->
+    <div id="aiModal" class="fixed inset-0 bg-slate-900/20 backdrop-blur-xs z-50 flex items-center justify-center p-3 opacity-0 pointer-events-none transition-opacity duration-250">
+        <div class="glass-panel w-full max-w-xl h-[80vh] max-h-[600px] rounded-xl flex flex-col overflow-hidden shadow-2xl border border-slate-200/80 bg-white relative transform scale-95 transition-transform duration-250" id="aiModalContent">
+            
+            <!-- AI Header -->
+            <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-lg bg-zhihu text-white flex items-center justify-center text-xs shadow-xs">
+                        <i class="fa-solid fa-sparkles"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-xs">何岩 AI 助手 / Heyan AI Assistant</h3>
+                        <p class="text-[10px] text-slate-400">开箱即用 · 随时解答科学上网与配置疑难</p>
+                    </div>
+                </div>
+                <button onclick="toggleAiModal()" class="w-7 h-7 rounded-lg hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- AI Chat Body -->
+            <div id="chatBox" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/30">
+                <!-- Welcome Message -->
+                <div class="flex items-start gap-2.5">
+                    <div class="w-7 h-7 rounded bg-zhihu text-white flex items-center justify-center text-[10px] font-bold shrink-0 shadow-xs">
+                        AI
+                    </div>
+                    <div class="bg-white border border-slate-200/80 rounded-xl p-3 text-xs text-slate-700 max-w-[88%] shadow-2xs">
+                        你好！我是何岩机场内置的 AI 助手。你可以问我关于订阅链接导入、Clash客户端配置、节点超时的解决办法等各类疑问！
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Prompt Suggestions -->
+            <div class="px-3 py-1.5 bg-slate-50 border-t border-slate-100 flex gap-1.5 overflow-x-auto whitespace-nowrap text-[11px] text-slate-500">
+                <button onclick="usePrompt('如何在 Clash 软件中导入订阅？')" class="px-2.5 py-1 rounded bg-white border border-slate-200 hover:border-zhihu hover:text-zhihu transition-colors">📱 如何导入订阅？</button>
+                <button onclick="usePrompt('节点连不上或延迟高怎么排查？')" class="px-2.5 py-1 rounded bg-white border border-slate-200 hover:border-zhihu hover:text-zhihu transition-colors">❓ 节点超时怎么办？</button>
+                <button onclick="usePrompt('良心云机场的特点和用法？')" class="px-2.5 py-1 rounded bg-white border border-slate-200 hover:border-zhihu hover:text-zhihu transition-colors">⚡ 良心云怎么用？</button>
+            </div>
+
+            <!-- AI Input Box -->
+            <div class="p-2.5 bg-white border-t border-slate-200">
+                <form id="chatForm" onsubmit="handleSend(event)" class="flex items-center gap-2">
+                    <input id="userInput" type="text" placeholder="输入你想咨询的问题 / Ask a question..." 
+                        class="flex-1 bg-slate-100 border border-slate-200 focus:border-zhihu focus:bg-white rounded-lg px-3 py-2 text-xs outline-none transition-all">
+                    <button type="submit" id="sendBtn" class="px-3.5 py-2 rounded-lg bg-zhihu hover:bg-zhihu-hover text-white text-xs font-medium transition-all shadow-xs flex items-center gap-1">
+                        <span>发送</span>
+                        <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Real-time Clock
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            document.getElementById('currentTime').innerText = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Copy Subscription Link
+        function copySubscription() {
+            const subUrl = document.getElementById('subUrl').value;
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = subUrl;
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast("订阅链接已成功复制到剪贴板！");
+                
+                const copyText = document.getElementById('copyText');
+                const copyIcon = document.getElementById('copyIcon');
+                
+                copyText.innerText = "已复制";
+                copyIcon.className = "fa-solid fa-check text-xs";
+                
+                setTimeout(() => {
+                    copyText.innerText = "一键复制 / Copy";
+                    copyIcon.className = "fa-regular fa-copy text-xs";
+                }, 2000);
+            } catch (err) {
+                showToast("复制失败，请手动选择文本");
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // Toast Notification System
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toastText');
+            toastText.innerText = message;
+            
+            toast.classList.remove('translate-y-[-80px]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-80px]', 'opacity-0');
+            }, 2500);
+        }
+
+        // Modal Controls
+        function toggleAiModal() {
+            const modal = document.getElementById('aiModal');
+            const content = document.getElementById('aiModalContent');
+            
+            if (modal.classList.contains('opacity-0')) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+                document.getElementById('userInput').focus();
+            } else {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                content.classList.remove('scale-100');
+                content.classList.add('scale-95');
+            }
+        }
+
+        function usePrompt(text) {
+            const input = document.getElementById('userInput');
+            input.value = text;
+            handleSend(new Event('submit'));
+        }
+
+        // AI System with Gemini API Integration
+        let chatHistory = [];
+
+        async function handleSend(e) {
+            e.preventDefault();
+            const input = document.getElementById('userInput');
+            const query = input.value.trim();
+            if (!query) return;
+
+            appendMessage('user', query);
+            input.value = '';
+
+            const typingId = appendTypingIndicator();
+            scrollToBottom();
+
+            chatHistory.push({ role: "user", parts: [{ text: query }] });
+
+            try {
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const systemInstruction = "你是由“何岩机场 Heyan Airport”提供的专属 AI 智能网络顾问。用简洁专业、字数精炼的方式解答用户关于 Clash/V2Ray/Shadowrocket 配置、良心云订阅链接使用、网络加速与节点排错的疑问。";
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: chatHistory,
+                        systemInstruction: {
+                            parts: [{ text: systemInstruction }]
+                        }
+                    })
+                });
+
+                removeTypingIndicator(typingId);
+
+                if (!response.ok) {
+                    throw new Error("API call error");
+                }
+
+                const data = await response.json();
+                const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "抱歉，请稍后重新发送。";
+
+                chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
+                appendTypewriterMessage('ai', aiResponse);
+
+            } catch (error) {
+                removeTypingIndicator(typingId);
+                appendMessage('ai', "💡 提示：网络查询响应繁忙，请稍后再试。常规问题推荐参考常用机场页面入口。");
+            }
+        }
+
+        function appendMessage(sender, text) {
+            const chatBox = document.getElementById('chatBox');
+            const isUser = sender === 'user';
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`;
+
+            const avatar = isUser
+                ? `<div class="w-7 h-7 rounded bg-slate-800 text-white flex items-center justify-center text-[10px] shrink-0 shadow-xs"><i class="fa-solid fa-user"></i></div>`
+                : `<div class="w-7 h-7 rounded bg-zhihu text-white flex items-center justify-center text-[10px] font-bold shrink-0 shadow-xs">AI</div>`;
+
+            const bgStyle = isUser
+                ? 'bg-zhihu text-white rounded-xl p-2.5 text-xs max-w-[85%] shadow-2xs'
+                : 'bg-white border border-slate-200/80 rounded-xl p-2.5 text-xs text-slate-700 max-w-[85%] shadow-2xs';
+
+            msgDiv.innerHTML = `${avatar}<div class="${bgStyle}">${escapeHtml(text)}</div>`;
+            chatBox.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        function appendTypewriterMessage(sender, text) {
+            const chatBox = document.getElementById('chatBox');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'flex items-start gap-2.5';
+
+            const avatar = `<div class="w-7 h-7 rounded bg-zhihu text-white flex items-center justify-center text-[10px] font-bold shrink-0 shadow-xs">AI</div>`;
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'bg-white border border-slate-200/80 rounded-xl p-2.5 text-xs text-slate-700 max-w-[85%] shadow-2xs whitespace-pre-wrap';
+
+            msgDiv.innerHTML = avatar;
+            msgDiv.appendChild(contentDiv);
+            chatBox.appendChild(msgDiv);
+
+            let index = 0;
+            const timer = setInterval(() => {
+                if (index < text.length) {
+                    contentDiv.textContent += text.charAt(index);
+                    index++;
+                    scrollToBottom();
+                } else {
+                    clearInterval(timer);
+                }
+            }, 12);
+        }
+
+        function appendTypingIndicator() {
+            const chatBox = document.getElementById('chatBox');
+            const id = 'typing_' + Date.now();
+            const msgDiv = document.createElement('div');
+            msgDiv.id = id;
+            msgDiv.className = 'flex items-start gap-2.5';
+
+            msgDiv.innerHTML = `
+                <div class="w-7 h-7 rounded bg-zhihu text-white flex items-center justify-center text-[10px] font-bold shrink-0 shadow-xs">AI</div>
+                <div class="bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-700 flex items-center gap-1 shadow-2xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-zhihu typing-dot"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-zhihu typing-dot"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-zhihu typing-dot"></span>
+                </div>
+            `;
+            chatBox.appendChild(msgDiv);
+            return id;
+        }
+
+        function removeTypingIndicator(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function scrollToBottom() {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
