@@ -3,74 +3,78 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>何岩Photo | Zootopia Media</title>
+<title>何岩Photo </title>
 <style>
 :root{--blue:#007AFF;--green:#28CD41;--orange:#FF9500;--grey:#8E8E93}
 body{margin:0;background:#F2F2F7;font-family:-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-header{position:sticky;top:0;z-index:1000;background:rgba(255,255,255,.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.05);padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
+header{position:sticky;top:0;z-index:1000;background:rgba(255,255,255,.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.05);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;transition:transform .3s}
+header.hide{transform:translateY(-110%)}
 .logo-box img{height:40px;display:block}
 .nav-wrap{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .tab,.btn{padding:8px 16px;border-radius:20px;border:none;font-size:14px;font-weight:700;cursor:pointer;background:rgba(0,0,0,.05);color:var(--grey);transition:.3s}
 .tab.active{color:#fff}
-#tabEd{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:3000;align-items:center;justify-content:center}
-#tabEd .box{background:#fff;padding:20px;border-radius:16px;width:min(340px,90vw);max-height:80vh;overflow:auto;display:flex;flex-direction:column;gap:8px}
-#tabEd .row{display:flex;gap:6px;align-items:center}
-#tabEd input{flex:1;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:15px;min-width:0}
-#tabEd .row button{border:none;background:#eee;border-radius:8px;width:32px;height:32px;cursor:pointer}
-#tabEd .dot{width:14px;height:14px;border-radius:50%;flex:none}
 .btn{background:#000;color:#fff;font-size:12px;text-decoration:none}
 .btn.up{background:var(--blue);display:none}
 .admin .btn.up{display:inline-block}
 .container{max-width:1400px;margin:15px auto;padding:0 10px}
+#usage{font-size:12px;color:var(--grey);margin:0 2px 10px}
+#usage .bar,#prog .bar{height:6px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden;margin-top:4px}
+#usage .bar i,#prog .bar i{display:block;height:100%;transition:width .3s}
 .masonry{column-count:4;column-gap:12px}
 .media-item{break-inside:avoid;margin-bottom:12px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.05);cursor:zoom-in;position:relative}
 .media-item img,.media-item video{width:100%;height:auto;display:block;min-height:80px;background:#e5e5ea}
 .v-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.5);color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold}
-.act{position:absolute;bottom:8px;right:8px;display:flex;gap:6px}
-.act button{width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.85);cursor:pointer;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
-.act .del{display:none;color:#ff3b30}
-.admin .act .del{display:block}
+.masonry.sort{column-count:unset;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.sort .media-item{margin:0;aspect-ratio:1;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.sort .media-item img,.sort .media-item video{position:absolute;inset:0;height:100%;object-fit:cover;pointer-events:none}
+.sort .media-item.dragging{opacity:.45;outline:3px solid var(--blue)}
 #modal{display:none;position:fixed;inset:0;background:rgba(255,255,255,.95);backdrop-filter:blur(25px);z-index:2000;justify-content:center;align-items:center}
 .m-content{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
 #m-img,#m-video{max-width:95%;max-height:80vh;border-radius:8px;box-shadow:0 20px 50px rgba(0,0,0,.1);display:none}
 .m-top{position:absolute;top:20px;width:92%;display:flex;justify-content:space-between;align-items:center;z-index:2002}
 .m-close{font-size:28px;cursor:pointer}
+.m-btns{display:flex;gap:10px}
 .m-down{background:var(--blue);color:#fff;padding:8px 20px;border-radius:20px;font-size:14px;font-weight:bold;border:none;cursor:pointer}
+#mdel{background:#ff3b30;display:none}
+.admin #mdel{display:block}
 .n-btn{position:absolute;top:50%;width:50px;height:50px;margin-top:-25px;background:rgba(0,0,0,.05);border-radius:50%;font-size:24px;cursor:pointer;border:none;z-index:2002}
 .n-btn:hover{background:var(--blue);color:#fff}
 #nl{left:20px}#nr{right:20px}
 .tz{position:absolute;top:15%;width:30%;height:70%;z-index:2001}
 #lz{left:0}#rz{right:0}
-#login{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:3000;align-items:center;justify-content:center}
-#login div{background:#fff;padding:24px;border-radius:16px;display:flex;flex-direction:column;gap:10px;width:260px}
-#login input{padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;z-index:4000;display:none}
+#login,#tabEd{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:3000;align-items:center;justify-content:center}
+#login>div,#tabEd .box{background:#fff;padding:22px;border-radius:16px;display:flex;flex-direction:column;gap:10px;width:min(300px,86vw);max-height:80vh;overflow:auto}
+#login input,#tabEd input{padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;min-width:0}
+#tabEd .row{display:flex;gap:6px;align-items:center}
+#tabEd .row input{flex:1;padding:8px}
+#tabEd .row button{border:none;background:#eee;border-radius:8px;width:32px;height:32px;cursor:pointer}
+#tabEd .dot{width:14px;height:14px;border-radius:50%;flex:none}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;z-index:4000;display:none;white-space:nowrap}
+#prog{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:12px 16px;border-radius:14px;font-size:13px;z-index:4100;display:none;width:min(320px,88vw)}
+#prog .bar{background:rgba(255,255,255,.25)}#prog .bar i{background:var(--green);width:0}
 .empty{text-align:center;padding:50px;color:#999}
 @media(max-width:1024px){.masonry{column-count:3}}
 @media(max-width:600px){header{flex-direction:column;gap:10px;padding:10px}.masonry{column-count:2;column-gap:8px}.media-item{margin-bottom:8px}.n-btn{display:none}#m-img,#m-video{max-width:100%;border-radius:0}}
 </style>
 </head>
 <body>
-<header>
+<header id="hd">
   <div class="logo-box"><img src="./heyan.png" alt="Logo"></div>
   <div class="nav-wrap">
     <span id="tabs" style="display:contents"></span>
     <button class="btn up" id="upBtn">＋上传</button>
+    <button class="btn up" id="sortBtn" style="background:#FF9500">排序</button>
     <button class="btn up" id="editTabs" style="background:#5856D6">编辑栏目</button>
     <a class="btn" href="https://www.xiaohongshu.com/user/profile/5e036f5a0000000001003d12" target="_blank">红</a>
     <button class="btn" id="adminBtn">管理</button>
   </div>
 </header>
-<style>
-#usage{font-size:12px;color:var(--grey);margin:0 2px 10px}
-#usage .bar{height:6px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden;margin-top:4px}
-#usage .bar i{display:block;height:100%;background:var(--green);transition:width .5s}
-</style>
 <div class="container"><div id="usage"></div><div id="gallery" class="masonry"></div></div>
 <input type="file" id="file" multiple accept="image/*,video/mp4,video/webm" hidden>
 
 <div id="modal"><div class="m-content">
-  <div class="m-top"><span class="m-close" id="mc">✕</span><button class="m-down" id="mdl">下载原图</button></div>
+  <div class="m-top"><span class="m-close" id="mc">✕</span>
+    <div class="m-btns"><button class="m-down" id="mdel">删除</button><button class="m-down" id="mdl">下载原图</button></div></div>
   <div class="tz" id="lz"></div><div class="tz" id="rz"></div>
   <button class="n-btn" id="nl">‹</button><button class="n-btn" id="nr">›</button>
   <img id="m-img"><video id="m-video" controls playsinline></video>
@@ -83,6 +87,7 @@ header{position:sticky;top:0;z-index:1000;background:rgba(255,255,255,.7);backdr
   <button class="btn up" style="display:block" id="doLogin">登录</button>
   <button class="tab" id="cancelLogin">取消</button>
 </div></div>
+
 <div id="tabEd"><div class="box">
   <b>编辑栏目</b>
   <div id="tabRows" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -90,16 +95,16 @@ header{position:sticky;top:0;z-index:1000;background:rgba(255,255,255,.7);backdr
   <button class="btn up" style="display:block" id="saveTabs">保存</button>
   <button class="tab" id="cancelTabs">取消</button>
 </div></div>
+
+<div id="prog"><div id="progT"></div><div class="bar"><i id="progB"></i></div></div>
 <div id="toast"></div>
 
 <script>
-// ====== 只需要改这两行 ======
-const CFG = { url: 'https://npdytmouxpomsggcqdnn.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wZHl0bW91eHBvbXNnZ2NxZG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1Mzc1NjQsImV4cCI6MjEwODExMzU2NH0.WA_E8ug3M7UYZfHDoj-jkAWltWfJci9Cc-R6nXA2rtc', bucket: 'photos' };
-// ===========================
+// cdn：图片读取地址。默认用 Supabase 自己的域名；如果以后有了加速/反代地址，填在这里即可（不带结尾斜杠）
+const CFG = { url: 'https://npdytmouxpomsggcqdnn.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wZHl0bW91eHBvbXNnZ2NxZG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1Mzc1NjQsImV4cCI6MjEwODExMzU2NH0.WA_E8ug3M7UYZfHDoj-jkAWltWfJci9Cc-R6nXA2rtc', bucket: 'photos', cdn: 'heyan-img.icemare7.workers.dev' };
 
 const $ = id => document.getElementById(id);
-const PUB = `${CFG.url}/storage/v1/object/public/${CFG.bucket}/`;
-let folder = '', tabs = [], list = [], idx = 0, loadTick = 0;
+const PUB = `${CFG.cdn || CFG.url}/storage/v1/object/public/${CFG.bucket}/`;
 const DEFAULT_TABS = [
   { id: 'draw', name: '绘画', color: '#007AFF' },
   { id: 'archive', name: '兽装存档', color: '#28CD41' },
@@ -107,9 +112,21 @@ const DEFAULT_TABS = [
   { id: 'scenery', name: '风景', color: '#AF52DE' }
 ];
 const PALETTE = ['#007AFF', '#28CD41', '#FF9500', '#AF52DE', '#FF2D55', '#00C7BE'];
+let folder = '', tabs = [], list = [], idx = 0, loadTick = 0, sorting = false;
 let session = JSON.parse(localStorage.getItem('sb_session') || 'null');
 
 function toast(t, ms = 2500) { const e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); if (ms) e._t = setTimeout(() => e.style.display = 'none', ms); }
+function prog(text, p) { $('prog').style.display = 'block'; $('progT').textContent = text; $('progB').style.width = Math.round(p * 100) + '%'; }
+function progHide(ms = 0) { setTimeout(() => $('prog').style.display = 'none', ms); }
+
+// ---------- 顶部菜单：下滑隐藏，上滑出现 ----------
+let lastY = 0;
+addEventListener('scroll', () => {
+  const y = scrollY, h = $('hd');
+  if (y > lastY + 6 && y > 80) h.classList.add('hide');
+  else if (y < lastY - 6 || y < 80) h.classList.remove('hide');
+  lastY = y;
+}, { passive: true });
 
 // ---------- 登录 ----------
 async function token() {
@@ -122,7 +139,7 @@ async function token() {
   return session.access;
 }
 function saveSession(d) { session = { access: d.access_token, refresh: d.refresh_token, exp: Date.now() + d.expires_in * 1000 }; localStorage.setItem('sb_session', JSON.stringify(session)); syncAdmin(); }
-function logout() { session = null; localStorage.removeItem('sb_session'); syncAdmin(); }
+function logout() { session = null; localStorage.removeItem('sb_session'); syncAdmin(); if (sorting) { sorting = false; renderGrid(); } }
 function syncAdmin() { document.body.classList.toggle('admin', !!session); $('adminBtn').textContent = session ? '退出' : '管理'; }
 $('adminBtn').onclick = () => { if (session) { logout(); toast('已退出'); } else $('login').style.display = 'flex'; };
 $('cancelLogin').onclick = () => $('login').style.display = 'none';
@@ -132,7 +149,7 @@ $('doLogin').onclick = async () => {
   saveSession(await r.json()); $('login').style.display = 'none'; toast('登录成功');
 };
 
-// ---------- 读取列表 ----------
+// ---------- 存储接口 ----------
 async function ls(prefix) {
   const r = await fetch(`${CFG.url}/storage/v1/object/list/${CFG.bucket}`, {
     method: 'POST',
@@ -142,120 +159,28 @@ async function ls(prefix) {
   if (!r.ok) throw new Error('list');
   return (await r.json()).filter(f => f.id);
 }
+// 用 XHR 上传，才能拿到上传进度
+async function put(path, blob, type, upsert = false, onp) {
+  const tk = await token();
+  return new Promise((res, rej) => {
+    const x = new XMLHttpRequest();
+    x.open('POST', `${CFG.url}/storage/v1/object/${CFG.bucket}/${path}`);
+    x.setRequestHeader('apikey', CFG.key);
+    x.setRequestHeader('Authorization', 'Bearer ' + tk);
+    x.setRequestHeader('Content-Type', type);
+    x.setRequestHeader('cache-control', upsert ? 'max-age=0' : 'max-age=31536000');
+    if (upsert) x.setRequestHeader('x-upsert', 'true');
+    x.upload.onprogress = e => onp && onp(e.loaded);
+    x.onload = () => x.status < 300 ? res() : rej(new Error(x.responseText));
+    x.onerror = () => rej(new Error('network'));
+    x.send(blob);
+  });
+}
 const base = n => n.replace(/\.[^.]+$/, '');
 const extOf = n => n.split('.').pop().toLowerCase();
+async function getJson(path) { try { const r = await fetch(PUB + path + '?t=' + Date.now()); return r.ok ? await r.json() : null; } catch (e) { return null; } }
 
-async function load(f) {
-  folder = f; renderTabs();
-  const g = $('gallery'), tick = ++loadTick;
-  g.innerHTML = '<div class="empty">LOADING...</div>';
-  try {
-    const [orig, thumb] = await Promise.all([ls(`${f}/orig`), ls(`${f}/thumb`)]);
-    if (tick !== loadTick) return;
-    const tmap = new Map(thumb.map(t => [base(t.name), t.name]));
-    list = orig.map(o => {
-      const v = ['mp4', 'webm'].includes(extOf(o.name));
-      const tn = tmap.get(base(o.name));
-      return { name: o.name, v, raw: PUB + `${f}/orig/${o.name}`, thumb: v ? PUB + `${f}/orig/${o.name}` : (tn ? PUB + `${f}/thumb/${tn}` : PUB + `${f}/orig/${o.name}`), tname: tn };
-    });
-    g.innerHTML = '';
-    if (!list.length) g.innerHTML = '<div class="empty">这里还没有内容</div>';
-    list.forEach((it, i) => {
-      const el = document.createElement('div'); el.className = 'media-item';
-      el.innerHTML = (it.v ? `<span class="v-badge">VIDEO</span><video src="${it.thumb}#t=0.1" preload="metadata" muted loop playsinline></video>` : `<img src="${it.thumb}" loading="lazy" decoding="async">`) +
-        `<div class="act"><button class="dl" title="下载">⬇</button><button class="del" title="删除">🗑</button></div>`;
-      const vid = el.querySelector('video'); if (vid) { el.onmouseenter = () => vid.play(); el.onmouseleave = () => vid.pause(); }
-      el.querySelector('.dl').onclick = e => { e.stopPropagation(); download(it); };
-      el.querySelector('.del').onclick = e => { e.stopPropagation(); remove(it); };
-      el.onclick = () => show(i);
-      g.appendChild(el);
-    });
-    usage();
-  } catch (e) { g.innerHTML = '<div class="empty">加载失败，请检查网络或配置</div>'; }
-}
-
-// ---------- 存储用量（累加所有文件大小，免费额度 1GB） ----------
-async function usage() {
-  try {
-    const ps = tabs.flatMap(t => [`${t.id}/orig`, `${t.id}/thumb`]);
-    const all = (await Promise.all(ps.map(ls))).flat();
-    const used = all.reduce((s, o) => s + ((o.metadata && o.metadata.size) || 0), 0);
-    const LIM = 1024 * 1024 * 1024, mb = x => (x / 1048576).toFixed(1);
-    const pct = Math.min(100, used / LIM * 100);
-    $('usage').innerHTML = `存储：已用 <b>${mb(used)} MB</b> / ${mb(LIM)} MB，剩余 <b>${mb(Math.max(0, LIM - used))} MB</b>（${all.length} 个文件）<div class="bar"><i style="width:${pct}%;background:${pct > 85 ? '#ff3b30' : pct > 60 ? 'var(--orange)' : 'var(--green)'}"></i></div>`;
-  } catch (e) {}
-}
-
-// ---------- 下载 ----------
-async function download(it) {
-  try {
-    toast('下载中…', 0);
-    const b = await (await fetch(it.raw)).blob();
-    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = it.name;
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    toast('已开始下载');
-  } catch (e) { toast('下载失败，已在新窗口打开'); window.open(it.raw, '_blank'); }
-}
-
-// ---------- 删除 ----------
-async function remove(it) {
-  if (!confirm('确定删除这个文件？不可恢复')) return;
-  const prefixes = [`${folder}/orig/${it.name}`]; if (it.tname) prefixes.push(`${folder}/thumb/${it.tname}`);
-  const r = await fetch(`${CFG.url}/storage/v1/object/${CFG.bucket}`, { method: 'DELETE', headers: { apikey: CFG.key, Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes }) });
-  if (!r.ok) return toast('删除失败，请重新登录');
-  toast('已删除'); hide(); load(folder);
-}
-
-// ---------- 上传 ----------
-async function thumbOf(file) {
-  const bmp = await createImageBitmap(file);
-  const s = Math.min(1, 600 / bmp.width), c = document.createElement('canvas');
-  c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
-  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-  return new Promise(r => c.toBlob(r, 'image/webp', 0.8));
-}
-async function put(path, blob, type, upsert = false) {
-  const h = { apikey: CFG.key, Authorization: 'Bearer ' + await token(), 'Content-Type': type, 'cache-control': upsert ? 'max-age=0' : 'max-age=31536000' };
-  if (upsert) h['x-upsert'] = 'true';
-  const r = await fetch(`${CFG.url}/storage/v1/object/${CFG.bucket}/${path}`, { method: 'POST', headers: h, body: blob });
-  if (!r.ok) throw new Error(await r.text());
-}
-async function upload(files) {
-  if (!session) return toast('请先登录管理');
-  files = [...files].filter(f => /^(image|video)\//.test(f.type));
-  let ok = 0;
-  for (let i = 0; i < files.length; i++) {
-    const f = files[i]; toast(`上传中 ${i + 1}/${files.length}：${f.name}`, 0);
-    try {
-      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      const ext = extOf(f.name).replace(/[^a-z0-9]/g, '') || 'jpg';
-      await put(`${folder}/orig/${id}.${ext}`, f, f.type);
-      if (f.type.startsWith('image/')) await put(`${folder}/thumb/${id}.webp`, await thumbOf(f), 'image/webp');
-      ok++;
-    } catch (e) { toast('失败：' + f.name + '（超过50MB或登录过期？）'); await new Promise(r => setTimeout(r, 1500)); }
-  }
-  toast(`完成，成功 ${ok}/${files.length}`); load(folder);
-}
-$('upBtn').onclick = () => $('file').click();
-$('file').onchange = e => { upload(e.target.files); e.target.value = ''; };
-addEventListener('dragover', e => e.preventDefault());
-addEventListener('drop', e => { e.preventDefault(); if (session) upload(e.dataTransfer.files); });
-
-// ---------- 弹窗 ----------
-function show(i) { idx = i; render(); $('modal').style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-function render() {
-  const it = list[idx], img = $('m-img'), vid = $('m-video');
-  img.style.display = vid.style.display = 'none'; vid.pause(); vid.removeAttribute('src');
-  if (it.v) { vid.src = it.raw; vid.style.display = 'block'; vid.play(); }
-  else { img.src = it.thumb; img.style.display = 'block'; const hi = new Image(); hi.onload = () => { if (list[idx] === it) img.src = it.raw; }; hi.src = it.raw; } // 先显示缩略图，原图加载完再替换
-}
-const nav = s => { idx = (idx + s + list.length) % list.length; render(); };
-function hide() { $('modal').style.display = 'none'; $('m-video').pause(); document.body.style.overflow = 'auto'; }
-$('mc').onclick = hide; $('nl').onclick = $('lz').onclick = () => nav(-1); $('nr').onclick = $('rz').onclick = () => nav(1);
-$('mdl').onclick = () => download(list[idx]);
-addEventListener('keydown', e => { if ($('modal').style.display !== 'flex') return; if (e.key === 'ArrowLeft') nav(-1); if (e.key === 'ArrowRight') nav(1); if (e.key === 'Escape') hide(); });
-
-// ---------- 栏目（保存在桶里的 config/tabs.json，可随时编辑） ----------
+// ---------- 栏目 ----------
 function renderTabs() {
   const el = $('tabs'); el.innerHTML = '';
   tabs.forEach(t => {
@@ -267,21 +192,153 @@ function renderTabs() {
     el.appendChild(b);
   });
 }
-async function loadTabs() {
+async function loadTabs() { const d = await getJson('config/tabs.json'); tabs = Array.isArray(d) && d.length ? d : DEFAULT_TABS; }
+
+// ---------- 列表与网格 ----------
+async function load(f) {
+  folder = f; sorting = false; $('sortBtn').textContent = '排序'; renderTabs();
+  const g = $('gallery'), tick = ++loadTick;
+  g.className = 'masonry'; g.innerHTML = '<div class="empty">LOADING...</div>';
   try {
-    const r = await fetch(PUB + 'config/tabs.json?t=' + Date.now());
-    if (!r.ok) throw 0;
-    const d = await r.json();
-    tabs = Array.isArray(d) && d.length ? d : DEFAULT_TABS;
-  } catch (e) { tabs = DEFAULT_TABS; }
+    const [orig, thumb, order] = await Promise.all([ls(`${f}/orig`), ls(`${f}/thumb`), getJson(`config/order-${f}.json`)]);
+    if (tick !== loadTick) return;
+    const tmap = new Map(thumb.map(t => [base(t.name), t.name]));
+    let items = orig.map(o => {
+      const v = ['mp4', 'webm'].includes(extOf(o.name)), tn = tmap.get(base(o.name));
+      return { name: o.name, v, raw: PUB + `${f}/orig/${o.name}`, thumb: v ? PUB + `${f}/orig/${o.name}` : (tn ? PUB + `${f}/thumb/${tn}` : PUB + `${f}/orig/${o.name}`), tname: tn };
+    });
+    const om = new Map((Array.isArray(order) ? order : []).map((n, i) => [n, i]));
+    const known = items.filter(x => om.has(x.name)).sort((a, b) => om.get(a.name) - om.get(b.name));
+    list = [...items.filter(x => !om.has(x.name)), ...known]; // 新上传的排在最前
+    renderGrid(); usage();
+  } catch (e) { g.innerHTML = '<div class="empty">加载失败，请检查网络或配置</div>'; }
 }
 
+let dragEl = null;
+function renderGrid() {
+  const g = $('gallery'); g.className = 'masonry' + (sorting ? ' sort' : ''); g.innerHTML = '';
+  if (!list.length) { g.innerHTML = '<div class="empty">这里还没有内容</div>'; return; }
+  list.forEach((it, i) => {
+    const el = document.createElement('div'); el.className = 'media-item'; el.dataset.name = it.name;
+    el.innerHTML = (it.v ? `<span class="v-badge">VIDEO</span><video src="${it.thumb}#t=0.1" preload="metadata" muted loop playsinline></video>` : `<img src="${it.thumb}" loading="lazy" decoding="async" draggable="false">`);
+    if (sorting) {
+      el.onpointerdown = e => { e.preventDefault(); dragEl = el; el.classList.add('dragging'); el.setPointerCapture(e.pointerId); };
+      el.onpointermove = e => {
+        if (dragEl !== el) return;
+        if (e.clientY < 90) scrollBy(0, -12); else if (e.clientY > innerHeight - 90) scrollBy(0, 12);
+        const t = document.elementFromPoint(e.clientX, e.clientY), over = t && t.closest('.media-item');
+        if (over && over !== el && over.parentNode === g) {
+          const r = over.getBoundingClientRect();
+          g.insertBefore(el, e.clientX > r.left + r.width / 2 ? over.nextSibling : over);
+        }
+      };
+      el.onpointerup = el.onpointercancel = () => { dragEl = null; el.classList.remove('dragging'); };
+    } else {
+      const vid = el.querySelector('video'); if (vid) { el.onmouseenter = () => vid.play(); el.onmouseleave = () => vid.pause(); }
+      el.onclick = () => show(i);
+    }
+    g.appendChild(el);
+  });
+}
+$('sortBtn').onclick = async () => {
+  if (!sorting) { sorting = true; $('sortBtn').textContent = '完成排序'; renderGrid(); toast('按住图片拖动即可调整顺序', 3000); return; }
+  const names = [...$('gallery').querySelectorAll('.media-item')].map(e => e.dataset.name);
+  try {
+    toast('保存顺序…', 0);
+    await put(`config/order-${folder}.json`, new Blob([JSON.stringify(names)], { type: 'application/json' }), 'application/json', true);
+    const m = new Map(list.map(x => [x.name, x])); list = names.map(n => m.get(n));
+    sorting = false; $('sortBtn').textContent = '排序'; renderGrid(); toast('顺序已保存');
+  } catch (e) { toast('保存失败：请确认已执行 update 权限的 SQL 并已登录', 4000); }
+};
+
+// ---------- 存储用量（免费额度 1GB） ----------
+async function usage() {
+  try {
+    const ps = tabs.flatMap(t => [`${t.id}/orig`, `${t.id}/thumb`]);
+    const all = (await Promise.all(ps.map(ls))).flat();
+    const used = all.reduce((s, o) => s + ((o.metadata && o.metadata.size) || 0), 0);
+    const LIM = 1024 * 1024 * 1024, mb = x => (x / 1048576).toFixed(1), pct = Math.min(100, used / LIM * 100);
+    $('usage').innerHTML = `存储：已用 <b>${mb(used)} MB</b> / ${mb(LIM)} MB，剩余 <b>${mb(Math.max(0, LIM - used))} MB</b>（${all.length} 个文件）<div class="bar"><i style="width:${pct}%;background:${pct > 85 ? '#ff3b30' : pct > 60 ? 'var(--orange)' : 'var(--green)'}"></i></div>`;
+  } catch (e) {}
+}
+
+// ---------- 下载 / 删除 ----------
+async function download(it) {
+  try {
+    toast('下载中…', 0);
+    const b = await (await fetch(it.raw)).blob();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = it.name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast('已开始下载');
+  } catch (e) { toast('下载失败，已在新窗口打开'); window.open(it.raw, '_blank'); }
+}
+async function remove(it) {
+  if (!confirm('确定删除这个文件？不可恢复')) return;
+  const prefixes = [`${folder}/orig/${it.name}`]; if (it.tname) prefixes.push(`${folder}/thumb/${it.tname}`);
+  const r = await fetch(`${CFG.url}/storage/v1/object/${CFG.bucket}`, { method: 'DELETE', headers: { apikey: CFG.key, Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes }) });
+  if (!r.ok) return toast('删除失败，请重新登录');
+  toast('已删除'); hide(); load(folder);
+}
+
+// ---------- 上传（带进度条） ----------
+async function thumbOf(file) {
+  const bmp = await createImageBitmap(file);
+  const s = Math.min(1, 600 / bmp.width), c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise(r => c.toBlob(r, 'image/webp', 0.8));
+}
+async function upload(files) {
+  if (!session) return toast('请先登录管理');
+  files = [...files].filter(f => /^(image|video)\//.test(f.type));
+  if (!files.length) return;
+  const total = files.reduce((s, f) => s + f.size, 0) || 1; let done = 0, ok = 0;
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i], label = `上传中 ${i + 1}/${files.length}：${f.name}`;
+    prog(label, done / total);
+    try {
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const ext = extOf(f.name).replace(/[^a-z0-9]/g, '') || 'jpg';
+      await put(`${folder}/orig/${id}.${ext}`, f, f.type, false, loaded => prog(label + ` · ${Math.round((done + loaded) / total * 100)}%`, (done + loaded) / total));
+      if (f.type.startsWith('image/')) await put(`${folder}/thumb/${id}.webp`, await thumbOf(f), 'image/webp');
+      ok++;
+    } catch (e) { toast('失败：' + f.name + '（超过50MB或登录过期？）', 3000); }
+    done += f.size;
+  }
+  prog(`完成：成功 ${ok}/${files.length}`, 1); progHide(1500); load(folder);
+}
+$('upBtn').onclick = () => $('file').click();
+$('file').onchange = e => { upload(e.target.files); e.target.value = ''; };
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => { e.preventDefault(); if (session && !sorting) upload(e.dataTransfer.files); });
+
+// ---------- 大图弹窗（返回键只关闭弹窗，不离开页面） ----------
+function show(i) {
+  idx = i; render(); $('modal').style.display = 'flex'; document.body.style.overflow = 'hidden';
+  if (!(history.state && history.state.m)) history.pushState({ m: 1 }, '');
+}
+function render() {
+  const it = list[idx], img = $('m-img'), vid = $('m-video');
+  img.style.display = vid.style.display = 'none'; vid.pause(); vid.removeAttribute('src');
+  if (it.v) { vid.src = it.raw; vid.style.display = 'block'; vid.play(); }
+  else { img.src = it.thumb; img.style.display = 'block'; const hi = new Image(); hi.onload = () => { if (list[idx] === it) img.src = it.raw; }; hi.src = it.raw; }
+}
+const nav = s => { idx = (idx + s + list.length) % list.length; render(); };
+function closeModal() { $('modal').style.display = 'none'; $('m-video').pause(); document.body.style.overflow = 'auto'; }
+function hide() { if (history.state && history.state.m) history.back(); else closeModal(); }
+addEventListener('popstate', closeModal);
+$('mc').onclick = hide; $('nl').onclick = $('lz').onclick = () => nav(-1); $('nr').onclick = $('rz').onclick = () => nav(1);
+$('mdl').onclick = () => download(list[idx]);
+$('mdel').onclick = () => remove(list[idx]);
+addEventListener('keydown', e => { if ($('modal').style.display !== 'flex') return; if (e.key === 'ArrowLeft') nav(-1); if (e.key === 'ArrowRight') nav(1); if (e.key === 'Escape') hide(); });
+
+// ---------- 栏目编辑 ----------
 let draft = [];
 function renderEditor() {
   const box = $('tabRows'); box.innerHTML = '';
   draft.forEach((t, i) => {
     const row = document.createElement('div'); row.className = 'row';
-    row.innerHTML = `<span class="dot" style="background:${t.color}"></span><input maxlength="12"><button title="上移">↑</button><button title="下移">↓</button><button title="删除" style="color:#ff3b30">🗑</button>`;
+    row.innerHTML = `<span class="dot" style="background:${t.color}"></span><input maxlength="12"><button>↑</button><button>↓</button><button style="color:#ff3b30">🗑</button>`;
     const inp = row.querySelector('input'); inp.value = t.name; inp.oninput = () => t.name = inp.value;
     const [up, dn, del] = row.querySelectorAll('button');
     up.onclick = () => { if (i > 0) { [draft[i - 1], draft[i]] = [draft[i], draft[i - 1]]; renderEditor(); } };
@@ -293,11 +350,10 @@ function renderEditor() {
 $('editTabs').onclick = () => { draft = tabs.map(t => ({ ...t })); renderEditor(); $('tabEd').style.display = 'flex'; };
 $('cancelTabs').onclick = () => $('tabEd').style.display = 'none';
 $('addTab').onclick = () => { draft.push({ id: 't' + Date.now().toString(36), name: '新栏目', color: PALETTE[draft.length % PALETTE.length] }); renderEditor(); };
-
 async function wipeFolder(id) {
   const names = [];
   for (const sub of ['orig', 'thumb']) (await ls(`${id}/${sub}`)).forEach(o => names.push(`${id}/${sub}/${o.name}`));
-  if (!names.length) return;
+  names.push(`config/order-${id}.json`);
   await fetch(`${CFG.url}/storage/v1/object/${CFG.bucket}`, { method: 'DELETE', headers: { apikey: CFG.key, Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: names }) });
 }
 $('saveTabs').onclick = async () => {
@@ -308,8 +364,7 @@ $('saveTabs').onclick = async () => {
     toast('保存中…', 0);
     for (const t of removed) await wipeFolder(t.id);
     await put('config/tabs.json', new Blob([JSON.stringify(draft)], { type: 'application/json' }), 'application/json', true);
-    tabs = draft; $('tabEd').style.display = 'none';
-    toast('栏目已保存');
+    tabs = draft; $('tabEd').style.display = 'none'; toast('栏目已保存');
     load(tabs.some(t => t.id === folder) ? folder : tabs[0].id);
   } catch (e) { toast('保存失败：请确认已执行 update 权限的 SQL 并已登录', 4000); }
 };
