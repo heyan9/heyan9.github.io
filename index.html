@@ -1,0 +1,2397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <base target="_blank">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>何岩搜索站 - 尊享重制版</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <!-- 引入 APlayer 和 MetingJS (修复音乐播放的关键) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/meting/2.0.1/Meting.min.js"></script>
+
+  <script src="https://code.bdstatic.com/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
+  
+  <style>
+    :root {
+      --primary-blue: #0084ff;
+      --bg-color: #ffffff;
+      --glass-bg: rgba(255, 255, 255, 0.9);
+      --glass-border: rgba(255,255,255,0.5);
+      --border-color: #ebebeb;
+      --text-main: #444;
+      --text-sub: #8590a6;
+      --input-bg: #fff;
+      --item-hover: #fff;
+      --shadow-color: rgba(0, 0, 0, 0.04);
+      
+      --rare-common: #7f8c8d;
+      --rare-rare: #3498db;
+      --rare-epic: #9b59b6;
+      --rare-legend: #f1c40f;
+    }
+
+    /* 深色模式变量覆盖 */
+    body.dark-mode {
+      --bg-color: #121212;
+      --glass-bg: rgba(30, 30, 30, 0.9);
+      --glass-border: rgba(255,255,255,0.1);
+      --border-color: #333;
+      --text-main: #e0e0e0;
+      --text-sub: #aaa;
+      --input-bg: #1e1e1e;
+      --item-hover: #2c2c2c;
+      --shadow-color: rgba(0, 0, 0, 0.4);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg-color);
+      /* 深色模式下调整背景渐变使其柔和 */
+      background-image: radial-gradient(circle at 10% 20%, rgba(0, 132, 255, 0.05) 0%, transparent 20%), 
+                        radial-gradient(circle at 90% 80%, rgba(0, 132, 255, 0.05) 0%, transparent 20%);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      font-weight: 400;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* --- 用户栏 --- */
+    .user-bar {
+      position: absolute; top: 20px; right: 20px;
+      display: flex; align-items: center; 
+      height: 40px; padding: 0 4px 0 16px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      box-shadow: 0 2px 12px var(--shadow-color);
+      z-index: 100;
+      gap: 12px; font-size: 13px;
+      transition: all 0.3s;
+    }
+    .fish-stats { display: flex; align-items: center; gap: 6px; color: var(--text-main); cursor: default; height: 100%; }
+    .level-badge { background: rgba(0, 132, 255, 0.1); color: var(--primary-blue); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .divider { width: 1px; height: 14px; background: var(--border-color); }
+    #authContainer { display: flex; align-items: center; height: 100%; }
+    .auth-btn { background: var(--primary-blue); color: white; border: none; padding: 0 16px; height: 28px; border-radius: 14px; cursor: pointer; font-size: 12px; margin-right: 4px; }
+    .auth-btn:hover { background: #0077e6; }
+    
+    /* 新增功能按钮样式 */
+    .icon-btn { background: transparent; color: var(--text-sub); border: none; font-size: 14px; cursor: pointer; padding: 0 5px; transition: color 0.2s; }
+    .icon-btn:hover { color: var(--primary-blue); }
+
+    .user-name { color: var(--text-main); margin-right: 8px; }
+    .logout-btn { color: var(--text-sub); cursor: pointer; margin-right: 10px; }
+
+    /* 移动端适配 */
+    @media (max-width: 600px) {
+      .user-bar { position: relative; top: auto; right: auto; margin-bottom: 20px; width: auto; justify-content: center; flex-wrap: wrap; height: auto; padding: 10px; }
+      .content-wrapper { margin-top: 10px; }
+    }
+
+    /* 登录框 */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+    .modal-box { background: var(--bg-color); padding: 30px; border-radius: 12px; width: 300px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); text-align: center; border: 1px solid var(--border-color); }
+    .modal-box h3 { color: var(--text-main); }
+    .modal-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: 6px; outline: none; background: var(--input-bg); color: var(--text-main); }
+    .btn-login { background: var(--primary-blue); color: #fff; width: 100%; padding: 10px; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 10px; }
+
+    /* --- 主布局 --- */
+    .content-wrapper { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; max-width: 1000px; padding-bottom: 50px; margin-top: 60px; transition: all 0.5s; }
+    .logo-container { margin-bottom: 40px; text-align: center; width: 100%; }
+    .logo { width: 80%; max-width: 300px; height: auto; display: block; margin: 0 auto; }
+    .logo-text { font-size: 36px; font-weight: 800; color: var(--primary-blue); display: none; }
+
+    .search-container { width: 100%; max-width: 650px; margin-bottom: 30px; position: relative; z-index: 10; }
+    .search-box { display: flex; align-items: center; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 50px; padding: 5px; box-shadow: 0 2px 8px var(--shadow-color); transition: all 0.3s; }
+    .search-box:focus-within { border-color: var(--primary-blue); box-shadow: 0 4px 15px rgba(0, 132, 255, 0.15); }
+    #searchInput { flex: 1; height: 44px; border: none; background: transparent; outline: none; font-size: 16px; padding: 0 20px; color: var(--text-main); }
+    #searchButton { background-color: var(--primary-blue); color: white; border: none; height: 44px; padding: 0 32px; border-radius: 40px; cursor: pointer; font-size: 15px; font-weight: 500; }
+
+    .quick-nav { display: flex; justify-content: center; gap: 30px; margin-bottom: 40px; width: 100%; max-width: 850px; flex-wrap: wrap; }
+    .nav-item { display: flex; align-items: center; text-decoration: none; color: var(--text-sub); font-size: 14px; padding: 8px 12px; border-radius: 8px; transition: all 0.2s; cursor: pointer; }
+    .nav-item:hover { background: var(--item-hover); color: var(--primary-blue); transform: translateY(-2px); box-shadow: 0 2px 8px var(--shadow-color); }
+    .nav-item i { margin-right: 8px; color: #999; }
+    .nav-item:hover i { color: var(--primary-blue); }
+
+    /* 开关栏 */
+    .toggle-section { width: 100%; text-align: center; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+    .toggle-btn { background: var(--item-hover); border: 1px solid var(--border-color); color: #999; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 16px; transition: all 0.3s; box-shadow: 0 4px 12px var(--shadow-color); display: inline-flex; align-items: center; justify-content: center; position: relative; }
+    .toggle-btn:hover { color: var(--primary-blue); border-color: var(--primary-blue); transform: translateY(-2px); }
+    .toggle-btn.active { background: var(--primary-blue); border-color: var(--primary-blue); color: white; }
+    .toggle-btn.running::after { content: ''; position: absolute; top: 0; right: 0; width: 12px; height: 12px; background: #4caf50; border: 2px solid #fff; border-radius: 50%; }
+
+    .hidden-wrapper { width: 100%; max-height: 0; overflow: hidden; opacity: 0; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 0; }
+    .hidden-wrapper.open { opacity: 1; margin-top: 30px; }
+
+    /* --- 工具栏 --- */
+    .grid-limit { max-width: 900px; } .grid-limit.open { max-height: 1000px; }
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; }
+    .tool-item { background: var(--item-hover); color: var(--text-sub); text-decoration: none; text-align: center; padding: 15px 5px; font-size: 13px; border: 1px solid var(--border-color); border-radius: 6px; transition: background 0.3s; }
+    .tool-item:hover { color: var(--primary-blue); border-color: var(--primary-blue); }
+
+    /* --- 音乐播放器 --- */
+    .music-limit { max-width: 600px; width: 100%; } 
+    .music-limit.open { max-height: 600px; }
+    
+    .aplayer {
+      background: var(--glass-bg) !important;
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 10px 40px -10px rgba(0, 132, 255, 0.1) !important;
+      margin: 0 !important;
+      font-family: inherit !important;
+      color: #444; /* Force dark text in APlayer for better contrast in light mode */
+    }
+    body.dark-mode .aplayer { color: #ddd; }
+    body.dark-mode .aplayer .aplayer-list ol li:hover { background: rgba(255,255,255,0.1) !important; }
+    body.dark-mode .aplayer .aplayer-list ol li.aplayer-list-light { background: rgba(255,255,255,0.1) !important; }
+    body.dark-mode .aplayer .aplayer-info .aplayer-music .aplayer-title { color: #eee; }
+    body.dark-mode .aplayer .aplayer-info .aplayer-music .aplayer-author { color: #aaa; }
+
+    .aplayer .aplayer-body { background: transparent !important; }
+    .aplayer .aplayer-list { background: var(--glass-border) !important; }
+
+    /* --- 任务清单 --- */
+    .task-limit { max-width: 650px; width: 100%; } .task-limit.open { max-height: 800px; }
+    .task-container { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 20px; padding: 25px; box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column; gap: 20px; }
+    .task-input-group { display: flex; gap: 10px; align-items: center; }
+    .task-input { flex: 1; padding: 10px 15px; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background: var(--input-bg); color: var(--text-main); }
+    .task-input:focus { border-color: var(--primary-blue); }
+    .star-select { display: flex; gap: 5px; cursor: pointer; user-select: none; }
+    .star-select i { color: #ddd; font-size: 18px; padding: 2px; }
+    .star-select i.selected { color: #f1c40f; }
+    .btn-add-task { background: var(--primary-blue); color: white; border: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; font-size: 16px; flex-shrink: 0; }
+    .task-list { max-height: 350px; overflow-y: auto; padding-right: 5px; }
+    .task-item { display: flex; align-items: center; justify-content: space-between; background: var(--glass-border); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 15px; margin-bottom: 10px; transition: all 0.3s; }
+    .task-item:hover { transform: translateX(2px); border-color: var(--primary-blue); background: var(--item-hover); }
+    .task-item.active-running { border-color: var(--primary-blue); background: rgba(0, 132, 255, 0.06); }
+    .t-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .t-title { font-size: 14px; font-weight: 500; color: var(--text-main); }
+    .t-stars { font-size: 12px; color: #f1c40f; }
+    .t-timer { font-family: monospace; font-size: 14px; color: var(--text-sub); margin: 0 15px; min-width: 70px; text-align: right; }
+    .t-actions { display: flex; gap: 8px; }
+    .btn-icon { width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 12px; }
+    .btn-play { background: #e3f2fd; color: var(--primary-blue); }
+    body.dark-mode .btn-play { background: #1a3a5a; color: #4da3ff; }
+    .btn-pause { background: var(--primary-blue); color: #fff; }
+    .btn-del { background: transparent; color: #ccc; }
+    .btn-del:hover { color: #ff5252; background: rgba(255, 0, 0, 0.1); }
+
+    /* ===================== 游戏系统（重制版） ===================== */
+    .game-limit { max-width: 760px; width: 100%; } .game-limit.open { max-height: 2600px; }
+    .game-container {
+      --g-teal: #1fb5a8; --g-amber: #ffb547; --g-coral: #ff6b5a; --g-navy: #0b2a45;
+      --g-panel: rgba(0, 0, 0, 0.035);
+      background: var(--glass-bg); backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color); border-radius: 20px; overflow: hidden;
+      position: relative; box-shadow: 0 14px 44px -14px rgba(11, 42, 69, 0.35);
+    }
+    body.dark-mode .game-container { --g-panel: rgba(255, 255, 255, 0.05); }
+
+    .game-scene { position: relative; height: 340px; background: #0b2a45; overflow: hidden; user-select: none; -webkit-user-select: none; }
+    #fishCanvas { display: block; width: 100%; height: 100%; touch-action: manipulation; cursor: pointer; }
+
+    /* 吐司 */
+    .g-toast-box { position: absolute; top: 46px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; z-index: 40; pointer-events: none; width: 90%; }
+    .g-toast { background: rgba(11, 42, 69, 0.88); color: #fff; padding: 6px 14px; border-radius: 16px; font-size: 13px; border: 1px solid rgba(255,255,255,0.15); animation: toastIn .3s ease-out, toastOut .4s ease-in 2.6s forwards; max-width: 100%; text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+    .g-toast.ach { background: linear-gradient(90deg, #b8860b, #f1c40f); color: #3a2a00; font-weight: 700; border-color: #fff3b0; }
+    .g-toast.warn { background: rgba(190, 50, 40, 0.92); }
+    .g-toast.good { background: rgba(20, 140, 110, 0.92); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(-10px) scale(.95); } to { opacity: 1; transform: none; } }
+    @keyframes toastOut { to { opacity: 0; transform: translateY(-6px); } }
+
+    /* 控制栏 */
+    .ctrl-bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; flex-wrap: wrap; border-top: 1px solid var(--border-color); }
+    .btn-game-ctrl { padding: 8px 16px; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 700; color: white; transition: transform .15s, box-shadow .15s, filter .15s; font-family: inherit; }
+    .btn-game-ctrl:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .btn-game-ctrl:active { transform: translateY(0) scale(.97); }
+    .btn-start { background: linear-gradient(135deg, #34c58a, #1fb5a8); box-shadow: 0 4px 12px rgba(31,181,168,.35); }
+    .btn-stop { background: linear-gradient(135deg, #ffa94d, #ff8a3d); display: none; }
+    .btn-shop { background: linear-gradient(135deg, #3aa0ff, #0084ff); margin-left: auto; }
+    .btn-action { background: linear-gradient(135deg, #ffc04d, #ff8a3d); min-width: 150px; font-size: 14px; box-shadow: 0 4px 14px rgba(255,138,61,.4); touch-action: none; user-select: none; -webkit-user-select: none; display: none; }
+    .btn-action.bite { background: linear-gradient(135deg, #ff6b5a, #e63946); animation: pulseBtn .35s infinite alternate; }
+    .btn-action.reel { background: linear-gradient(135deg, #3aa0ff, #1f6feb); }
+    @keyframes pulseBtn { to { transform: scale(1.06); box-shadow: 0 0 18px rgba(255,107,90,.7); } }
+    .mode-switch { display: inline-flex; background: var(--g-panel); border: 1px solid var(--border-color); border-radius: 10px; padding: 2px; }
+    .mode-switch button { border: none; background: transparent; color: var(--text-sub); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: inherit; }
+    .mode-switch button.on { background: var(--primary-blue); color: #fff; box-shadow: 0 2px 8px rgba(0,132,255,.35); }
+
+    /* 加成条 */
+    .stats-bar { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 12px 10px; font-size: 11px; }
+    .sb-chip { background: var(--g-panel); border: 1px solid var(--border-color); color: var(--text-sub); padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .sb-chip b { color: var(--text-main); font-weight: 700; }
+
+    /* 标签页 */
+    .game-tabs { display: flex; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); background: var(--g-panel); }
+    .g-tab { flex: 1; padding: 11px 4px; border: none; background: transparent; color: var(--text-sub); font-size: 13px; cursor: pointer; position: relative; font-family: inherit; transition: color .2s; }
+    .g-tab:hover { color: var(--primary-blue); }
+    .g-tab.on { color: var(--primary-blue); font-weight: 700; }
+    .g-tab.on::after { content: ''; position: absolute; left: 22%; right: 22%; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--primary-blue); }
+    .g-tab .tab-dot { display: none; position: absolute; top: 7px; right: calc(50% - 26px); width: 8px; height: 8px; background: #ff4d4f; border-radius: 50%; }
+    .g-tab .tab-dot.show { display: block; }
+
+    .gpanels { height: 380px; position: relative; }
+    .gpanel { display: none; height: 100%; overflow-y: auto; padding: 12px; }
+    .gpanel.active { display: block; }
+    .gpanel::-webkit-scrollbar { width: 6px; }
+    .gpanel::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+    /* 日志 */
+    .log-list { display: flex; flex-direction: column; gap: 4px; font-family: monospace; color: var(--text-main); }
+    .log-item { font-size: 12px; line-height: 1.5; }
+    .quality-common { color: var(--rare-common); }
+    .quality-rare { color: var(--rare-rare); font-weight: bold; }
+    .quality-epic { color: var(--rare-epic); font-weight: bold; text-shadow: 0 0 2px rgba(155, 89, 182, 0.2); }
+    .quality-legend { color: var(--rare-legend); font-weight: 800; text-shadow: 0 0 3px rgba(241, 196, 15, 0.4); animation: glow 2s infinite; }
+    @keyframes glow { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+    /* 面板标题 */
+    .p-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13px; color: var(--text-sub); }
+    .p-head b { color: var(--text-main); font-size: 14px; }
+
+    /* 图鉴 */
+    .dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 8px; }
+    .dex-item { border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 6px; text-align: center; background: var(--item-hover); position: relative; overflow: hidden; }
+    .dex-item::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--rc, #999); }
+    .dex-item.locked { opacity: .55; }
+    .dex-item.locked .dex-emoji { filter: grayscale(1) brightness(.35); }
+    .dex-emoji { font-size: 30px; line-height: 1.2; display: block; }
+    .dex-name { font-size: 12px; font-weight: 700; color: var(--text-main); margin-top: 4px; display: block; }
+    .dex-rare { font-size: 10px; color: var(--rc, #999); font-weight: 700; }
+    .dex-meta { font-size: 10px; color: var(--text-sub); margin-top: 3px; display: block; line-height: 1.5; }
+
+    /* 成就 */
+    .ach-list { display: flex; flex-direction: column; gap: 8px; }
+    .ach-item { display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; background: var(--item-hover); }
+    .ach-item.done { border-color: #f1c40f; background: linear-gradient(90deg, rgba(241,196,15,.12), transparent); }
+    .ach-item.claimed { opacity: .6; }
+    .ach-icon { font-size: 28px; width: 40px; text-align: center; flex-shrink: 0; }
+    .ach-info { flex: 1; min-width: 0; }
+    .ach-name { font-size: 13px; font-weight: 700; color: var(--text-main); }
+    .ach-desc { font-size: 11px; color: var(--text-sub); margin: 2px 0 6px; }
+    .ach-bar { height: 5px; border-radius: 3px; background: var(--border-color); overflow: hidden; }
+    .ach-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #1fb5a8, #34c58a); border-radius: 3px; }
+    .ach-item.done .ach-bar > i, .ach-item.claimed .ach-bar > i { background: linear-gradient(90deg, #f1c40f, #ffb547); }
+    .ach-side { text-align: right; flex-shrink: 0; font-size: 11px; color: var(--text-sub); }
+    .ach-reward { color: #f39c12; font-weight: 700; display: block; margin-bottom: 4px; }
+    .btn-claim { border: none; background: linear-gradient(135deg, #ffc04d, #ff8a3d); color: #fff; font-weight: 700; padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-family: inherit; animation: pulseBtn .8s infinite alternate; }
+    .ach-ok { color: #34c58a; font-weight: 700; }
+
+    /* 抽卡 */
+    .gacha-banner { border-radius: 14px; padding: 14px; color: #fff; background: radial-gradient(circle at 85% 20%, rgba(255,214,102,.35), transparent 40%), linear-gradient(135deg, #1b2a6b, #5b2a86 60%, #b0407a); position: relative; overflow: hidden; }
+    .gacha-banner h4 { font-size: 16px; margin-bottom: 4px; }
+    .gacha-banner p { font-size: 12px; opacity: .85; line-height: 1.6; }
+    .gacha-rates { display: flex; gap: 8px; margin-top: 8px; font-size: 11px; flex-wrap: wrap; }
+    .gacha-rates span { background: rgba(255,255,255,.14); padding: 2px 8px; border-radius: 8px; }
+    .pity-row { display: flex; gap: 10px; margin-top: 10px; font-size: 11px; }
+    .pity-row > div { flex: 1; }
+    .pity-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.2); margin-top: 3px; overflow: hidden; }
+    .pity-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ffd666, #ff9f43); }
+    .gacha-btns { display: flex; gap: 10px; margin: 12px 0; }
+    .btn-pull { flex: 1; border: none; border-radius: 12px; padding: 11px 6px; color: #fff; font-weight: 800; cursor: pointer; font-size: 14px; font-family: inherit; line-height: 1.35; transition: transform .15s, filter .15s; }
+    .btn-pull small { display: block; font-weight: 500; font-size: 11px; opacity: .9; }
+    .btn-pull:hover { filter: brightness(1.08); transform: translateY(-2px); }
+    .btn-pull.p1 { background: linear-gradient(135deg, #3aa0ff, #1f6feb); }
+    .btn-pull.p10 { background: linear-gradient(135deg, #ff9f43, #ee5a24); box-shadow: 0 4px 14px rgba(238,90,36,.35); }
+    .btn-pull.off { filter: grayscale(.7) brightness(.9); }
+    .slot-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: stretch; }
+    .slot { flex: 1; border: 2px dashed var(--border-color); border-radius: 12px; padding: 8px 4px; text-align: center; font-size: 11px; color: var(--text-sub); min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+    .slot.filled { border-style: solid; background: var(--item-hover); }
+    .slot .c-emoji { font-size: 24px; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+    .gcard { border: 2px solid var(--cc); border-radius: 12px; padding: 8px 6px; text-align: center; background: var(--item-hover); cursor: pointer; position: relative; transition: transform .15s, box-shadow .15s; }
+    .gcard:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+    .gcard.locked { opacity: .45; cursor: default; filter: grayscale(1); }
+    .gcard.locked:hover { transform: none; box-shadow: none; }
+    .gcard.equipped { box-shadow: 0 0 0 2px var(--cc), 0 6px 16px rgba(0,0,0,.15); }
+    .gcard .c-rar { position: absolute; top: -1px; left: -1px; background: var(--cc); color: #fff; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 10px 0 8px 0; }
+    .gcard .c-eq { position: absolute; top: 3px; right: 5px; font-size: 10px; color: var(--cc); font-weight: 800; }
+    .c-emoji { font-size: 28px; display: block; margin-top: 8px; }
+    .c-name { font-size: 12px; font-weight: 700; color: var(--text-main); display: block; margin-top: 2px; }
+    .c-star { font-size: 10px; color: #f1c40f; letter-spacing: 1px; display: block; height: 14px; }
+    .c-eff { font-size: 10px; color: var(--text-sub); line-height: 1.4; display: block; }
+    .cc-N { --cc: #8a97a0; } .cc-R { --cc: #3498db; } .cc-SR { --cc: #a45be0; } .cc-SSR { --cc: #f1b600; }
+    .gcard.cc-SSR:not(.locked), .rv-card.cc-SSR { background-image: linear-gradient(115deg, transparent 30%, rgba(255,215,0,.22) 50%, transparent 70%); background-size: 250% 100%; animation: shine 3s infinite linear; }
+    @keyframes shine { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+
+    /* 抽卡结果弹层 */
+    .reveal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 10px; margin-top: 8px; }
+    .rv-card { border: 2px solid var(--cc); border-radius: 12px; padding: 10px 4px 8px; text-align: center; background: var(--item-hover); position: relative; opacity: 0; transform: rotateY(90deg) scale(.8); animation: flipIn .5s ease-out forwards; animation-delay: calc(var(--i) * .12s); }
+    .rv-card.cc-SSR { box-shadow: 0 0 18px rgba(255,200,0,.65); }
+    .rv-card.cc-SR { box-shadow: 0 0 12px rgba(164,91,224,.5); }
+    .rv-card .c-emoji { margin-top: 2px; font-size: 32px; }
+    .rv-card .rv-tag { position: absolute; top: -8px; right: -6px; background: #ff4d4f; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 8px; }
+    .rv-card .rv-tag.dup { background: #1fb5a8; }
+    @keyframes flipIn { to { opacity: 1; transform: none; } }
+
+    /* 商城 */
+    .shop-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+    .shop-cats { display: inline-flex; gap: 6px; }
+    .shop-cat { border: 1px solid var(--border-color); background: var(--item-hover); color: var(--text-sub); padding: 5px 14px; border-radius: 16px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: inherit; }
+    .shop-cat.on { background: var(--primary-blue); color: #fff; border-color: var(--primary-blue); }
+    .shop-wallet { font-size: 13px; color: var(--text-sub); } .shop-wallet b { color: #f39c12; font-family: monospace; font-size: 15px; }
+    .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+    .shop-item { border: 1px solid var(--border-color); border-radius: 14px; padding: 12px; display: flex; gap: 12px; background: var(--item-hover); position: relative; overflow: hidden; transition: border-color .2s, box-shadow .2s; }
+    .shop-item:hover { border-color: var(--primary-blue); box-shadow: 0 6px 18px rgba(0,132,255,.1); }
+    .shop-item.sale { border-color: #ff6b5a; }
+    .sale-tag { position: absolute; top: 0; right: 0; background: #ff6b5a; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 10px; border-radius: 0 12px 0 10px; }
+    .s-icon { font-size: 30px; width: 48px; height: 48px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--ic, #0084ff) 14%, transparent); }
+    .s-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .s-name { font-size: 13px; font-weight: 700; color: var(--text-main); }
+    .s-desc { font-size: 11px; color: var(--text-sub); line-height: 1.5; }
+    .s-pips { display: flex; gap: 3px; margin-top: 1px; }
+    .s-pips i { width: 12px; height: 4px; border-radius: 2px; background: var(--border-color); }
+    .s-pips i.on { background: var(--ic, #0084ff); }
+    .s-foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 4px; gap: 6px; }
+    .s-price { font-size: 13px; color: #f39c12; font-weight: 800; font-family: monospace; }
+    .s-price del { color: var(--text-sub); font-weight: 400; font-size: 11px; margin-right: 4px; }
+    .s-price.poor { color: #ff4d4f; }
+    .btn-buy { border: none; background: var(--primary-blue); color: #fff; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+    .btn-buy:hover { filter: brightness(1.1); }
+    .btn-buy.off { background: var(--border-color); color: var(--text-sub); cursor: not-allowed; }
+    .s-tag-own { font-size: 10px; background: rgba(0,132,255,.1); color: var(--primary-blue); padding: 1px 6px; border-radius: 6px; width: fit-content; font-weight: 700; }
+
+    /* 弹窗（挂在 body 上） */
+    #gameModal { display: none; position: fixed; inset: 0; z-index: 1300; background: rgba(5, 15, 30, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 16px; }
+    #gameModal.show { display: flex; }
+    .gm-box { background: var(--bg-color); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 16px; padding: 22px; width: 340px; max-width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.4); animation: toastIn .25s ease-out; }
+    .gm-box.wide { width: 560px; }
+    .gm-title { font-size: 17px; font-weight: 800; margin-bottom: 10px; text-align: center; }
+    .gm-body { font-size: 13px; line-height: 1.7; text-align: center; color: var(--text-main); }
+    .gm-big { font-size: 54px; display: block; margin: 4px 0; }
+    .gm-input { width: 100%; padding: 10px; margin-top: 12px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; background: var(--input-bg); color: var(--text-main); }
+    .gm-btns { display: flex; gap: 10px; margin-top: 18px; }
+    .gm-btn { flex: 1; border: none; border-radius: 10px; padding: 10px; cursor: pointer; font-weight: 700; font-size: 13px; font-family: inherit; }
+    .gm-ok { background: var(--primary-blue); color: #fff; }
+    .gm-cancel { background: var(--g-panel, rgba(0,0,0,.06)); color: var(--text-sub); border: 1px solid var(--border-color); }
+
+    @media (max-width: 600px) {
+      .game-scene { height: 300px; }
+      .btn-shop { margin-left: 0; }
+      .btn-action { min-width: 120px; }
+      .gpanels { height: 420px; }
+      .g-tab { font-size: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .btn-action.bite, .btn-claim, .gcard.cc-SSR, .rv-card.cc-SSR, .quality-legend { animation: none; }
+    }
+
+    .hot-limit { max-width: 600px; } .hot-limit.open { max-height: 500px; }
+    .hot-box { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; height: 400px; display: flex; flex-direction: column; }
+    iframe { width: 100%; height: 100%; border: none; }
+
+    .footer { font-size: 12px; color: #ccc; margin-top: auto; padding-top: 20px; text-align: center; }
+
+    /* --- 专注模式 --- */
+    body.focus-mode .user-bar { display: none; }
+    body.focus-mode .logo-container { display: none; }
+    body.focus-mode .toggle-section { display: none; }
+    body.focus-mode .footer { display: none; }
+    body.focus-mode .hidden-wrapper { display: none !important; }
+    
+    /* 隐藏Quick Nav中的其他元素，只保留时间 */
+    body.focus-mode .quick-nav a:not(:first-child),
+    body.focus-mode .quick-nav div:last-child { display: none; }
+    
+    /* 专注模式下的布局调整 */
+    body.focus-mode .content-wrapper {
+      justify-content: center;
+      height: 100vh;
+      margin-top: 0;
+    }
+    
+    body.focus-mode .search-container {
+      transform: scale(1.1);
+      margin-bottom: 50px;
+    }
+    
+    body.focus-mode .quick-nav {
+      margin: 0;
+      position: absolute;
+      top: 55%;
+    }
+    
+    body.focus-mode .nav-item {
+      font-size: 24px;
+      color: var(--text-main);
+      background: transparent;
+      pointer-events: none; /* 专注时让时间仅作为展示，防止误触跳转 */
+    }
+    
+    body.focus-mode #exitFocusBtn {
+      display: block;
+    }
+    
+    #exitFocusBtn {
+      display: none;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.1);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      z-index: 999;
+    }
+    #exitFocusBtn:hover { background: var(--primary-blue); color: white; }
+
+    /* ===================== 侧边栏：多页轮播 ===================== */
+    :root { --side-w: 360px; }
+
+    /* 右侧小把手（已缩小） */
+    #sideTab {
+      position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+      z-index: 900; width: 28px; padding: 10px 0;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      background: linear-gradient(160deg, #3aa0ff, var(--primary-blue));
+      color: #fff; border: none; cursor: pointer;
+      border-radius: 10px 0 0 10px;
+      box-shadow: -3px 4px 14px rgba(0, 132, 255, .3);
+      font-family: inherit; font-size: 12px; font-weight: 700;
+      transition: right .55s cubic-bezier(.22, 1, .36, 1), width .2s, filter .2s;
+    }
+    #sideTab:hover { width: 34px; filter: brightness(1.08); }
+    #sideTab i { font-size: 11px; transition: transform .5s cubic-bezier(.22, 1, .36, 1); }
+    #sideTab span { writing-mode: vertical-rl; letter-spacing: 2px; }
+    #sideTab::after {
+      content: ''; position: absolute; inset: 0; border-radius: inherit;
+      border: 2px solid var(--primary-blue);
+      animation: sidePulse 2.2s ease-out infinite; pointer-events: none;
+    }
+    @keyframes sidePulse { 0% { opacity: .7; transform: scale(1); } 100% { opacity: 0; transform: scale(1.4, 1.1); } }
+    body.side-open #sideTab { right: min(var(--side-w), 100vw); }
+    body.side-open #sideTab::after { animation: none; opacity: 0; }
+    body.side-open #sideTab i { transform: rotate(180deg); }
+
+    /* 遮罩 */
+    #sideMask {
+      position: fixed; inset: 0; z-index: 880; background: rgba(5, 15, 30, .28);
+      backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity .4s;
+    }
+    body.side-open #sideMask { opacity: 1; pointer-events: auto; }
+
+    /* 面板：整面都是轮播 */
+    #sidePanel {
+      position: fixed; top: 0; right: 0; bottom: 0; width: var(--side-w); max-width: 100vw;
+      z-index: 890; background: #0b2a45; overflow: hidden;
+      box-shadow: -14px 0 50px -12px rgba(0, 132, 255, .35);
+      transform: translateX(105%);
+      transition: transform .55s cubic-bezier(.22, 1, .36, 1);
+      touch-action: pan-y; user-select: none; -webkit-user-select: none;
+    }
+    body.side-open #sidePanel { transform: none; }
+
+    .sp-slides { position: absolute; inset: 0; }
+    .sp-slide {
+      position: absolute; inset: 0; opacity: 0; visibility: hidden;
+      transition: opacity .7s ease, visibility .7s;
+      display: flex; align-items: flex-end; justify-content: center;
+      padding: 0 28px calc(56px + env(safe-area-inset-bottom, 0px));
+    }
+    .sp-slide.act { opacity: 1; visibility: visible; }
+    .sp-bg {
+      position: absolute; inset: 0; background-size: cover; background-position: center;
+      background-image: var(--bg), var(--fb);
+      transform: scale(1.1); transition: transform 7s ease-out;
+    }
+    .sp-slide.act .sp-bg { transform: scale(1); }
+    .sp-slide::before { /* 底部压暗，保证按钮可读 */
+      content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background: linear-gradient(to top, rgba(5, 15, 30, .65), transparent 42%),
+                  linear-gradient(to bottom, rgba(5, 15, 30, .35), transparent 18%);
+    }
+    .sp-btn {
+      position: relative; z-index: 2; display: inline-block; text-decoration: none; cursor: pointer;
+      padding: 10px 30px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, .55);
+      background: linear-gradient(135deg, #3aa0ff, var(--primary-blue)); color: #fff;
+      font-family: inherit; font-size: 14px; font-weight: 700; letter-spacing: 1px;
+      box-shadow: 0 8px 22px -6px rgba(0, 132, 255, .6);
+      opacity: 0; transform: translateY(14px);
+      transition: filter .2s, box-shadow .2s;
+    }
+    .sp-btn:hover { filter: brightness(1.1); box-shadow: 0 10px 26px -6px rgba(0, 132, 255, .8); }
+    .sp-slide.act .sp-btn { animation: spUp .6s cubic-bezier(.22, 1, .36, 1) .25s forwards; }
+    @keyframes spUp { to { opacity: 1; transform: none; } }
+
+    /* 顶部进度条（自动翻页靠它计时） */
+    .sp-prog {
+      position: absolute; z-index: 5; left: 14px; right: 56px;
+      top: calc(env(safe-area-inset-top, 0px) + 12px);
+      display: flex; gap: 5px;
+    }
+    .sp-bar { flex: 1; height: 16px; background: none; border: 0; padding: 0; cursor: pointer; position: relative; }
+    .sp-bar::before { content: ''; position: absolute; left: 0; right: 0; top: 6px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .35); }
+    .sp-bar i { position: absolute; left: 0; top: 6px; height: 3px; border-radius: 2px; background: #fff; width: 0; }
+    .sp-bar.done i { width: 100%; }
+    .sp-bar.act i { animation: spFill var(--dur, 5s) linear forwards; }
+    @keyframes spFill { from { width: 0; } to { width: 100%; } }
+    body:not(.side-open) .sp-bar.act i { animation: none; }
+    #sidePanel.sp-hold .sp-bar.act i, #sidePanel.sp-qr-open .sp-bar.act i { animation-play-state: paused; }
+
+    .sp-close {
+      position: absolute; z-index: 6; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 5px);
+      width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .4);
+      background: rgba(5, 15, 30, .35); backdrop-filter: blur(6px); color: #fff;
+      font-size: 13px; cursor: pointer; transition: background .2s, transform .3s;
+    }
+    .sp-close:hover { background: var(--primary-blue); transform: rotate(90deg); }
+
+    /* 二维码浮层（点「扫码关注」弹出） */
+    .sp-qrbox {
+      position: absolute; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center;
+      background: rgba(5, 15, 30, .72); backdrop-filter: blur(6px);
+      opacity: 0; pointer-events: none; transition: opacity .35s;
+    }
+    #sidePanel.sp-qr-open .sp-qrbox { opacity: 1; pointer-events: auto; }
+    .sp-qrcard {
+      width: min(78vw, 260px); padding: 18px 16px 16px; text-align: center;
+      background: #fff; border-radius: 18px; color: #444;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .4);
+      transform: scale(.88) translateY(14px); transition: transform .45s cubic-bezier(.22, 1, .36, 1);
+    }
+    #sidePanel.sp-qr-open .sp-qrcard { transform: none; }
+    .sp-qrimg { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 10px; border: 1px solid #ebebeb; padding: 8px; }
+    .sp-qrimg img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .sp-qrimg::after {
+      content: ''; position: absolute; left: 6px; right: 6px; top: 0; height: 30px; pointer-events: none;
+      background: linear-gradient(to bottom, transparent, rgba(0, 132, 255, .25), transparent);
+      border-bottom: 2px solid rgba(0, 132, 255, .7);
+      animation: spScan 2.4s ease-in-out infinite;
+    }
+    @keyframes spScan { 0% { transform: translateY(-34px); } 100% { transform: translateY(240px); } }
+    .sp-qrimg .sp-miss { display: none; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #8590a6; font-size: 12px; line-height: 1.6; }
+    .sp-qrimg.noimg img { display: none; }
+    .sp-qrimg.noimg .sp-miss { display: flex; }
+    .sp-qrcard p { margin-top: 12px; font-size: 13px; line-height: 1.7; }
+    .sp-qrcard p b { color: var(--primary-blue); }
+    .sp-qrcard small { color: #8590a6; font-size: 11px; }
+    .sp-qrback { margin-top: 12px; border: none; background: rgba(0, 132, 255, .1); color: var(--primary-blue); font-weight: 700; font-size: 12px; padding: 6px 22px; border-radius: 16px; cursor: pointer; font-family: inherit; }
+    .sp-qrback:hover { background: var(--primary-blue); color: #fff; }
+
+    body.focus-mode #sideTab, body.focus-mode #sidePanel, body.focus-mode #sideMask { display: none; }
+
+    /* 手机：整屏铺满，把手收起 */
+    @media (max-width: 600px) {
+      :root { --side-w: 100vw; }
+      #sidePanel { width: 100%; }
+      body.side-open #sideTab { display: none; }
+      .sp-btn { padding: 11px 34px; font-size: 15px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #sideTab::after, .sp-qrimg::after { animation: none; }
+      .sp-bg { transition: none; transform: none; }
+    }
+
+  
+/* ===== 补丁：侧边栏全屏 + 透明小把手 ===== */
+:root { --side-w: 100vw; }
+#sidePanel { width: 100vw; }
+#sideTab { top: auto; bottom: 90px; transform: none; width: 36px; height: 56px; padding: 0; background: transparent; box-shadow: none; border-radius: 0; color: var(--text-sub); opacity: .55; }
+#sideTab:hover { width: 36px; opacity: 1; color: var(--primary-blue); filter: none; }
+#sideTab span, #sideTab::after { display: none; }
+#sideTab i { font-size: 22px; }
+body.side-open #sideTab { display: none; }
+/* ===== 补丁：专注模式计时器 + 督促图 ===== */
+#focusPanel { display: none; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 34px; }
+body.focus-mode #focusPanel { display: flex; }
+body.focus-mode .quick-nav { position: static; margin: 24px 0 0; }
+#focusBox { width: 130px; height: 130px; border-radius: 18px; overflow: hidden; cursor: pointer; box-shadow: 0 8px 28px var(--shadow-color); border: 1px solid var(--border-color); }
+#focusImg { width: 100%; height: 100%; object-fit: cover; display: block; }
+#focusPh { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--text-sub); border: 2px dashed var(--border-color); border-radius: 18px; text-align: center; }
+#focusTime { font-size: 64px; font-weight: 300; font-family: monospace; letter-spacing: 2px; color: var(--text-main); line-height: 1; }
+.fc-row { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.fc-row button { border: 1px solid var(--border-color); background: var(--item-hover); color: var(--text-sub); padding: 6px 14px; border-radius: 16px; cursor: pointer; font-size: 13px; font-family: inherit; }
+.fc-row button.on, .fc-row button.main { background: var(--primary-blue); border-color: var(--primary-blue); color: #fff; }
+.fc-row input { width: 64px; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--input-bg); color: var(--text-main); text-align: center; outline: none; }
+</style>
+</head>
+<body>
+
+  <!-- 退出专注模式按钮 -->
+  <button id="exitFocusBtn" onclick="toggleFocusMode()">
+    <i class="fas fa-sign-out-alt"></i> 退出专注模式
+  </button>
+
+  <!-- 用户状态栏 -->
+  <div class="user-bar">
+    <div class="fish-stats" title="钓鱼等级与金币">
+      <span id="levelBadge" class="level-badge">Lv.1</span>
+      <span id="levelTitle">小虾米</span>
+      <div class="divider"></div>
+      <i class="fas fa-coins" style="color:#f39c12; font-size:12px;"></i>
+      <span id="userGold" style="font-family: monospace; font-weight:bold;">0</span>
+    </div>
+    <div class="divider"></div>
+    <div id="authContainer">
+      <button class="auth-btn" id="loginBtn" onclick="showAuthModal()">登录 / 存档</button>
+      <div id="userInfo" style="display:none; align-items:center;">
+        <span id="userNameDisplay" class="user-name"></span>
+        <span class="logout-btn" onclick="handleLogout()">退出</span>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <!-- 新增功能按钮 -->
+    <button class="icon-btn" onclick="toggleDarkMode()" title="深色模式"><i class="fas fa-moon"></i></button>
+    <button class="icon-btn" onclick="toggleFocusMode()" title="专注模式"><i class="fas fa-eye"></i></button>
+  </div>
+
+  <!-- 登录框 -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-box">
+      <h3 style="margin-bottom:20px;">通行证</h3>
+      <input type="text" id="username" class="modal-input" placeholder="用户名" autocomplete="off">
+      <input type="password" id="password" class="modal-input" placeholder="密码">
+      <button class="btn-login" onclick="handleLogin()">登录 / 注册</button>
+      <button style="background:transparent; color:#8590a6; border:none; cursor:pointer;" onclick="closeAuthModal()">取消</button>
+    </div>
+  </div>
+
+  <div class="content-wrapper">
+    <div class="logo-container">
+      <img src="img/logo1.png" alt="Logo" class="logo" onerror="this.style.display='none';document.querySelector('.logo-text').style.display='inline-block'">
+      <div class="logo-text">HE YAN</div>
+    </div>
+
+    <!-- 专注模式：督促图 + 计时器 -->
+    <div id="focusPanel">
+      <div id="focusBox" onclick="document.getElementById('fcFile').click()" title="点击更换图片">
+        <img id="focusImg" src="img/focus.png" alt="" onerror="this.style.display='none';document.getElementById('focusPh').style.display='flex'">
+        <div id="focusPh"><span style="font-size:28px">📷</span>点击添加<br>督促图片</div>
+      </div>
+      <input type="file" id="fcFile" accept="image/*" hidden>
+      <div id="focusTime">00:00</div>
+      <div class="fc-row">
+        <button id="fcUp" class="on" onclick="fcSetMode('up')">正计时</button>
+        <button id="fcDown" onclick="fcSetMode('down')">倒计时</button>
+        <span id="fcMinWrap" style="display:none"><input type="number" id="fcMin" min="1" max="999" value="25"> 分钟</span>
+      </div>
+      <div class="fc-row">
+        <button class="main" id="fcGo" onclick="fcToggle()">开始</button>
+        <button onclick="fcReset()">重置</button>
+      </div>
+    </div>
+
+    <div class="search-container">
+      <form action="https://www.baidu.com/s" method="get" class="search-box">
+        <input type="text" id="searchInput" name="wd" placeholder="有问题，就会有答案..." required autocomplete="off">
+        <button type="submit" id="searchButton">搜索</button>
+      </form>
+    </div>
+
+    <div class="quick-nav">
+      <a href="https://mp.weixin.qq.com/s?__biz=MzkyODM5OTgzMg==&mid=2247488236&idx=1&sn=b40d9af805b779de05b372b43a05c094" class="nav-item">
+        <i class="far fa-clock"></i> <span id="dynamic-info" class="fade-anim">Loading...</span>
+      </a>
+      <a href="https://heyan9.github.io/photo.html" class="nav-item"><i class="fas fa-camera"></i> 摄影展示</a>
+      <!-- 读书笔记已移至下方工具箱 -->
+      <div class="nav-item" onclick="rollDice(this)" title="点击摇骰子">
+        <i class="fas fa-dice"></i> <span id="diceText">随机骰子</span>
+      </div>
+    </div>
+
+    <div class="toggle-section">
+      <button class="toggle-btn" id="btnTools" onclick="toggleSection('tools')"><i class="fas fa-chevron-down"></i></button>
+      <button class="toggle-btn" id="btnMusic" onclick="toggleSection('music')"><i class="fas fa-music"></i></button>
+      <button class="toggle-btn" id="btnTasks" onclick="toggleSection('tasks')"><i class="fas fa-tasks"></i></button>
+      <button class="toggle-btn" id="btnGame" onclick="toggleSection('game')"><i class="fas fa-fish"></i></button>
+      <button class="toggle-btn" id="btnHot" onclick="toggleSection('hot')"><i class="fab fa-weibo"></i></button>
+    </div>
+
+    <!-- 网址导航 -->
+    <div class="hidden-wrapper grid-limit" id="toolsWrapper">
+      <div class="tools-grid">
+        <!-- 读书笔记移入此处 -->
+         <a href="https://heyan9.pages.dev/F1.html" class="tool-item">F1赛事</a>
+         <a href="https://zhaoju1.com/?channel=anime&year=2025" class="tool-item">看剧</a>
+        <a href="https://heyan9.pages.dev/pai.html" class="tool-item">排座位</a>
+        <a href="https://xn--9kqz23b19z.com/#/dashboard" class="tool-item">良心云</a>
+        <a href="https://heyan9.pages.dev/air.html" class="tool-item">何岩机场</a>
+        <a href="https://www.tboxn.com/1504.html" class="tool-item">读书</a>
+        <a href="https://heyan9.pages.dev/shu3.html" class="tool-item">数码排行</a>
+        <a href="https://heyan9.pages.dev/hang.html" class="tool-item">从夯到拉</a>
+         <a href="https://heyan9.pages.dev/tv.html" class="tool-item">自动电视</a>
+         <a href="https://heyan9.pages.dev/ticiqi2.html" class="tool-item">提词器</a>
+        <a href="https://heyan9.pages.dev/heyanzuocai.html" class="tool-item">做菜助手</a>
+        <a href="https://heyan9.pages.dev/shengtu.html" class="tool-item">ai生图助手</a>
+        <a href="https://heyan9.pages.dev/PNGTOOL.html" class="tool-item">webp转换</a>
+        <a href="https://www.yikm.net/" class="tool-item">在线游戏</a>
+        <a href="https://www.doubao.com/chat/" class="tool-item">豆包 AI</a>
+        <a href="https://www.52pojie.cn/" class="tool-item">吾爱破解</a>
+        <a href="https://www.toutiao.com/" class="tool-item">今日头条</a>
+        <a href="https://www.google.com.hk/" class="tool-item">Google</a>
+        <a href="https://www.88mv.org/?ref=88ys.cn" class="tool-item">88影视</a>
+        <a href="https://www.66yingshi.com/" class="tool-item">视频BT</a>
+        <a href="https://waifu2x.udp.jp/" class="tool-item">Waifu2x</a>
+        <a href="https://www.dxomark.com/" class="tool-item">DXOmark</a>
+        <a href="https://clipdrop.co/uncrop" class="tool-item">AI 拓图</a>
+        <a href="https://github.com/" class="tool-item">Github</a>
+        <a href="https://pc.woozooo.com/" class="tool-item">蓝奏云</a>
+        <a href="https://fanyi.youdao.com/index.html#/" class="tool-item">在线翻译</a>
+        <a href="https://tv.cctv.com/live/index.shtml" class="tool-item">CCTV直播</a>
+        <a href="http://www.2t58.com/" class="tool-item">无损音乐</a>
+        <a href="https://cn.uptodown.com/" class="tool-item">安卓应用</a>
+        <a href="https://mail.google.com/" class="tool-item">Gmail</a>
+        <a href="https://heyan9.pages.dev/dongzuo.html" class="tool-item">随机动作</a>
+        <a href="https://ttsmaker.cn/" class="tool-item">文本转语音</a>
+         <a href="https://github.com/hwanz/SSR-V2ray-Trojan-vpn" class="tool-item">免费节点·内</a>
+         <a href="https://github.com/clashbk/clash/wiki/flclash" class="tool-item">最新clash</a>
+        <a href="https://tianqi.moji.com/weather/china/hunan/miluo" class="tool-item">墨迹天气</a>
+        <a href="https://wallpapercave.com/" class="tool-item">壁纸下载</a>
+        <a href="https://weread.qq.com/web/shelf" class="tool-item">微信读书</a>
+        <a href="https://www.ilovepdf.com/" class="tool-item">PDF转换</a>
+        <a href="https://ucnrbg5e0s07.feishu.cn/minutes/home" class="tool-item">飞书妙记</a>
+        <a href="https://pdftoword.55.la/" class="tool-item">转转大师</a>
+        <a href="https://koodo.960960.xyz/zh" class="tool-item">Koodo</a>
+        <a href="https://zh.z-library.se/" class="tool-item">Z-Library</a>
+        <a href="https://onlinecamscanner.com/zh-Hans/" class="tool-item">在线扫描</a>
+        <a href="https://vocalremover.org/zh/" class="tool-item">分离人声</a>
+     <a href="https://heyan9.pages.dev/21.html" class="tool-item">21点</a>
+        <a href="https://heyan9.pages.dev/mm.html" class="tool-item">mm</a>
+        <a href="https://www.pornhub.com/" class="tool-item">porn</a>
+         <a href="https://heyan9.pages.dev/mi.html" class="tool-item">【迷梦回声】</a>
+
+      </div>
+    </div>
+
+    <!-- 音乐播放器 (APlayer + MetingJS 终极修复版) -->
+    <div class="hidden-wrapper music-limit" id="musicWrapper">
+      <!-- 
+        server="netease" : 使用网易云源
+        type="playlist"  : 播放歌单
+        id="3778678"     : 网易云热歌榜ID
+      -->
+      <meting-js
+        server="netease"
+        type="playlist"
+        id="3778678"
+        fixed="false"
+        autoplay="false"
+        loop="all"
+        order="list"
+        preload="auto"
+        list-folded="false"
+        list-max-height="340px"
+        lrc-type="0"
+        theme="#0084ff">
+      </meting-js>
+    </div>
+
+    <!-- 任务清单 -->
+    <div class="hidden-wrapper task-limit" id="tasksWrapper">
+      <div class="task-container">
+        <div class="task-input-group">
+          <input type="text" id="newTaskInput" class="task-input" placeholder="输入新任务...">
+          <div class="star-select" id="newStarSelect">
+            <i class="fas fa-star selected" onclick="setStar(1)"></i>
+            <i class="fas fa-star selected" onclick="setStar(2)"></i>
+            <i class="fas fa-star selected" onclick="setStar(3)"></i>
+            <i class="fas fa-star" onclick="setStar(4)"></i>
+            <i class="fas fa-star" onclick="setStar(5)"></i>
+          </div>
+          <button class="btn-add-task" onclick="addNewTask()"><i class="fas fa-plus"></i></button>
+        </div>
+        <div class="task-list" id="taskListContainer">
+          <div class="empty-tip" style="text-align:center;color:#999;margin-top:10px;">暂无任务</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 钓鱼游戏（重制版）：画面 / 手动·自动 / 图鉴 / 成就 / 抽卡 / 商城 -->
+    <div class="hidden-wrapper game-limit" id="gameWrapper">
+      <div class="game-container">
+        <div class="game-scene" id="gameScene">
+          <canvas id="fishCanvas"></canvas>
+          <div class="g-toast-box" id="gameToastBox"></div>
+
+          </div>
+
+        <!-- 控制栏 -->
+        <div class="ctrl-bar">
+          <div class="mode-switch" title="随时切换自动挂机 / 手动钓鱼">
+            <button id="modeAuto" class="on" onclick="setGameMode('auto')">🤖 自动</button>
+            <button id="modeManual" onclick="setGameMode('manual')">🖐 手动</button>
+          </div>
+          <button class="btn-game-ctrl btn-start" id="btnStartGame" onclick="userStartGame()">开始挂机</button>
+          <button class="btn-game-ctrl btn-stop" id="btnStopGame" onclick="userStopGame()">暂停</button>
+          <button class="btn-game-ctrl btn-action" id="btnAction">🎣 抛竿</button>
+          <button class="btn-game-ctrl btn-shop" onclick="toggleShop()">🛒 渔具店</button>
+        </div>
+        <div class="stats-bar" id="gameStatsBar"></div>
+
+        <!-- 标签页 -->
+        <div class="game-tabs">
+          <button class="g-tab on" id="tabLog" onclick="switchTab('log')">📜 日志</button>
+          <button class="g-tab" id="tabDex" onclick="switchTab('dex')">🐟 图鉴</button>
+          <button class="g-tab" id="tabAch" onclick="switchTab('ach')">🏆 成就<span class="tab-dot" id="dotAch"></span></button>
+          <button class="g-tab" id="tabGacha" onclick="switchTab('gacha')">🎴 抽卡<span class="tab-dot" id="dotGacha"></span></button>
+          <button class="g-tab" id="tabShop" onclick="switchTab('shop')">🛒 商城</button>
+        </div>
+        <div class="gpanels">
+          <div class="gpanel active" id="panelLog"><div class="log-list" id="gameLog"></div></div>
+          <div class="gpanel" id="panelDex"></div>
+          <div class="gpanel" id="panelAch"></div>
+          <div class="gpanel" id="panelGacha"></div>
+          <div class="gpanel" id="shopPanel"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 微博热搜 -->
+    <div class="hidden-wrapper hot-limit" id="hotWrapper">
+      <div class="hot-box">
+        <iframe src="https://s.weibo.com/top/summary?cate=realtimehot"></iframe>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">Created by He Yan | © 2025 12 | <span id="syncStatus">云端未连接</span></div>
+
+  <!-- 侧边栏：多页轮播 -->
+  <button id="sideTab" onclick="toggleSide()" title="更多">
+    <i class="fas fa-chevron-left"></i>
+    <span>更多</span>
+  </button>
+  <div id="sideMask" onclick="toggleSide(false)"></div>
+  <aside id="sidePanel">
+    <div class="sp-slides" id="spSlides"></div>
+    <div class="sp-prog" id="spProg"></div>
+    <button class="sp-close" onclick="toggleSide(false)" aria-label="关闭"><i class="fas fa-times"></i></button>
+
+    <div class="sp-qrbox" id="spQrBox" onclick="if(event.target===this)spQr(false)">
+      <div class="sp-qrcard">
+        <div class="sp-qrimg" id="spQrImg">
+          <img src="img/qrcode.png" alt="二维码" onerror="document.getElementById('spQrImg').classList.add('noimg')">
+          <div class="sp-miss"><i class="fas fa-qrcode" style="font-size:34px"></i>把二维码图片放到<br>img/qrcode.png</div>
+        </div>
+        <p>扫码关注 <b>何岩的大肥鱼</b><br><small>微信扫一扫 / 长按识别</small></p>
+        <button class="sp-qrback" onclick="spQr(false)">返回</button>
+      </div>
+    </div>
+  </aside>
+
+<script>
+  // LeanCloud Config
+  const APP_ID = "vcJyhwqg1HpbKXiLUvLHzFIh-gzGzoHsz";
+  const APP_KEY = "hknbmRcwH2bJDcqxRvLR67mk";
+  const SERVER_URL = "https://vcjyhwqg.lc-cn-n1-shared.com";
+
+  let isCloudEnabled = false;
+  try {
+    if (APP_ID) {
+      AV.init({ appId: APP_ID, appKey: APP_KEY, serverURL: SERVER_URL });
+      isCloudEnabled = true;
+      document.getElementById('syncStatus').innerText = "云端已连接";
+      document.getElementById('syncStatus').style.color = "#4caf50";
+    }
+  } catch (e) { console.error("LC Init", e); }
+
+  let currentUser = null;
+  // Game Stats
+  let userExp = 0;
+  let userGold = 0;
+  let rodLevel = 1;
+  let pondLevel = 1;
+  let goldenRodEndTime = 0; // Buff timestamp
+
+  // Init
+  if (isCloudEnabled) {
+    currentUser = AV.User.current();
+    if (currentUser) {
+      updateUIForLogin(currentUser);
+      syncUserData();
+      loadTasksFromCloud();
+    }
+  }
+  
+  // --- New Features Logic ---
+  function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }
+
+  function toggleFocusMode() {
+    document.body.classList.toggle('focus-mode');
+  }
+
+  // Load theme preference
+  if(localStorage.getItem('theme') === 'dark') {
+    document.body.classList.add('dark-mode');
+  }
+
+  // --- Auth Logic ---
+  function showAuthModal() { document.getElementById('authModal').style.display = 'flex'; }
+  function closeAuthModal() { document.getElementById('authModal').style.display = 'none'; }
+  function handleLogout() { if(confirm("退出登录？")) { AV.User.logOut(); window.location.reload(); } }
+
+  async function handleLogin() {
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value.trim();
+    if(!u || !p) return;
+    try {
+      currentUser = await AV.User.logIn(u, p);
+      closeAuthModal(); updateUIForLogin(currentUser); 
+      syncUserData(); loadTasksFromCloud();
+    } catch (e) {
+      if(e.code===211||e.code===210) {
+        const user=new AV.User(); user.setUsername(u); user.setPassword(p);
+        user.set('exp',0); user.set('gold',0); user.set('rodLevel',1); user.set('pondLevel',1);
+        try{ currentUser=await user.signUp(); closeAuthModal(); updateUIForLogin(currentUser); }
+        catch(re){ alert(re.message); }
+      } else alert(e.message);
+    }
+  }
+
+  function updateUIForLogin(user) {
+    document.getElementById('loginBtn').style.display = 'none';
+    document.getElementById('userInfo').style.display = 'flex';
+    document.getElementById('userNameDisplay').innerText = user.getUsername();
+  }
+
+  async function syncUserData() {
+    if(!currentUser) return;
+    await currentUser.fetch();
+    userExp = currentUser.get('exp') || 0;
+    userGold = currentUser.get('gold') || 0;
+    rodLevel = currentUser.get('rodLevel') || 1;
+    pondLevel = currentUser.get('pondLevel') || 1;
+    // 钓鱼游戏扩展存档（图鉴/成就/卡牌/道具等）
+    const fd = currentUser.get('fishData');
+    if (fd && typeof fd === 'object') loadFishData(fd);
+    updateStatusDisplay();
+    updateShopPrices();
+  }
+
+  // --- Common UI ---
+  function toggleSection(type) {
+    const ids = { tools: 'toolsWrapper', music: 'musicWrapper', tasks: 'tasksWrapper', game: 'gameWrapper', hot: 'hotWrapper' };
+    const btns = { tools: 'btnTools', music: 'btnMusic', tasks: 'btnTasks', game: 'btnGame', hot: 'btnHot' };
+    const targetEl = document.getElementById(ids[type]);
+    const isOpen = targetEl.classList.contains('open');
+    for(let k in ids) { document.getElementById(ids[k]).classList.remove('open'); document.getElementById(btns[k]).classList.remove('active'); }
+    if(!isOpen) { targetEl.classList.add('open'); document.getElementById(btns[type]).classList.add('active'); }
+  }
+
+  function rollDice(el) {
+    const val = Math.floor(Math.random() * 6) + 1;
+    el.querySelector('span').innerText = `点数: ${val}`;
+    const icon = el.querySelector('i');
+    icon.className = `fas fa-dice-${['one','two','three','four','five','six'][val-1]}`;
+    el.style.color = "var(--primary-blue)";
+    setTimeout(() => { el.style.color = ""; }, 500);
+  }
+  
+  const infoEl = document.getElementById('dynamic-info');
+  setInterval(() => { const now=new Date(); infoEl.innerText = `${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`; }, 1000);
+
+  // --- Task System ---
+  const TodoItem = AV.Object.extend('TodoItem');
+  let tasks = []; let activeTaskId = null; let taskTimerInterval = null; let taskStartTime = 0; let curStars=3;
+  function setStar(n) { curStars=n; const s=document.getElementById('newStarSelect').children; for(let i=0;i<5;i++) s[i].className=i<n?'fas fa-star selected':'fas fa-star'; }
+  async function loadTasksFromCloud() {
+    if(!currentUser) return;
+    const q=new AV.Query('TodoItem'); q.equalTo('user', currentUser); q.descending('stars');
+    try { const r=await q.find(); tasks=r.map(i=>({id:i.id, title:i.get('title'), stars:i.get('stars'), totalSeconds:i.get('totalSeconds')||0, obj:i})); renderTasks(); } catch(e){}
+  }
+  async function addNewTask() {
+    if(!currentUser) return alert("请先登录");
+    const t=document.getElementById('newTaskInput').value.trim(); if(!t)return;
+    const obj=new TodoItem(); obj.set('title',t); obj.set('stars',curStars); obj.set('user',currentUser);
+    await obj.save();
+    tasks.unshift({id:obj.id, title:t, stars:curStars, totalSeconds:0, obj:obj}); renderTasks(); document.getElementById('newTaskInput').value='';
+  }
+  function renderTasks() {
+    const c=document.getElementById('taskListContainer');
+    if(!tasks.length) { c.innerHTML='<div class="empty-tip" style="text-align:center;color:#999">暂无任务</div>'; return; }
+    c.innerHTML = tasks.map(t => {
+      const run = t.id===activeTaskId;
+      return `<div class="task-item ${run?'active-running':''}">
+        <div class="t-info"><div class="t-title">${t.title}</div><div class="t-stars">${'★'.repeat(t.stars)}</div></div>
+        <div class="t-timer" id="timer-${t.id}">${formatTime(t.totalSeconds)}</div>
+        <div class="t-actions">
+          <button class="btn-icon ${run?'btn-pause':'btn-play'}" onclick="toggleTimer('${t.id}')"><i class="fas ${run?'fa-pause':'fa-play'}"></i></button>
+          <button class="btn-icon btn-del" onclick="delTask('${t.id}')"><i class="fas fa-trash"></i></button>
+        </div></div>`
+    }).join('');
+  }
+  function toggleTimer(id) { if(activeTaskId===id) stopTimer(id); else { if(activeTaskId) stopTimer(activeTaskId); startTimer(id); } }
+  function startTimer(id) { activeTaskId=id; taskStartTime=Date.now(); renderTasks(); taskTimerInterval=setInterval(()=>{ const el=document.getElementById('timer-'+id); if(el) el.innerText=formatTime(tasks.find(t=>t.id===id).totalSeconds + Math.floor((Date.now()-taskStartTime)/1000)); },1000); }
+  function stopTimer(id) { clearInterval(taskTimerInterval); const t=tasks.find(x=>x.id===id); if(t){ t.totalSeconds+=Math.floor((Date.now()-taskStartTime)/1000); t.obj.set('totalSeconds',t.totalSeconds); t.obj.save(); } activeTaskId=null; renderTasks(); }
+  async function delTask(id) { if(!confirm("删除?"))return; if(activeTaskId===id) stopTimer(id); const i=tasks.findIndex(t=>t.id===id); if(i>-1){ await tasks[i].obj.destroy(); tasks.splice(i,1); renderTasks(); } }
+  function formatTime(s) { return new Date(s*1000).toISOString().substr(11,8); }
+
+    // =====================================================================
+  //  钓鱼游戏 · 重制版
+  //  画面(Canvas) / 自动·手动随时切换 / 图鉴 / 成就 / 抽卡 / 商城
+  // =====================================================================
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const pad2 = n => String(n).padStart(2, '0');
+  const fmtPct = v => Math.round(v * 1000) / 10;
+
+  const RARITY = {
+    common: { name: '普通', color: '#9aa5a6' },
+    rare:   { name: '稀有', color: '#3498db' },
+    epic:   { name: '史诗', color: '#b06ae0' },
+    legend: { name: '传说', color: '#f1c40f' }
+  };
+
+  const FISH_DB = [
+    { id: 'boot',     name: "破靴子",   type: "common", gold: 1,    exp: 1,    baseProb: 0.30,  emoji: '👢', color: '#8d6e63', minW: 0.3, maxW: 1.2,  glyph: true },
+    { id: 'grass',    name: "小草鱼",   type: "common", gold: 5,    exp: 5,    baseProb: 0.30,  emoji: '🐟', color: '#7fb069', minW: 0.4, maxW: 2.5 },
+    { id: 'loach',    name: "泥鳅",     type: "common", gold: 3,    exp: 3,    baseProb: 0.15,  emoji: '🐍', color: '#a1887f', minW: 0.05, maxW: 0.3 },
+    { id: 'crucian',  name: "鲫鱼",     type: "common", gold: 8,    exp: 8,    baseProb: 0.20,  emoji: '🐟', color: '#b0bec5', minW: 0.2, maxW: 1.5 },
+    { id: 'trout',    name: "虹鳟",     type: "rare",   gold: 25,   exp: 30,   baseProb: 0.10,  emoji: '🐠', color: '#f48fb1', minW: 0.8, maxW: 4 },
+    { id: 'puffer',   name: "河豚",     type: "rare",   gold: 35,   exp: 40,   baseProb: 0.06,  emoji: '🐡', color: '#ffd54f', minW: 0.5, maxW: 3 },
+    { id: 'koi',      name: "锦鲤",     type: "rare",   gold: 40,   exp: 45,   baseProb: 0.06,  emoji: '🎏', color: '#ff7043', minW: 1,   maxW: 6 },
+    { id: 'tuna',     name: "蓝鳍金枪", type: "rare",   gold: 50,   exp: 60,   baseProb: 0.05,  emoji: '🐟', color: '#3f6fd8', minW: 20,  maxW: 250 },
+    { id: 'expchest', name: "经验宝箱", type: "epic",   gold: 0,    exp: 500,  baseProb: 0.02,  emoji: '🎁', color: '#e056a0', chest: true, glyph: true },
+    { id: 'shark',    name: "大白鲨",   type: "epic",   gold: 200,  exp: 200,  baseProb: 0.02,  emoji: '🦈', color: '#78909c', minW: 200, maxW: 900 },
+    { id: 'sword',    name: "剑鱼",     type: "epic",   gold: 300,  exp: 300,  baseProb: 0.01,  emoji: '🐬', color: '#26a6c9', minW: 50,  maxW: 300 },
+    { id: 'kraken',   name: "古代海怪", type: "legend", gold: 1000, exp: 1000, baseProb: 0.005, emoji: '🦑', color: '#8e24aa', minW: 500, maxW: 4000, glyph: true },
+    { id: 'treasure', name: "龙王宝藏", type: "legend", gold: 5000, exp: 0,    baseProb: 0.005, emoji: '💰', color: '#f1c40f', chest: true, glyph: true }
+  ];
+  const FISH_MAP = {}; FISH_DB.forEach(f => FISH_MAP[f.id] = f);
+
+  // 卡牌：N 普通 / R 稀有 / SR 史诗 / SSR 传说；eff 为 1 星效果，每多 1 星 +25%
+  const CARDS = [
+    { id: 'hat',        name: '渔夫帽',   emoji: '🧢', r: 'N',   eff: { gold: 0.03 } },
+    { id: 'can',        name: '鱼罐头',   emoji: '🥫', r: 'N',   eff: { exp: 0.04 } },
+    { id: 'floatc',     name: '备用浮标', emoji: '🔴', r: 'N',   eff: { zone: 0.015 } },
+    { id: 'charm',      name: '幸运符',   emoji: '🧿', r: 'R',   eff: { luck: 0.05 } },
+    { id: 'clover',     name: '四叶草',   emoji: '🍀', r: 'R',   eff: { gold: 0.06 } },
+    { id: 'hourglass',  name: '沙漏',     emoji: '⏳', r: 'R',   eff: { speed: 0.06 } },
+    { id: 'handbook',   name: '钓鱼手册', emoji: '📖', r: 'R',   eff: { exp: 0.08 } },
+    { id: 'koicard',    name: '招财锦鲤', emoji: '🎏', r: 'SR',  eff: { gold: 0.12 } },
+    { id: 'crystal',    name: '水晶球',   emoji: '🔮', r: 'SR',  eff: { luck: 0.10 } },
+    { id: 'compass',    name: '磁力罗盘', emoji: '🧭', r: 'SR',  eff: { speed: 0.12 } },
+    { id: 'eagle',      name: '鹰眼',     emoji: '🦅', r: 'SR',  eff: { zone: 0.04, gold: 0.03 } },
+    { id: 'dragon',     name: '龙王之鳞', emoji: '🐲', r: 'SSR', eff: { gold: 0.20, luck: 0.12 } },
+    { id: 'starnet',    name: '星辰渔网', emoji: '🌟', r: 'SSR', eff: { exp: 0.30, speed: 0.12 } },
+    { id: 'trident',    name: '海神三叉戟', emoji: '🔱', r: 'SSR', eff: { luck: 0.25, zone: 0.05, gold: 0.10 } }
+  ];
+  const CARD_MAP = {}; CARDS.forEach(c => CARD_MAP[c.id] = c);
+  const CARD_RAR = { N: '普通', R: '稀有', SR: '史诗', SSR: '传说' };
+  const EFF_LABEL = { gold: '金币', exp: '经验', luck: '幸运', speed: '上钩速度', zone: '收线区' };
+
+  // ---------------- 存档 ----------------
+  function defaultG() {
+    return {
+      v: 2, lineLevel: 1, tickets: 0, pity: { ssr: 0, sr: 0 },
+      cards: {}, equipped: [], baits: { worm: 0, golden: 0, magnet: 0 },
+      dex: {}, ach: {}, goldenEnd: 0, mode: 'auto',
+      stats: { catches: 0, goldEarned: 0, manualCatches: 0, perfects: 0, maxCombo: 0, legend: 0, pulls: 0, ssr: 0, purchases: 0, moleBest: 0, night: 0, big: 0, chests: 0 }
+    };
+  }
+  let G = defaultG();
+  function mergeG(src) {
+    const d = defaultG();
+    if (!src || typeof src !== 'object') return d;
+    const o = Object.assign(d, src);
+    o.stats = Object.assign(defaultG().stats, src.stats || {});
+    o.baits = Object.assign(defaultG().baits, src.baits || {});
+    o.pity = Object.assign({ ssr: 0, sr: 0 }, src.pity || {});
+    o.cards = src.cards || {}; o.dex = src.dex || {}; o.ach = src.ach || {};
+    o.equipped = Array.isArray(src.equipped) ? src.equipped.filter(id => CARD_MAP[id] && o.cards[id]) : [];
+    return o;
+  }
+
+  const LS_KEY = 'heyanFishV2';
+  let cloudDirty = false;
+  function saveLocalGame() {
+    try {
+      G.goldenEnd = goldenRodEndTime; G.mode = gameMode;
+      localStorage.setItem(LS_KEY, JSON.stringify({ gold: userGold, exp: userExp, rodLevel, pondLevel, G }));
+    } catch (e) {}
+  }
+  function loadLocalGame() {
+    try {
+      const o = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+      if (!o) return;
+      userGold = o.gold || 0; userExp = o.exp || 0; rodLevel = o.rodLevel || 1; pondLevel = o.pondLevel || 1;
+      G = mergeG(o.G); goldenRodEndTime = G.goldenEnd || 0; gameMode = G.mode === 'manual' ? 'manual' : 'auto';
+    } catch (e) {}
+  }
+  function loadFishData(fd) {
+    G = mergeG(fd);
+    goldenRodEndTime = G.goldenEnd || 0;
+    gameMode = G.mode === 'manual' ? 'manual' : 'auto';
+    if (typeof syncControls === 'function') refreshGameUI();
+  }
+  function persist() { saveLocalGame(); cloudDirty = true; }
+  function saveUser() {
+    saveLocalGame();
+    if (currentUser) {
+      cloudDirty = false;
+      currentUser.set('gold', userGold);
+      currentUser.set('exp', userExp);
+      currentUser.set('rodLevel', rodLevel);
+      currentUser.set('pondLevel', pondLevel);
+      currentUser.set('fishData', JSON.parse(JSON.stringify(G)));
+      currentUser.save().catch(e => console.log('Autosave fail', e));
+    }
+  }
+  setInterval(() => { if (cloudDirty && currentUser) saveUser(); }, 6000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { saveLocalGame(); if (cloudDirty && currentUser) saveUser(); } });
+
+  // ---------------- 等级 / 状态栏 ----------------
+  function calculateLevel() { return Math.floor(Math.sqrt(userExp) / 10) + 1; }
+  function getTitle(lv) {
+    if (lv < 5) return "小虾米";
+    if (lv < 10) return "见习钓手";
+    if (lv < 20) return "捕鱼达人";
+    if (lv < 40) return "海王";
+    if (lv < 60) return "传说钓神";
+    return "波塞冬";
+  }
+  function updateStatusDisplay() {
+    const lv = calculateLevel();
+    $('levelBadge').innerText = `Lv.${lv}`;
+    $('levelTitle').innerText = getTitle(lv);
+    $('userGold').innerText = userGold;
+  }
+
+  // ---------------- 吐司 / 弹窗 ----------------
+  function gToast(msg, kind) {
+    const box = $('gameToastBox'); if (!box) return;
+    const d = document.createElement('div');
+    d.className = 'g-toast ' + (kind || ''); d.textContent = msg;
+    box.appendChild(d);
+    while (box.children.length > 4) box.removeChild(box.firstChild);
+    setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 3100);
+  }
+  const modalEl = document.createElement('div');
+  modalEl.id = 'gameModal';
+  document.body.appendChild(modalEl);
+  function gDialog(o) {
+    modalEl.innerHTML = `<div class="gm-box ${o.wide ? 'wide' : ''}"><div class="gm-title">${o.title || ''}</div><div class="gm-body">${o.body || ''}</div>${o.input ? `<input class="gm-input" id="gmInput" placeholder="${o.input}">` : ''}<div class="gm-btns">${o.hideCancel ? '' : `<button class="gm-btn gm-cancel" id="gmCancel">${o.cancelText || '取消'}</button>`}<button class="gm-btn gm-ok" id="gmOk">${o.okText || '确定'}</button></div></div>`;
+    modalEl.classList.add('show');
+    const close = () => modalEl.classList.remove('show');
+    $('gmOk').onclick = () => { const v = o.input ? $('gmInput').value.trim() : ''; if (o.input && !v) { $('gmInput').focus(); return; } close(); if (o.onOk) o.onOk(v); };
+    const c = $('gmCancel'); if (c) c.onclick = close;
+  }
+
+  // ---------------- 日志 ----------------
+  function addGameLog(text, type) {
+    const box = $('gameLog');
+    const div = document.createElement('div');
+    div.className = `log-item quality-${type || 'common'}`;
+    div.innerHTML = `<span style="color:#aaa">[${new Date().toLocaleTimeString('zh-CN', { hour12: false, minute: '2-digit', second: '2-digit' })}]</span> ${text}`;
+    box.appendChild(div);
+    while (box.children.length > 150) box.removeChild(box.firstChild);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // ---------------- 加成计算 ----------------
+  function cardStar(id) { return Math.min(5, G.cards[id] || 0); }
+  function getBonus() {
+    const b = { gold: 0, exp: 0, luck: 0, speed: 0, zone: 0 };
+    (G.equipped || []).forEach(id => {
+      const c = CARD_MAP[id]; if (!c) return;
+      const m = 1 + 0.25 * (cardStar(id) - 1);
+      for (const k in c.eff) b[k] += c.eff[k] * m;
+    });
+    return b;
+  }
+  function getLuck() { return 1 + rodLevel * 0.1 + getBonus().luck + (G.baits.worm > 0 ? 0.25 : 0); }
+  function zoneWidth(diffNarrow) {
+    return clamp(0.22 + (G.lineLevel - 1) * 0.018 + getBonus().zone - (diffNarrow || 0), 0.12, 0.5);
+  }
+
+  // ---------------- 钓鱼状态机 ----------------
+  let gameMode = 'auto';
+  let isGameRunning = false;       // 自动挂机开关
+  let miniGameActive = false;
+  let holding = false;             // 手动收线按住状态
+  let combo = 0;
+  let weather = 'clear', rainAmt = 0, weatherNext = performance.now() + 60000 + Math.random() * 120000;
+  const fs = { state: 'idle', t0: 0, dur: 0, nextAt: 0, fish: null, size: 0.5, castX: 0, hookX: 0, reel: null, result: null };
+  const DIFF = {
+    common: { speed: 0.9,  gain: 0.30, loss: 0.16, narrow: 0 },
+    rare:   { speed: 1.15, gain: 0.27, loss: 0.19, narrow: 0.02 },
+    epic:   { speed: 1.5,  gain: 0.24, loss: 0.22, narrow: 0.045 },
+    legend: { speed: 1.9,  gain: 0.21, loss: 0.26, narrow: 0.07 }
+  };
+
+  function setState(s, dur) { fs.state = s; fs.t0 = performance.now(); fs.dur = dur || 0; if (typeof syncControls === 'function') syncControls(); }
+  function abortFishing() { fs.state = 'idle'; fs.fish = null; fs.reel = null; holding = false; fs.nextAt = performance.now() + 300; syncControls(); }
+
+  function biteDelay() {
+    const b = getBonus();
+    const base = Math.max(1800, 5200 - pondLevel * 200);
+    const speed = Math.min(0.7, b.speed + (G.baits.magnet > 0 ? 0.35 : 0) + (weather === 'rain' ? 0.1 : 0));
+    return Math.max(1200, base * (1 - speed) + Math.random() * 1800);
+  }
+
+  function rollFish() {
+    const hasBuff = Date.now() < goldenRodEndTime;
+    let caught = null;
+    if (hasBuff) {
+      const chests = FISH_DB.filter(f => f.chest);
+      caught = chests[Math.floor(Math.random() * chests.length)];
+    } else {
+      const luck = getLuck(), golden = G.baits.golden > 0;
+      const pool = FISH_DB.map(f => {
+        let p = f.baseProb * (f.type === 'common' ? 1 : luck);
+        if (golden && (f.type === 'epic' || f.type === 'legend')) p *= 2;
+        return { f, p };
+      });
+      const total = pool.reduce((a, b) => a + b.p, 0);
+      let r = Math.random() * total, acc = 0;
+      for (const it of pool) { acc += it.p; if (r < acc) { caught = it.f; break; } }
+      if (!caught) caught = FISH_DB[0];
+      ['worm', 'golden', 'magnet'].forEach(k => { if (G.baits[k] > 0) G.baits[k]--; });
+    }
+    return caught;
+  }
+
+  function castLine() {
+    if (fs.state !== 'idle' || miniGameActive) return;
+    fs.castX = LY.castMin + Math.random() * (LY.castMax - LY.castMin);
+    fs.hookX = fs.castX; fs.fish = null;
+    setState('cast', 900);
+  }
+  function fishBites() {
+    fs.fish = rollFish(); fs.size = Math.random();
+    setState('bite', 1500);
+    splash(fs.castX, LY.surfY, 16);
+    renderStatsBar();
+  }
+  function hookFish() {
+    const d = DIFF[fs.fish.type];
+    fs.reel = { zone: 0.5, zv: 0, fishPos: 0.5, fishTarget: 0.5, fishTimer: 0, progress: 0.3, timeLeft: 14, inz: 0, total: 0, inZone: true, d, zw: zoneWidth(d.narrow) };
+    setState('reel');
+  }
+  function updateReel(dt) {
+    const R = fs.reel, d = R.d;
+    R.fishTimer -= dt;
+    if (R.fishTimer <= 0) { R.fishTarget = 0.08 + Math.random() * 0.84; R.fishTimer = (0.5 + Math.random() * 0.9) / d.speed; }
+    R.fishPos += (R.fishTarget - R.fishPos) * Math.min(1, dt * 2.2 * d.speed);
+    R.zv += (holding ? 2.6 : -2.2) * dt;
+    R.zv *= (1 - Math.min(1, dt * 2.2));
+    R.zone += R.zv * dt;
+    const half = R.zw / 2;
+    if (R.zone < half) { R.zone = half; R.zv = Math.abs(R.zv) * 0.3; }
+    if (R.zone > 1 - half) { R.zone = 1 - half; R.zv = -Math.abs(R.zv) * 0.3; }
+    R.inZone = Math.abs(R.fishPos - R.zone) <= half;
+    R.progress += (R.inZone ? d.gain : -d.loss) * dt;
+    R.timeLeft -= dt; R.total += dt; if (R.inZone) R.inz += dt;
+    if (R.progress >= 1) {
+      const ratio = R.inz / Math.max(0.01, R.total);
+      combo++;
+      const bonus = Math.min(0.5, (combo - 1) * 0.05);
+      let q = 'good', m = 1.4;
+      if (ratio >= 0.72) { q = 'perfect'; m = 2.0; } else if (ratio >= 0.5) { q = 'great'; m = 1.7; }
+      finishCatch(fs.fish, { mult: m + bonus, manual: true, quality: q });
+    } else if (R.progress <= 0 || R.timeLeft <= 0) {
+      escapeFish(R.progress <= 0 ? '鱼挣脱了鱼线！' : '收线超时，鱼跑掉了…');
+    }
+  }
+  function escapeFish(msg) {
+    combo = 0;
+    fs.result = { ok: false, text: msg };
+    addGameLog(msg, 'common');
+    setState('result', 1100);
+    renderStatsBar();
+  }
+  function pullEarly() {
+    fs.result = { ok: false, text: '收竿太早，什么也没钓到' };
+    setState('result', 700);
+  }
+
+  function finishCatch(fish, o) {
+    const b = getBonus();
+    const sf = fs.size;
+    const sizeMul = fish.chest ? 1 : 0.85 + 0.5 * sf;
+    const weight = fish.chest ? 0 : fish.minW + (fish.maxW - fish.minW) * sf;
+    const gold = Math.round(fish.gold * sizeMul * (1 + b.gold) * o.mult);
+    const exp = Math.round(fish.exp * sizeMul * (1 + b.exp) * o.mult);
+    const prevLv = calculateLevel();
+    userGold += gold; userExp += exp;
+    const st = G.stats;
+    st.catches++; st.goldEarned += gold;
+    if (o.manual) { st.manualCatches++; if (o.quality === 'perfect') st.perfects++; st.maxCombo = Math.max(st.maxCombo, combo); }
+    if (fish.type === 'legend') st.legend++;
+    if (fish.chest) st.chests++;
+    const big = !fish.chest && !fish.glyph && sf > 0.9; if (big) st.big++;
+    const hr = new Date().getHours(); if (hr >= 22 || hr < 5) st.night++;
+    const firstTime = !G.dex[fish.id];
+    const de = G.dex[fish.id] || (G.dex[fish.id] = { n: 0, maxW: 0 });
+    de.n++; de.maxW = Math.max(de.maxW, weight);
+    fs.result = { ok: true, fish, gold, exp, weight, mult: o.mult, quality: o.quality, big, firstTime };
+    const dur = fish.type === 'legend' ? 2600 : fish.type === 'epic' ? 1900 : (o.manual ? 1500 : 1100);
+    setState('result', dur);
+    // 特效
+    const hx = fs.hookX || fs.castX;
+    splash(hx, LY.surfY, 22);
+    if (fish.type === 'epic' || fish.type === 'legend') sparkle(LY.catX + 70 * LY.k, LY.catY - 110 * LY.k, fish.type === 'legend' ? 46 : 26, RARITY[fish.type].color);
+    // 日志
+    const tag = o.manual ? ` <span style="opacity:.8">(手动 ×${o.mult.toFixed(1)}${o.quality === 'perfect' ? ' 完美!' : ''}${combo > 1 ? ' 连击' + combo : ''})</span>` : '';
+    const wtxt = weight ? ` ${weight < 10 ? weight.toFixed(1) : Math.round(weight)}kg${big ? ' 大个头!' : ''}` : '';
+    addGameLog(`钓到了 [${fish.name}]${wtxt} +${gold}G +${exp}XP${tag}`, fish.type);
+    if (firstTime) { gToast(`📖 新图鉴：${fish.name}`, 'good'); if (curTab === 'dex') renderDex(); }
+    const lv = calculateLevel();
+    if (lv > prevLv) { gToast(`🎉 升级了！Lv.${lv} ${getTitle(lv)}`, 'good'); addGameLog(`🎉 升级！Lv.${lv} ${getTitle(lv)}`, 'epic'); }
+    updateStatusDisplay(); renderStatsBar();
+    checkAch(); persist();
+  }
+
+  // ---------------- 操作（点击 / 空格） ----------------
+  function actionPress() {
+    if (gameMode !== 'manual' || miniGameActive) return;
+    const s = fs.state;
+    if (s === 'idle') castLine();
+    else if (s === 'wait') pullEarly();
+    else if (s === 'bite') hookFish();
+    else if (s === 'reel') holding = true;
+  }
+  function actionRelease() { holding = false; }
+
+  function setGameMode(m) {
+    gameMode = m === 'manual' ? 'manual' : 'auto';
+    holding = false;
+    G.mode = gameMode;
+    syncControls(); persist();
+    gToast(gameMode === 'manual' ? '🖐 手动模式：成功收线奖励更高（×1.4~2.0 + 连击）' : '🤖 自动挂机模式', '');
+  }
+
+  function userStartGame() {
+    if (isGameRunning) return;
+    isGameRunning = true;
+    fs.nextAt = performance.now();
+    addGameLog("挂机已开始...", "common");
+    syncControls();
+  }
+  function userStopGame() {
+    isGameRunning = false;
+    if (gameMode === 'auto' && fs.state !== 'result') abortFishing();
+    addGameLog("挂机暂停。", "common");
+    syncControls();
+  }
+  function userGameRunning() { return isGameRunning; }
+
+  function syncControls() {
+    const auto = gameMode === 'auto';
+    const bs = $('btnStartGame'), bp = $('btnStopGame'), ba = $('btnAction');
+    bs.style.display = auto && !isGameRunning ? 'inline-block' : 'none';
+    bp.style.display = auto && isGameRunning ? 'inline-block' : 'none';
+    ba.style.display = auto ? 'none' : 'inline-block';
+    $('modeAuto').classList.toggle('on', auto);
+    $('modeManual').classList.toggle('on', !auto);
+    $('btnGame').classList.toggle('running', (auto && isGameRunning) || (!auto && fs.state !== 'idle'));
+    const labels = { idle: '🎣 抛竿', cast: '🎣 抛竿中…', wait: '✋ 收竿（等待上钩）', bite: '❗ 提竿！！', reel: '🌀 按住收线', result: '… 收获中' };
+    ba.textContent = labels[fs.state] || '🎣 抛竿';
+    ba.classList.toggle('bite', fs.state === 'bite');
+    ba.classList.toggle('reel', fs.state === 'reel');
+    cv.style.touchAction = fs.state === 'reel' && !auto ? 'none' : 'manipulation';
+  }
+
+  let lastTick = performance.now();
+  function gameTick() {
+    const now = performance.now();
+    const dt = Math.min(0.2, (now - lastTick) / 1000); lastTick = now;
+    if (now > weatherNext) { weather = Math.random() < 0.3 ? 'rain' : 'clear'; weatherNext = now + 90000 + Math.random() * 180000; }
+    rainAmt += ((weather === 'rain' ? 1 : 0) - rainAmt) * Math.min(1, dt * 0.5);
+    if (miniGameActive) return;
+    const s = fs.state, el = now - fs.t0;
+    if (gameMode === 'auto' && !isGameRunning && s !== 'idle' && s !== 'result') { abortFishing(); return; }
+    if (s === 'idle') { if (gameMode === 'auto' && isGameRunning && now >= fs.nextAt) castLine(); }
+    else if (s === 'cast') { if (el >= fs.dur) setState('wait', biteDelay()); }
+    else if (s === 'wait') { if (el >= fs.dur) fishBites(); }
+    else if (s === 'bite') {
+      if (gameMode === 'auto') { if (el >= 650) finishCatch(fs.fish, { mult: 1, manual: false, quality: 'auto' }); }
+      else if (el >= fs.dur) escapeFish('没来得及提竿，鱼跑掉了…');
+    }
+    else if (s === 'reel') {
+      if (gameMode === 'auto') finishCatch(fs.fish, { mult: 1, manual: false, quality: 'auto' });
+      else updateReel(dt);
+    }
+    else if (s === 'result') { if (el >= fs.dur) { setState('idle'); fs.nextAt = now + 300; } }
+  }
+
+  // ---------------- 成就 ----------------
+  const ACH = [
+    { id: 'c1',    icon: '🎣', name: '初次出竿',   desc: '钓到第 1 条鱼',        target: 1,       cur: () => G.stats.catches, r: { gold: 100 } },
+    { id: 'c50',   icon: '🐟', name: '小有所获',   desc: '累计钓到 50 条',       target: 50,      cur: () => G.stats.catches, r: { gold: 300 } },
+    { id: 'c300',  icon: '🪣', name: '渔场常客',   desc: '累计钓到 300 条',      target: 300,     cur: () => G.stats.catches, r: { gold: 1000, t: 1 } },
+    { id: 'c1500', icon: '🌊', name: '钓鱼狂人',   desc: '累计钓到 1500 条',     target: 1500,    cur: () => G.stats.catches, r: { gold: 8000, t: 3 } },
+    { id: 'c5000', icon: '👑', name: '万鱼之王',   desc: '累计钓到 5000 条',     target: 5000,    cur: () => G.stats.catches, r: { gold: 30000, t: 10 } },
+    { id: 'g1w',   icon: '💰', name: '腰缠万贯',   desc: '钓鱼累计赚取 1 万金币', target: 10000,   cur: () => G.stats.goldEarned, r: { gold: 500 } },
+    { id: 'g20w',  icon: '💎', name: '财源广进',   desc: '钓鱼累计赚取 20 万金币', target: 200000,  cur: () => G.stats.goldEarned, r: { t: 2 } },
+    { id: 'g200w', icon: '🏦', name: '富甲一方',   desc: '钓鱼累计赚取 200 万金币', target: 2000000, cur: () => G.stats.goldEarned, r: { t: 6, gold: 20000 } },
+    { id: 'lv10',  icon: '⭐', name: '小有名气',   desc: '等级达到 Lv.10',       target: 10,      cur: () => calculateLevel(), r: { gold: 800 } },
+    { id: 'lv20',  icon: '🌟', name: '捕鱼达人',   desc: '等级达到 Lv.20',       target: 20,      cur: () => calculateLevel(), r: { gold: 3000, t: 1 } },
+    { id: 'lv40',  icon: '🔱', name: '海之王者',   desc: '等级达到 Lv.40',       target: 40,      cur: () => calculateLevel(), r: { gold: 12000, t: 4 } },
+    { id: 'dex5',  icon: '📖', name: '初窥门径',   desc: '图鉴收集 5 种',        target: 5,       cur: () => Object.keys(G.dex).length, r: { gold: 500 } },
+    { id: 'dex10', icon: '📚', name: '博物学家',   desc: '图鉴收集 10 种',       target: 10,      cur: () => Object.keys(G.dex).length, r: { gold: 3000, t: 1 } },
+    { id: 'dexAll',icon: '🏛', name: '图鉴大全',   desc: '收集全部鱼类图鉴',     target: FISH_DB.length, cur: () => Object.keys(G.dex).length, r: { gold: 15000, t: 5 } },
+    { id: 'm10',   icon: '🖐', name: '手动入门',   desc: '手动钓起 10 条鱼',     target: 10,      cur: () => G.stats.manualCatches, r: { gold: 500 } },
+    { id: 'm100',  icon: '🥋', name: '手动大师',   desc: '手动钓起 100 条鱼',    target: 100,     cur: () => G.stats.manualCatches, r: { gold: 6000, t: 2 } },
+    { id: 'p25',   icon: '🎯', name: '完美收线',   desc: '获得 25 次「完美」评价', target: 25,      cur: () => G.stats.perfects, r: { gold: 4000, t: 2 } },
+    { id: 'cb5',   icon: '🔥', name: '连击新星',   desc: '手动连击达到 5',       target: 5,       cur: () => G.stats.maxCombo, r: { gold: 800 } },
+    { id: 'cb15',  icon: '☄️', name: '连击狂魔',   desc: '手动连击达到 15',      target: 15,      cur: () => G.stats.maxCombo, r: { gold: 8000, t: 3 } },
+    { id: 'lg1',   icon: '🦑', name: '传说降临',   desc: '钓到 1 次传说品质',    target: 1,       cur: () => G.stats.legend, r: { gold: 2000, t: 1 } },
+    { id: 'lg5',   icon: '🐉', name: '传说收割机', desc: '钓到 5 次传说品质',    target: 5,       cur: () => G.stats.legend, r: { gold: 10000, t: 3 } },
+    { id: 'big10', icon: '🐋', name: '大个头猎手', desc: '钓到 10 条「大个头」', target: 10,      cur: () => G.stats.big, r: { gold: 1500 } },
+    { id: 'ngt20', icon: '🌙', name: '夜钓者',     desc: '在深夜(22点-5点)钓到 20 条', target: 20, cur: () => G.stats.night, r: { gold: 1500, t: 1 } },
+    { id: 'pl1',   icon: '🎴', name: '抽卡初体验', desc: '抽卡 1 次',            target: 1,       cur: () => G.stats.pulls, r: { gold: 300 } },
+    { id: 'pl50',  icon: '🎰', name: '抽卡达人',   desc: '累计抽卡 50 次',       target: 50,      cur: () => G.stats.pulls, r: { gold: 3000, t: 2 } },
+    { id: 'ssr1',  icon: '🌈', name: '欧皇附体',   desc: '抽到 1 张传说卡',      target: 1,       cur: () => G.stats.ssr, r: { gold: 3000, t: 2 } },
+    { id: 'cd8',   icon: '🗂', name: '集卡爱好者', desc: '收集 8 种卡牌',        target: 8,       cur: () => Object.keys(G.cards).length, r: { gold: 3000, t: 1 } },
+    { id: 'cdAll', icon: '🃏', name: '卡牌大师',   desc: '收集全部卡牌',         target: CARDS.length, cur: () => Object.keys(G.cards).length, r: { gold: 20000, t: 5 } },
+    { id: 'rod5',  icon: '🪄', name: '鱼竿匠',     desc: '鱼竿升到 Lv.5',        target: 5,       cur: () => rodLevel, r: { gold: 2000 } },
+    { id: 'pond5', icon: '🏞', name: '塘主',       desc: '鱼塘升到 Lv.5',        target: 5,       cur: () => pondLevel, r: { gold: 2000 } },
+    { id: 'line5', icon: '🧵', name: '好线配好竿', desc: '鱼线升到 Lv.5',        target: 5,       cur: () => G.lineLevel, r: { gold: 2000 } },
+    { id: 'buy10', icon: '🛍', name: '购物狂',     desc: '在商城购买 10 次',     target: 10,      cur: () => G.stats.purchases, r: { gold: 1000 } },
+    { id: 'chest5',icon: '📦', name: '开箱爱好者', desc: '开出宝箱类物品 5 次',  target: 5,       cur: () => G.stats.chests, r: { gold: 2500 } },
+  ];
+  function claimable() { return ACH.filter(a => G.ach[a.id] === 1).length; }
+  function checkAch() {
+    let changed = false;
+    ACH.forEach(a => {
+      if (!G.ach[a.id] && a.cur() >= a.target) {
+        G.ach[a.id] = 1; changed = true;
+        gToast(`🏆 成就达成：${a.name}`, 'ach');
+        addGameLog(`🏆 成就达成：${a.name}`, 'legend');
+      }
+    });
+    if (changed) { renderTabDots(); if (curTab === 'ach') renderAch(); persist(); }
+  }
+  function claimAch(id) {
+    const a = ACH.find(x => x.id === id);
+    if (!a || G.ach[id] !== 1) return;
+    G.ach[id] = 2;
+    if (a.r.gold) userGold += a.r.gold;
+    if (a.r.t) G.tickets += a.r.t;
+    updateStatusDisplay();
+    gToast(`🎁 已领取：${a.r.gold ? a.r.gold + 'G ' : ''}${a.r.t ? '🎫×' + a.r.t : ''}`, 'good');
+    renderAch(); renderTabDots(); persist(); saveUser();
+  }
+
+  // ---------------- 抽卡 ----------------
+  const PULL_UNIT = 1000, PULL_TEN = 9000;
+  function pullOne() {
+    const p = G.pity;
+    let rar;
+    if (p.ssr >= 59) rar = 'SSR';
+    else {
+      let w = { N: 55, R: 33, SR: 9.5, SSR: 2.5 };
+      if (p.sr >= 9) w = { SR: 9.5, SSR: 2.5 };
+      const total = Object.values(w).reduce((a, b) => a + b, 0);
+      let r = Math.random() * total;
+      for (const k in w) { r -= w[k]; if (r < 0) { rar = k; break; } }
+      if (!rar) rar = 'N';
+    }
+    p.ssr = rar === 'SSR' ? 0 : p.ssr + 1;
+    p.sr = (rar === 'SSR' || rar === 'SR') ? 0 : p.sr + 1;
+    const pool = CARDS.filter(c => c.r === rar);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  function pullCost(n) {
+    const useT = Math.min(G.tickets, n);
+    return { useT, gold: (n - useT) * (n >= 10 ? 900 : PULL_UNIT) };
+  }
+  function doPull(n) {
+    const { useT, gold } = pullCost(n);
+    if (userGold < gold) { gToast(`金币不足，需要 ${gold} G`, 'warn'); return; }
+    G.tickets -= useT; userGold -= gold;
+    const results = [];
+    for (let i = 0; i < n; i++) {
+      const c = pullOne();
+      const had = G.cards[c.id] || 0;
+      let tag = '';
+      if (had >= 5) { tag = 'max'; userGold += 300; }
+      else { G.cards[c.id] = had + 1; tag = had ? 'dup' : 'new'; if (!had && G.equipped.length < 3) G.equipped.push(c.id); }
+      G.stats.pulls++; if (c.r === 'SSR') G.stats.ssr++;
+      results.push({ c, tag, star: Math.min(5, had + 1) });
+    }
+    updateStatusDisplay();
+    const html = '<div class="reveal-grid">' + results.map((r, i) =>
+      `<div class="rv-card cc-${r.c.r}" style="--i:${i}">${r.tag === 'new' ? '<span class="rv-tag">NEW</span>' : r.tag === 'dup' ? `<span class="rv-tag dup">${r.star}★</span>` : '<span class="rv-tag dup">满星+300G</span>'}<span class="c-emoji">${r.c.emoji}</span><span class="c-name">${r.c.name}</span><span class="c-star" style="color:var(--cc)">${CARD_RAR[r.c.r]}</span></div>`).join('') + '</div>';
+    gDialog({ title: n > 1 ? '🎴 十连结果' : '🎴 抽卡结果', body: html, okText: '收下', hideCancel: true, wide: n > 1 });
+    checkAch(); renderGacha(); renderTabDots(); renderStatsBar(); persist(); saveUser();
+  }
+  function toggleEquip(id) {
+    if (!G.cards[id]) return;
+    const i = G.equipped.indexOf(id);
+    if (i >= 0) G.equipped.splice(i, 1);
+    else { if (G.equipped.length >= 3) { gToast('装备栏已满（最多 3 张），先卸下一张', 'warn'); return; } G.equipped.push(id); }
+    renderGacha(); renderStatsBar(); persist();
+  }
+  function effText(c, star) {
+    const m = 1 + 0.25 * (star - 1);
+    return Object.keys(c.eff).map(k => `${EFF_LABEL[k]}+${fmtPct(c.eff[k] * m)}%`).join(' ');
+  }
+
+  // ---------------- 商城 ----------------
+  let shopCat = 'equip';
+  const SHOP_ITEMS = {
+    upgradeRod:  { cat: 'equip', icon: '🎣', color: '#3498db', name: '升级鱼竿', max: 10, level: () => rodLevel, price: () => 1000 * Math.pow(2, rodLevel),
+                   desc: () => `提高稀有鱼概率：幸运 ×${(1 + rodLevel * 0.1).toFixed(1)} → ×${(1 + (rodLevel + 1) * 0.1).toFixed(1)}` },
+    upgradePond: { cat: 'equip', icon: '🌊', color: '#2ecc71', name: '扩建鱼塘', max: 10, level: () => pondLevel, price: () => 2000 * Math.pow(2, pondLevel),
+                   desc: () => `加快上钩：基础等待 −${(pondLevel * 0.2).toFixed(1)}s → −${((pondLevel + 1) * 0.2).toFixed(1)}s` },
+    upgradeLine: { cat: 'equip', icon: '🧵', color: '#e67e22', name: '强化鱼线', max: 8, level: () => G.lineLevel, price: () => 1500 * Math.pow(2, G.lineLevel - 1),
+                   desc: () => `手动收线的绿区更宽：${fmtPct(0.22 + (G.lineLevel - 1) * 0.018)}% → ${fmtPct(0.22 + G.lineLevel * 0.018)}%` },
+    baitWorm:    { cat: 'item', icon: '🪱', color: '#a1887f', name: '肥美蚯蚓 ×15', price: () => 600, count: () => G.baits.worm, desc: () => '15 次抛竿内，稀有以上概率 +25%' },
+    baitGolden:  { cat: 'item', icon: '✨', color: '#f1c40f', name: '黄金诱饵 ×10', price: () => 2500, count: () => G.baits.golden, desc: () => '10 次抛竿内，史诗/传说概率翻倍' },
+    baitMagnet:  { cat: 'item', icon: '🧲', color: '#e74c3c', name: '磁力饵 ×20', price: () => 800, count: () => G.baits.magnet, desc: () => '20 次抛竿内，上钩时间 −35%' },
+    goldenRod:   { cat: 'item', icon: '🌟', color: '#e67e22', name: '金吊杆 (10分钟)', price: () => 19999, desc: () => '10 分钟内必出宝箱类物品，可叠加时长' },
+    goldChest:   { cat: 'special', icon: '📦', color: '#e74c3c', name: '风险宝箱', price: () => 5999, desc: () => '极高亏本率，博暴击（最高 20000G）' },
+    dogeCoin:    { cat: 'special', icon: '🐕', color: '#95a5a6', name: '狗狗币', price: () => 999999, desc: () => '提币至 MetaMask（模拟功能）' }
+  };
+  const DISCOUNT_POOL = ['upgradeRod', 'upgradePond', 'upgradeLine', 'baitWorm', 'baitGolden', 'baitMagnet', 'goldenRod'];
+  function discountId() { const d = new Date(); return DISCOUNT_POOL[(d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) % DISCOUNT_POOL.length]; }
+  function shopPrice(id) { const b = SHOP_ITEMS[id].price(); return id === discountId() ? Math.round(b * 0.8) : b; }
+  function setShopCat(c) { shopCat = c; renderShop(); }
+
+  function updateShopPrices() { refreshGameUI(); }
+
+  function finishPurchase(msg) {
+    G.stats.purchases++;
+    addGameLog(msg, 'legend'); gToast(msg, 'good');
+    updateStatusDisplay(); renderShop(); renderStatsBar();
+    checkAch(); persist(); saveUser();
+  }
+
+  function buyItem(item) {
+    const def = SHOP_ITEMS[item]; if (!def) return;
+    const price = shopPrice(item);
+    if (def.max && def.level() >= def.max) { gToast('已经满级啦', 'warn'); return; }
+    if (userGold < price) { gToast(`金币不足，还差 ${(price - userGold).toLocaleString()} G`, 'warn'); return; }
+    const ask = (extra, cb, o) => gDialog(Object.assign({ title: `${def.icon} ${def.name}`, body: `花费 <b style="color:#f39c12">${price.toLocaleString()} G</b> 购买？${extra ? '<br><span style="color:var(--text-sub);font-size:12px">' + extra + '</span>' : ''}`, okText: '购买', onOk: cb }, o || {}));
+    switch (item) {
+      case 'upgradeRod':  ask(def.desc(), () => { if (userGold < price) return; userGold -= price; rodLevel++; finishPurchase('鱼竿升级成功！稀有率提升。'); }); break;
+      case 'upgradePond': ask(def.desc(), () => { if (userGold < price) return; userGold -= price; pondLevel++; finishPurchase('鱼塘扩建成功！上鱼速度加快。'); }); break;
+      case 'upgradeLine': ask(def.desc(), () => { if (userGold < price) return; userGold -= price; G.lineLevel++; finishPurchase('鱼线强化成功！手动收线更轻松。'); }); break;
+      case 'baitWorm':    ask('', () => { if (userGold < price) return; userGold -= price; G.baits.worm += 15; finishPurchase('获得肥美蚯蚓 ×15'); }); break;
+      case 'baitGolden':  ask('', () => { if (userGold < price) return; userGold -= price; G.baits.golden += 10; finishPurchase('获得黄金诱饵 ×10'); }); break;
+      case 'baitMagnet':  ask('', () => { if (userGold < price) return; userGold -= price; G.baits.magnet += 20; finishPurchase('获得磁力饵 ×20'); }); break;
+      case 'goldenRod':   ask('', () => {
+        if (userGold < price) return; userGold -= price;
+        goldenRodEndTime = Math.max(Date.now(), goldenRodEndTime) + 10 * 60 * 1000;
+        finishPurchase('金吊杆已激活！接下来只出宝箱。');
+      }); break;
+      case 'goldChest':   ask('开出的金币可能低于成本，请量力而行', () => {
+        if (userGold < price) return; userGold -= price;
+        const roll = Math.random(); let reward = 0, msg = '', big = '📦';
+        if (roll < 0.30) {
+          if (Math.random() < 0.1) { reward = 20000; msg = "【欧皇降临】你从宝箱中发现了巨额财宝！"; big = '👑'; }
+          else { reward = 6000 + Math.floor(Math.random() * 4000); msg = "运气不错，小赚一笔！"; big = '💰'; }
+        } else { reward = 100 + Math.floor(Math.random() * 4000); msg = "宝箱里装满了石头..."; big = '🪨'; }
+        userGold += reward; G.stats.goldEarned += reward - price > 0 ? reward - price : 0; G.stats.chests++;
+        gDialog({ title: '开启风险宝箱', body: `<span class="gm-big">${big}</span>${msg}<br>获得 <b style="color:#f39c12">${reward.toLocaleString()}</b> 金币`, okText: '好的', hideCancel: true });
+        finishPurchase(`开启风险宝箱: ${reward} G`);
+      }); break;
+      case 'dogeCoin':    ask('', () => {}, {
+        input: '请输入 MetaMask 钱包地址 (ERC-20)',
+        onOk: addr => {
+          if (userGold < price) return; userGold -= price;
+          finishPurchase("狗狗币购买成功！");
+          setTimeout(() => gDialog({ title: '🐕 转账处理中', body: `系统正在处理转账至<br><b>${addr.substr(0, 6)}...</b><br><span style="font-size:12px;color:var(--text-sub)">(这只是模拟功能)</span>`, okText: '好的', hideCancel: true }), 400);
+        }
+      }); break;
+    }
+  }
+
+  // ---------------- 标签页与面板渲染 ----------------
+  let curTab = 'log';
+  const TABS = { log: ['tabLog', 'panelLog'], dex: ['tabDex', 'panelDex'], ach: ['tabAch', 'panelAch'], gacha: ['tabGacha', 'panelGacha'], shop: ['tabShop', 'shopPanel'] };
+  function switchTab(t) {
+    curTab = t;
+    for (const k in TABS) { $(TABS[k][0]).classList.toggle('on', k === t); $(TABS[k][1]).classList.toggle('active', k === t); }
+    renderCurrentTab();
+  }
+  function toggleShop() { switchTab(curTab === 'shop' ? 'log' : 'shop'); }
+  function renderCurrentTab() {
+    if (curTab === 'dex') renderDex();
+    else if (curTab === 'ach') renderAch();
+    else if (curTab === 'gacha') renderGacha();
+    else if (curTab === 'shop') renderShop();
+  }
+  function renderTabDots() {
+    $('dotAch').classList.toggle('show', claimable() > 0);
+    $('dotGacha').classList.toggle('show', G.tickets > 0);
+  }
+  function refreshGameUI() { syncControls(); renderStatsBar(); renderTabDots(); renderCurrentTab(); }
+
+  function renderStatsBar() {
+    const b = getBonus(), chips = [];
+    chips.push(`<span class="sb-chip">🍀 幸运 <b>×${getLuck().toFixed(2)}</b></span>`);
+    if (b.gold) chips.push(`<span class="sb-chip">💰 金币 <b>+${fmtPct(b.gold)}%</b></span>`);
+    if (b.exp) chips.push(`<span class="sb-chip">📘 经验 <b>+${fmtPct(b.exp)}%</b></span>`);
+    const sp = b.speed + (G.baits.magnet > 0 ? 0.35 : 0);
+    if (sp) chips.push(`<span class="sb-chip">⚡ 上钩 <b>+${fmtPct(Math.min(0.7, sp))}%</b></span>`);
+    if (combo > 1) chips.push(`<span class="sb-chip">🔥 连击 <b>×${combo}</b></span>`);
+    if (G.baits.worm > 0) chips.push(`<span class="sb-chip">🪱 <b>${G.baits.worm}</b></span>`);
+    if (G.baits.golden > 0) chips.push(`<span class="sb-chip">✨ <b>${G.baits.golden}</b></span>`);
+    if (G.baits.magnet > 0) chips.push(`<span class="sb-chip">🧲 <b>${G.baits.magnet}</b></span>`);
+    chips.push(`<span class="sb-chip">🎣 累计 <b>${G.stats.catches}</b> 条</span>`);
+    $('gameStatsBar').innerHTML = chips.join('');
+  }
+
+  function renderDex() {
+    const found = Object.keys(G.dex).length;
+    let html = `<div class="p-head"><b>🐟 鱼类图鉴</b><span>已收集 ${found}/${FISH_DB.length}</span></div><div class="dex-grid">`;
+    FISH_DB.forEach(f => {
+      const d = G.dex[f.id], R = RARITY[f.type];
+      html += `<div class="dex-item ${d ? '' : 'locked'}" style="--rc:${R.color}"><span class="dex-emoji">${d ? f.emoji : f.emoji}</span><span class="dex-name">${d ? f.name : '???'}</span><span class="dex-rare">${R.name}</span><span class="dex-meta">${d ? `钓到 ${d.n} 次${d.maxW ? '<br>最大 ' + (d.maxW < 10 ? d.maxW.toFixed(1) : Math.round(d.maxW)) + 'kg' : '<br>宝箱类'}` : '尚未发现'}</span></div>`;
+    });
+    $('panelDex').innerHTML = html + '</div>';
+  }
+
+  function renderAch() {
+    const done = ACH.filter(a => G.ach[a.id]).length;
+    const order = a => G.ach[a.id] === 1 ? 0 : (G.ach[a.id] === 2 ? 2 : 1);
+    const list = ACH.slice().sort((a, b) => order(a) - order(b));
+    let html = `<div class="p-head"><b>🏆 成就</b><span>已达成 ${done}/${ACH.length}</span></div><div class="ach-list">`;
+    list.forEach(a => {
+      const st = G.ach[a.id] || 0, cur = Math.min(a.target, a.cur()), pct = cur / a.target * 100;
+      const rw = `${a.r.gold ? a.r.gold.toLocaleString() + 'G' : ''}${a.r.gold && a.r.t ? ' + ' : ''}${a.r.t ? '🎫×' + a.r.t : ''}`;
+      html += `<div class="ach-item ${st === 1 ? 'done' : st === 2 ? 'claimed' : ''}"><div class="ach-icon">${a.icon}</div><div class="ach-info"><div class="ach-name">${a.name}</div><div class="ach-desc">${a.desc}（${cur.toLocaleString()}/${a.target.toLocaleString()}）</div><div class="ach-bar"><i style="width:${pct}%"></i></div></div><div class="ach-side"><span class="ach-reward">${rw}</span>${st === 1 ? `<button class="btn-claim" onclick="claimAch('${a.id}')">领取</button>` : st === 2 ? '<span class="ach-ok">✔ 已领取</span>' : '未完成'}</div></div>`;
+    });
+    $('panelAch').innerHTML = html + '</div>';
+  }
+
+  function renderGacha() {
+    const p = G.pity, c1 = pullCost(1), c10 = pullCost(10);
+    const lab = c => (c.useT ? `🎫×${c.useT}` : '') + (c.useT && c.gold ? ' + ' : '') + (c.gold ? `${c.gold.toLocaleString()}G` : '');
+    let html = `<div class="gacha-banner"><h4>🎴 渔获卡池</h4><p>抽取伙伴与渔具卡，装备后永久加成（最多装备 3 张）。重复抽到会升星，每星 +25% 效果，满 5 星后重复返还 300G。</p>
+      <div class="gacha-rates"><span>传说 2.5%</span><span>史诗 9.5%</span><span>稀有 33%</span><span>普通 55%</span><span>🎫 持有 ${G.tickets}</span></div>
+      <div class="pity-row"><div>传说保底 ${p.ssr}/60<div class="pity-bar"><i style="width:${p.ssr / 60 * 100}%"></i></div></div><div>史诗保底 ${p.sr}/10<div class="pity-bar"><i style="width:${p.sr / 10 * 100}%"></i></div></div></div></div>
+      <div class="gacha-btns"><button class="btn-pull p1 ${userGold < c1.gold ? 'off' : ''}" onclick="doPull(1)">抽 1 次<small>${lab(c1)}</small></button><button class="btn-pull p10 ${userGold < c10.gold ? 'off' : ''}" onclick="doPull(10)">十连抽<small>${lab(c10)}（9 折）</small></button></div>
+      <div class="p-head"><b>已装备 ${G.equipped.length}/3</b><span>点击卡牌装备 / 卸下</span></div><div class="slot-row">`;
+    for (let i = 0; i < 3; i++) {
+      const id = G.equipped[i], c = id && CARD_MAP[id];
+      html += c ? `<div class="slot filled cc-${c.r}" style="border-color:var(--cc)"><span class="c-emoji">${c.emoji}</span><b style="font-size:12px;color:var(--text-main)">${c.name}</b><span>${effText(c, cardStar(id))}</span></div>` : `<div class="slot">空位</div>`;
+    }
+    html += `</div><div class="p-head"><b>卡牌收藏</b><span>${Object.keys(G.cards).length}/${CARDS.length}</span></div><div class="card-grid">`;
+    const rk = { SSR: 0, SR: 1, R: 2, N: 3 };
+    CARDS.slice().sort((a, b) => rk[a.r] - rk[b.r]).forEach(c => {
+      const own = G.cards[c.id], st = cardStar(c.id), eq = G.equipped.includes(c.id);
+      html += `<div class="gcard cc-${c.r} ${own ? '' : 'locked'} ${eq ? 'equipped' : ''}" ${own ? `onclick="toggleEquip('${c.id}')"` : ''}><span class="c-rar">${CARD_RAR[c.r]}</span>${eq ? '<span class="c-eq">已装备</span>' : ''}<span class="c-emoji">${c.emoji}</span><span class="c-name">${c.name}</span><span class="c-star">${own ? '★'.repeat(st) + '☆'.repeat(5 - st) : '未获得'}</span><span class="c-eff">${effText(c, Math.max(1, st))}</span></div>`;
+    });
+    $('panelGacha').innerHTML = html + '</div>';
+  }
+
+  function renderShop() {
+    const disc = discountId();
+    const ids = Object.keys(SHOP_ITEMS).filter(k => SHOP_ITEMS[k].cat === shopCat);
+    let html = `<div class="shop-top"><div class="shop-cats">${[['equip', '🎣 装备'], ['item', '🧪 消耗品'], ['special', '🎁 特殊']].map(([k, n]) => `<button class="shop-cat ${shopCat === k ? 'on' : ''}" onclick="setShopCat('${k}')">${n}</button>`).join('')}</div><div class="shop-wallet">💰 <b>${userGold.toLocaleString()}</b> G${currentUser ? '' : ' · 未登录，仅本地存档'}</div></div><div class="shop-grid">`;
+    ids.forEach(id => {
+      const d = SHOP_ITEMS[id], price = shopPrice(id), base = d.price(), sale = id === disc;
+      const maxed = d.max && d.level() >= d.max, poor = userGold < price;
+      let extra = '';
+      if (d.max) { let pips = ''; for (let i = 1; i <= d.max; i++) pips += `<i class="${i <= d.level() ? 'on' : ''}"></i>`; extra = `<div class="s-pips">${pips}</div><span class="s-tag-own">Lv.${d.level()} / ${d.max}</span>`; }
+      else if (d.count && d.count() > 0) extra = `<span class="s-tag-own">剩余 ${d.count()} 次</span>`;
+      else if (id === 'goldenRod' && Date.now() < goldenRodEndTime) extra = `<span class="s-tag-own">生效中 · 剩 ${Math.ceil((goldenRodEndTime - Date.now()) / 60000)} 分钟</span>`;
+      html += `<div class="shop-item ${sale ? 'sale' : ''}" style="--ic:${d.color}">${sale ? '<span class="sale-tag">今日 8 折</span>' : ''}<div class="s-icon">${d.icon}</div><div class="s-body"><span class="s-name">${d.name}</span><span class="s-desc">${d.desc()}</span>${extra}<div class="s-foot"><span class="s-price ${poor && !maxed ? 'poor' : ''}">${sale ? `<del>${base.toLocaleString()}</del>` : ''}${price.toLocaleString()} G</span><button class="btn-buy ${maxed ? 'off' : ''}" onclick="buyItem('${id}')">${maxed ? '已满级' : '购买'}</button></div></div></div>`;
+    });
+    $('shopPanel').innerHTML = html + '</div>';
+  }
+
+    // =====================================================================
+  //  Canvas 渲染引擎：昼夜天空 / 山 / 海 / 码头 / 小猫 / 鱼竿 / 特效 / HUD
+  // =====================================================================
+  const cv = $('fishCanvas');
+  const ctx = cv.getContext('2d');
+  let CW = 640, CH = 340, DPR = 1;
+  const LY = { k: 1, horizon: 140, dockTop: 230, catX: 128, catY: 230, baseX: 154, baseY: 190, rodLen: 120, surfY: 204, castMin: 320, castMax: 520, dockEnd: 230 };
+  const SC = { clouds: [], stars: [], bgFish: [], bubbles: [], drops: [] };
+  const PART = [], FLOAT = [], RIPPLE = [];
+  const FONT = '-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
+  const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+
+  const SKY = [
+    { h: 0,  top: [8, 12, 40],    bot: [25, 35, 80] },
+    { h: 5,  top: [30, 35, 85],   bot: [210, 125, 115] },
+    { h: 7,  top: [95, 165, 232], bot: [250, 205, 160] },
+    { h: 12, top: [58, 148, 235], bot: [190, 230, 250] },
+    { h: 17, top: [80, 140, 222], bot: [250, 212, 150] },
+    { h: 19, top: [62, 50, 112],  bot: [242, 122, 92] },
+    { h: 21, top: [15, 20, 56],   bot: [50, 50, 102] },
+    { h: 24, top: [8, 12, 40],    bot: [25, 35, 80] }
+  ];
+  const mixC = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+  const shade = (c, k) => [c[0] * k, c[1] * k, c[2] * k];
+  const rgb = (c, a) => a === undefined ? `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})` : `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+  function skyAt(h) {
+    for (let i = 0; i < SKY.length - 1; i++) {
+      const a = SKY[i], b = SKY[i + 1];
+      if (h >= a.h && h <= b.h) { const t = (h - a.h) / (b.h - a.h); return { top: mixC(a.top, b.top, t), bot: mixC(a.bot, b.bot, t) }; }
+    }
+    return { top: SKY[0].top, bot: SKY[0].bot };
+  }
+  function darkness(h) { if (h < 5) return 1; if (h < 7) return 1 - (h - 5) / 2; if (h < 18) return 0; if (h < 20.5) return (h - 18) / 2.5; return 1; }
+
+  function rrect(x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+
+  function layout() {
+    const k = clamp(CW / 640, 0.72, 1.1);
+    LY.k = k; LY.horizon = CH * 0.42; LY.dockTop = CH * 0.69;
+    LY.catX = CW * 0.2; LY.catY = LY.dockTop;
+    LY.baseX = LY.catX + 26 * k; LY.baseY = LY.catY - 40 * k; LY.rodLen = 120 * k;
+    LY.surfY = CH * 0.6; LY.castMin = CW * 0.5; LY.castMax = CW * 0.82; LY.dockEnd = CW * 0.36;
+  }
+  function initScene() {
+    SC.clouds = []; for (let i = 0; i < 6; i++) SC.clouds.push({ x: Math.random() * CW, y: 10 + Math.random() * LY.horizon * 0.55, s: 0.6 + Math.random() * 0.9, v: 4 + Math.random() * 8 });
+    SC.stars = []; for (let i = 0; i < 70; i++) SC.stars.push({ x: Math.random() * CW, y: Math.random() * LY.horizon * 0.9, r: Math.random() < 0.2 ? 2 : 1, tw: 1 + Math.random() * 3, ph: Math.random() * 6 });
+    const cols = ['#ffb74d', '#4dd0e1', '#ef9a9a', '#aed581', '#b39ddb', '#90caf9'];
+    SC.bgFish = []; for (let i = 0; i < 8; i++) SC.bgFish.push({ x: Math.random() * CW, y: LY.horizon + 30 + Math.random() * (CH - LY.horizon - 50), dir: Math.random() < 0.5 ? -1 : 1, v: 12 + Math.random() * 22, len: 16 + Math.random() * 18, c: cols[i % cols.length], ph: Math.random() * 6 });
+    SC.bubbles = []; for (let i = 0; i < 18; i++) SC.bubbles.push({ x: Math.random() * CW, y: LY.horizon + Math.random() * (CH - LY.horizon), r: 1 + Math.random() * 2.5, v: 8 + Math.random() * 14, ph: Math.random() * 6 });
+    SC.drops = []; for (let i = 0; i < 140; i++) SC.drops.push({ x: Math.random() * CW, y: Math.random() * CH, l: 8 + Math.random() * 10, v: 420 + Math.random() * 240 });
+  }
+  function resizeCanvas() {
+    const sc = $('gameScene');
+    const w = sc.clientWidth || 640, h = sc.clientHeight || 340;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    if (w === CW && h === CH && cv.width === Math.round(w * DPR)) return;
+    CW = w; CH = h;
+    cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+    layout(); initScene();
+  }
+
+  // ---------- 粒子 / 飘字 / 水波 ----------
+  function splash(x, y, n) {
+    for (let i = 0; i < n; i++) PART.push({ x, y, vx: (Math.random() - 0.5) * 150, vy: -Math.random() * 170 - 40, life: 0, max: 0.6 + Math.random() * 0.5, c: 'rgba(235,248,255,', s: 1.5 + Math.random() * 2.5, g: 420 });
+    RIPPLE.push({ x, y, r: 4, life: 0 });
+  }
+  function sparkle(x, y, n, color) {
+    for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = 40 + Math.random() * 150; PART.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0, max: 0.9 + Math.random() * 0.9, c: color, s: 2 + Math.random() * 3, g: 0, star: true, raw: true }); }
+  }
+  function floatText(text, x, y, color, size, life) { FLOAT.push({ text, x, y, color, size: size || 14, life: 0, max: life || 1.8 }); }
+
+  // ---------- 鱼形 ----------
+  function drawFishShape(x, y, len, color, dir, t, ph) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(dir, 1);
+    const h = len * 0.36, w = Math.sin(t * 8 + (ph || 0)) * len * 0.08;
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.moveTo(-len * 0.38, 0); ctx.lineTo(-len * 0.64, -h * 0.75 + w); ctx.lineTo(-len * 0.64, h * 0.75 + w); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 0, len * 0.46, h * 0.62, 0, 0, 6.283); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.beginPath(); ctx.ellipse(len * 0.03, h * 0.2, len * 0.38, h * 0.3, 0, 0, 6.283); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.beginPath(); ctx.moveTo(-len * 0.05, -h * 0.5); ctx.lineTo(len * 0.1, -h * 0.98); ctx.lineTo(len * 0.18, -h * 0.45); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(len * 0.27, -h * 0.12, len * 0.055, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(len * 0.285, -h * 0.12, len * 0.028, 0, 6.283); ctx.fill();
+    ctx.restore();
+  }
+  function drawFishVisual(f, x, y, len, dir, t) {
+    if (f.glyph) { ctx.font = `${Math.round(len * 0.95)}px ${EMOJI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(f.emoji, x, y); }
+    else drawFishShape(x, y, len, f.color, dir, t, 0);
+  }
+
+  // ---------- 渲染主流程 ----------
+  let ENV = { hrs: 12, dark: 0, sky: { top: [60, 150, 235], bot: [190, 230, 250] }, rain: 0 };
+  let RIG = { tipX: 0, tipY: 0, endX: 0, endY: 0, bobVis: false, sag: 16, bend: 0.1, swing: 0 };
+  let rippleT = 0;
+
+  function waveY(x, t) { return LY.surfY + Math.sin(x * 0.03 + t * 2) * 2.2; }
+
+  function computeRig(t, nowMs) {
+    const s = fs.state, el = nowMs - fs.t0, k = LY.k;
+    let bend = 0.12 + Math.sin(t * 1.5) * 0.02, swing = 0, sag = 16, bobVis = false, ex = 0, ey = 0, hang = false;
+    const tipOf = (b, sw) => { const a = -1.0 + sw; return { x: LY.baseX + LY.rodLen * Math.cos(a + b * 0.5), y: LY.baseY + LY.rodLen * Math.sin(a + b * 0.5) }; };
+    if (s === 'cast') {
+      const u = clamp(el / Math.max(1, fs.dur), 0, 1);
+      swing = u < 0.35 ? -(u / 0.35) * 0.55 : u < 0.6 ? -0.55 + ((u - 0.35) / 0.25) * 1.0 : 0.45 * (1 - (u - 0.6) / 0.4);
+      bend = 0.1;
+    } else if (s === 'bite') bend = 0.35 + Math.sin(t * 38) * 0.07;
+    else if (s === 'reel' && fs.reel) bend = 0.4 + Math.sin(t * 25) * (fs.reel.inZone ? 0.04 : 0.1);
+    const tip = tipOf(bend, swing);
+    if (s === 'idle') hang = true;
+    else if (s === 'cast') {
+      const u = clamp(el / Math.max(1, fs.dur), 0, 1);
+      if (u < 0.5) hang = true;
+      else { const v = (u - 0.5) / 0.5; ex = lerp(tip.x, fs.castX, v); ey = lerp(tip.y, waveY(fs.castX, t), v) - Math.sin(v * Math.PI) * 80 * k; bobVis = true; sag = 4; }
+    } else if (s === 'wait') { ex = fs.castX; ey = waveY(ex, t) + Math.sin(t * 3) * 1.5; bobVis = true; sag = 18; }
+    else if (s === 'bite') { ex = fs.castX + Math.sin(t * 30) * 2.5; ey = waveY(fs.castX, t) + 5 + Math.abs(Math.sin(t * 14)) * 6; bobVis = true; sag = 4; fs.hookX = ex; }
+    else if (s === 'reel' && fs.reel) { ex = lerp(fs.castX, LY.dockEnd + 50, clamp(fs.reel.progress, 0, 1) * 0.6); ey = waveY(ex, t) + 3 + Math.sin(t * 20) * 2; bobVis = true; sag = 1; fs.hookX = ex; }
+    else if (s === 'result') {
+      const u = clamp(el / Math.max(1, fs.dur), 0, 1);
+      if (fs.result && fs.result.ok) { hang = true; }
+      else if (u < 0.5) { const v = u / 0.5; const sx = fs.castX, sy = waveY(fs.castX, t); ex = lerp(sx, tip.x, v); ey = lerp(sy, tip.y, v) - Math.sin(v * Math.PI) * 30; bobVis = true; sag = 8; }
+      else hang = true;
+    }
+    if (hang) { ex = tip.x + 3; ey = tip.y + 40 * k; sag = 3; }
+    RIG = { tipX: tip.x, tipY: tip.y, endX: ex, endY: ey, bobVis, sag, bend, swing };
+  }
+
+  function drawSky(t, dt) {
+    const E = ENV;
+    const g = ctx.createLinearGradient(0, 0, 0, LY.horizon);
+    g.addColorStop(0, rgb(E.sky.top)); g.addColorStop(1, rgb(E.sky.bot));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, CW, LY.horizon + 2);
+    if (E.dark > 0.05) for (const s of SC.stars) { ctx.fillStyle = `rgba(255,255,255,${E.dark * (0.35 + 0.65 * Math.abs(Math.sin(t * s.tw + s.ph))) * (1 - E.rain * 0.85)})`; ctx.fillRect(s.x, s.y, s.r, s.r); }
+    // 日 / 月
+    const hrs = E.hrs, isSun = hrs >= 6 && hrs < 18;
+    const p = isSun ? (hrs - 6) / 12 : ((hrs >= 18 ? hrs - 18 : hrs + 6) / 12);
+    const cx = CW * (0.1 + 0.8 * p), cy = LY.horizon - Math.sin(p * Math.PI) * LY.horizon * 0.78 + 8;
+    E.cel = { x: cx, y: cy, sun: isSun };
+    const vis = 1 - E.rain * 0.7;
+    const col = isSun ? [255, 226, 150] : [235, 240, 255], r = isSun ? 18 : 14;
+    const rg = ctx.createRadialGradient(cx, cy, 2, cx, cy, r * 4.2);
+    rg.addColorStop(0, rgb(col, 0.55 * vis)); rg.addColorStop(1, rgb(col, 0));
+    ctx.fillStyle = rg; ctx.fillRect(cx - r * 4.2, cy - r * 4.2, r * 8.4, r * 8.4);
+    ctx.fillStyle = rgb(col, vis); ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.fill();
+    if (!isSun) { ctx.fillStyle = rgb(E.sky.top); ctx.beginPath(); ctx.arc(cx + 6, cy - 3, r * 0.85, 0, 6.283); ctx.fill(); }
+    // 云
+    const cc = mixC([255, 255, 255], E.sky.bot, 0.3 + E.dark * 0.5);
+    for (const c of SC.clouds) {
+      c.x += c.v * dt; if (c.x > CW + 80) c.x = -80;
+      ctx.fillStyle = rgb(cc, (0.85 - E.dark * 0.3) * (0.8 + E.rain * 0.2));
+      const s = c.s;
+      ctx.beginPath(); ctx.ellipse(c.x, c.y, 34 * s, 11 * s, 0, 0, 6.283); ctx.ellipse(c.x - 20 * s, c.y + 3 * s, 22 * s, 9 * s, 0, 0, 6.283); ctx.ellipse(c.x + 22 * s, c.y + 3 * s, 24 * s, 9 * s, 0, 0, 6.283); ctx.ellipse(c.x + 4 * s, c.y - 8 * s, 20 * s, 10 * s, 0, 0, 6.283); ctx.fill();
+    }
+    // 远山
+    const far = shade(mixC(E.sky.bot, [90, 120, 165], 0.55), 1 - E.dark * 0.55);
+    const near = shade(mixC(far, [30, 70, 80], 0.5), 1);
+    const mount = (col, amp, f1, f2, ph) => {
+      ctx.fillStyle = rgb(col); ctx.beginPath(); ctx.moveTo(0, LY.horizon + 2);
+      for (let x = 0; x <= CW + 6; x += 6) ctx.lineTo(x, LY.horizon - amp * (1.2 + Math.sin(x * f1 + ph) + 0.5 * Math.sin(x * f2 + ph * 2)) * 0.5);
+      ctx.lineTo(CW, LY.horizon + 2); ctx.closePath(); ctx.fill();
+    };
+    mount(far, 52, 0.011, 0.027, 1.3); mount(near, 34, 0.017, 0.041, 4.1);
+  }
+
+  function drawWater(t, dt) {
+    const E = ENV, H = LY.horizon;
+    const wTop = shade(mixC(E.sky.bot, [70, 180, 215], 0.55), 1 - E.dark * 0.6);
+    const wBot = shade([8, 62, 112], 1 - E.dark * 0.65);
+    const g = ctx.createLinearGradient(0, H, 0, CH);
+    g.addColorStop(0, rgb(wTop)); g.addColorStop(1, rgb(wBot));
+    ctx.fillStyle = g; ctx.fillRect(0, H, CW, CH - H);
+    // 日月倒影
+    const cel = E.cel;
+    if (cel && (E.rain < 0.8)) {
+      const col = cel.sun ? [255, 235, 170] : [225, 232, 255];
+      for (let j = 0; j < 14; j++) {
+        const y = H + 4 + j * (CH - H) * 0.04, w = 14 + j * 7, a = 0.3 * (1 - j / 14) * (1 - E.rain);
+        ctx.fillStyle = rgb(col, a); rrect(cel.x - w / 2 + Math.sin(t * 2 + j) * 5, y, w, 2, 1); ctx.fill();
+      }
+    }
+    // 光束
+    if (E.dark < 0.7) for (let i = 0; i < 3; i++) {
+      const x = CW * (0.25 + i * 0.27) + Math.sin(t * 0.4 + i) * 14;
+      const lg = ctx.createLinearGradient(0, H, 0, CH);
+      lg.addColorStop(0, `rgba(255,255,255,${0.09 * (1 - E.dark) * (1 - E.rain)})`); lg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = lg; ctx.beginPath(); ctx.moveTo(x - 10, H); ctx.lineTo(x + 14, H); ctx.lineTo(x + 70, CH); ctx.lineTo(x - 40, CH); ctx.closePath(); ctx.fill();
+    }
+    // 水下的鱼
+    for (const f of SC.bgFish) {
+      f.x += f.dir * f.v * dt;
+      if (f.x > CW + 40) f.x = -40; if (f.x < -40) f.x = CW + 40;
+      ctx.globalAlpha = 0.38 * (1 - E.dark * 0.5);
+      drawFishShape(f.x, f.y + Math.sin(t + f.ph) * 3, f.len, f.c, f.dir, t, f.ph);
+    }
+    ctx.globalAlpha = 1;
+    // 气泡
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
+    for (const b of SC.bubbles) {
+      b.y -= b.v * dt; if (b.y < H + 4) { b.y = CH + 4; b.x = Math.random() * CW; }
+      ctx.beginPath(); ctx.arc(b.x + Math.sin(t * 2 + b.ph) * 3, b.y, b.r, 0, 6.283); ctx.stroke();
+    }
+    // 波纹线
+    for (let i = 0; i < 10; i++) {
+      const y0 = H + (i + 1) / 10 * (CH - H) * 0.8;
+      ctx.strokeStyle = `rgba(255,255,255,${0.11 - i * 0.008})`; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (let x = 0; x <= CW; x += 8) { const y = y0 + Math.sin(x * (0.02 + i * 0.002) + t * (1 + i * 0.15) + i) * (1.2 + i * 0.35); x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+      ctx.stroke();
+    }
+  }
+
+  function drawHooked(t) {
+    const s = fs.state;
+    if (!(s === 'bite' || s === 'reel') || !fs.fish) return;
+    const f = fs.fish, k = LY.k;
+    const len = (f.glyph ? 34 : 30 + fs.size * 26) * k;
+    const x = RIG.endX, y = RIG.endY + 32 * k + Math.sin(t * 9) * 4;
+    if (f.type === 'epic' || f.type === 'legend') {
+      const c = RARITY[f.type].color, rg = ctx.createRadialGradient(x, y, 2, x, y, len * 1.6);
+      rg.addColorStop(0, c + '66'); rg.addColorStop(1, c + '00'); ctx.fillStyle = rg; ctx.fillRect(x - len * 1.6, y - len * 1.6, len * 3.2, len * 3.2);
+    }
+    ctx.fillStyle = '#000'; ctx.globalAlpha = 0.85;
+    ctx.fillStyle = f.color || '#888';
+    drawFishVisual(f, x, y, len, -1, t * 2.2);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawDock(t) {
+    const E = ENV, top = LY.dockTop, W = LY.dockEnd, br = 1 - E.dark * 0.5;
+    const wood = shade([150, 105, 64], br);
+    // 水中柱子
+    ctx.fillStyle = rgb(shade([88, 60, 38], br));
+    for (const px of [W * 0.2, W * 0.58, W * 0.96]) ctx.fillRect(px - 5, top, 10, CH - top);
+    // 泡沫
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.5;
+    for (const px of [W * 0.58, W * 0.96]) { const w = 8 + Math.sin(t * 2 + px) * 2; ctx.beginPath(); ctx.ellipse(px, top + 22 + Math.sin(t * 1.5 + px) * 1.5, w, 2.5, 0, 0, 6.283); ctx.stroke(); }
+    // 桥面
+    ctx.fillStyle = rgb(wood); ctx.fillRect(-4, top, W + 4, 14);
+    ctx.fillStyle = rgb(shade([186, 140, 92], br)); ctx.fillRect(-4, top, W + 4, 4);
+    ctx.fillStyle = rgb(shade([96, 66, 40], br)); ctx.fillRect(-4, top + 14, W + 4, 4);
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1;
+    for (let x = 12; x < W; x += 26) { ctx.beginPath(); ctx.moveTo(x, top + 4); ctx.lineTo(x, top + 14); ctx.stroke(); }
+    // 灯笼
+    const lx = CW * 0.045, ly = top - 64 * LY.k;
+    ctx.fillStyle = rgb(shade([90, 60, 38], br)); ctx.fillRect(lx - 2, ly, 4, top - ly);
+    if (E.dark > 0.12) {
+      const rg = ctx.createRadialGradient(lx, ly + 8, 2, lx, ly + 8, 90 * LY.k);
+      rg.addColorStop(0, `rgba(255,190,90,${0.55 * E.dark})`); rg.addColorStop(1, 'rgba(255,190,90,0)');
+      ctx.fillStyle = rg; ctx.fillRect(lx - 100, ly - 90, 200, 200);
+    }
+    ctx.fillStyle = E.dark > 0.12 ? '#ffd27a' : '#e0b060'; rrect(lx - 7, ly - 2, 14, 16, 5); ctx.fill();
+    ctx.fillStyle = '#7a4a2a'; ctx.fillRect(lx - 8, ly - 4, 16, 3); ctx.fillRect(lx - 8, ly + 13, 16, 3);
+  }
+
+  function drawCat(t) {
+    const k = LY.k, s = fs.state;
+    const bite = s === 'bite', happy = s === 'result' && fs.result && fs.result.ok;
+    ctx.save(); ctx.translate(LY.catX, LY.catY); ctx.scale(k, k);
+    const br = Math.sin(t * 2) * 1.2, sw = Math.sin(t * 2.2);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#e8944a'; ctx.lineWidth = 9;
+    ctx.beginPath(); ctx.moveTo(-16, -10); ctx.bezierCurveTo(-42, -8, -46 + sw * 8, -40, -34 + sw * 10, -58); ctx.stroke();
+    ctx.strokeStyle = '#7a4a2a'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(-35 + sw * 10, -52); ctx.lineTo(-34 + sw * 10, -58); ctx.stroke();
+    ctx.fillStyle = '#f4a259'; ctx.beginPath(); ctx.ellipse(0, -24, 21, 25 + br * 0.4, 0, 0, 6.283); ctx.fill();
+    ctx.strokeStyle = '#d9803a'; ctx.lineWidth = 3;
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(-18, -38 + i * 9); ctx.lineTo(-8, -35 + i * 9); ctx.stroke(); }
+    ctx.fillStyle = '#fde2c0'; ctx.beginPath(); ctx.ellipse(9, -20, 10, 17, 0, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#f4a259'; ctx.beginPath(); ctx.ellipse(9, -2, 11, 6, 0, 0, 6.283); ctx.fill(); ctx.beginPath(); ctx.ellipse(-12, -2, 10, 5.5, 0, 0, 6.283); ctx.fill();
+    // 手臂
+    ctx.strokeStyle = '#f4a259'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(8, -34); ctx.lineTo(26, -40); ctx.stroke();
+    ctx.fillStyle = '#fde2c0'; ctx.beginPath(); ctx.arc(26, -40, 5.5, 0, 6.283); ctx.fill();
+    // 头
+    const hx = 10, hy = -58 + br * 0.4;
+    ctx.fillStyle = '#f4a259'; ctx.beginPath(); ctx.arc(hx, hy, 18, 0, 6.283); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(hx - 16, hy - 8); ctx.lineTo(hx - 12, hy - 29); ctx.lineTo(hx - 1, hy - 16); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(hx + 16, hy - 8); ctx.lineTo(hx + 12, hy - 29); ctx.lineTo(hx + 1, hy - 16); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#f7a9a0'; ctx.beginPath(); ctx.moveTo(hx - 12, hy - 12); ctx.lineTo(hx - 11, hy - 23); ctx.lineTo(hx - 5, hy - 15); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(hx + 12, hy - 12); ctx.lineTo(hx + 11, hy - 23); ctx.lineTo(hx + 5, hy - 15); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#d9803a'; ctx.lineWidth = 2.5;
+    for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(hx + i * 5, hy - 17); ctx.lineTo(hx + i * 4, hy - 11); ctx.stroke(); }
+    // 眼睛
+    const blink = (t % 4) < 0.12, er = bite ? 4.6 : 3.4;
+    for (const ex of [hx + 1, hx + 12]) {
+      if (happy) { ctx.strokeStyle = '#2b1a0e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ex, hy - 1, 3.5, Math.PI, 0); ctx.stroke(); }
+      else if (blink) { ctx.strokeStyle = '#2b1a0e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ex - 3, hy - 1); ctx.lineTo(ex + 3, hy - 1); ctx.stroke(); }
+      else { ctx.fillStyle = '#2b1a0e'; ctx.beginPath(); ctx.ellipse(ex, hy - 1, er * 0.8, er, 0, 0, 6.283); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex + 1, hy - 2.6, 1.3, 0, 6.283); ctx.fill(); }
+    }
+    ctx.fillStyle = '#e8708a'; ctx.beginPath(); ctx.moveTo(hx + 4, hy + 5); ctx.lineTo(hx + 10, hy + 5); ctx.lineTo(hx + 7, hy + 9); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#2b1a0e'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(hx + 7, hy + 9); ctx.lineTo(hx + 7, hy + 11); ctx.stroke();
+    ctx.beginPath(); ctx.arc(hx + 4.5, hy + 11, 2.6, 0, Math.PI * 0.9); ctx.stroke(); ctx.beginPath(); ctx.arc(hx + 9.5, hy + 11, 2.6, Math.PI * 0.1, Math.PI); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 1;
+    for (const dy of [-1, 3]) { ctx.beginPath(); ctx.moveTo(hx + 14, hy + 5 + dy * 0.5); ctx.lineTo(hx + 28, hy + 3 + dy * 2); ctx.stroke(); }
+    // 草帽（装备渔夫帽时）
+    if ((G.equipped || []).includes('hat')) {
+      ctx.fillStyle = '#e9c46a'; ctx.beginPath(); ctx.ellipse(hx, hy - 15, 24, 5, 0, 0, 6.283); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(hx, hy - 20, 13, 9, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = '#e76f51'; ctx.fillRect(hx - 13, hy - 20, 26, 3);
+    }
+    // 感叹号
+    if (bite) {
+      const by = -98 + Math.abs(Math.sin(performance.now() / 90)) * -6;
+      ctx.fillStyle = '#ff3b30'; ctx.beginPath(); ctx.arc(hx + 24, by, 11, 0, 6.283); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = `800 16px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', hx + 24, by + 1);
+    }
+    ctx.restore();
+  }
+
+  function drawRodAndLine(t) {
+    const R = RIG, k = LY.k;
+    // 鱼竿
+    const ang = -1.0 + R.swing;
+    const cxp = LY.baseX + LY.rodLen * 0.5 * Math.cos(ang + R.bend * 0.12), cyp = LY.baseY + LY.rodLen * 0.5 * Math.sin(ang + R.bend * 0.12);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#5b3a1e'; ctx.lineWidth = 4.2 * k; ctx.beginPath(); ctx.moveTo(LY.baseX - 8 * k * Math.cos(ang), LY.baseY - 8 * k * Math.sin(ang)); ctx.quadraticCurveTo(cxp, cyp, R.tipX, R.tipY); ctx.stroke();
+    ctx.strokeStyle = '#a0713f'; ctx.lineWidth = 2 * k; ctx.beginPath(); ctx.moveTo(LY.baseX, LY.baseY); ctx.quadraticCurveTo(cxp, cyp, R.tipX, R.tipY); ctx.stroke();
+    // 线
+    const night = ENV.dark > 0.5;
+    ctx.strokeStyle = night ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(R.tipX, R.tipY);
+    ctx.quadraticCurveTo((R.tipX + R.endX) / 2, (R.tipY + R.endY) / 2 + R.sag, R.endX, R.endY); ctx.stroke();
+    // 浮标
+    if (R.bobVis) {
+      const x = R.endX, y = R.endY;
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, 6.283); ctx.fill();
+      ctx.fillStyle = '#ff3b30'; ctx.beginPath(); ctx.arc(x, y, 5.5, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = '#ff3b30'; ctx.fillRect(x - 1, y - 11, 2, 6);
+    } else if (fs.state === 'idle' || fs.state === 'cast' || (fs.state === 'result')) {
+      ctx.fillStyle = '#c8c8c8'; ctx.beginPath(); ctx.arc(R.endX, R.endY, 2, 0, 6.283); ctx.fill();
+    }
+  }
+
+  function drawResultFish(t, nowMs) {
+    if (fs.state !== 'result' || !fs.result || !fs.result.ok) return;
+    const r = fs.result, f = r.fish, el = nowMs - fs.t0, k = LY.k;
+    const sx = fs.hookX || fs.castX, sy = LY.surfY;
+    const tx = LY.catX + 70 * k, ty = LY.catY - 112 * k;
+    const u = clamp(el / 450, 0, 1);
+    const x = lerp(sx, tx, u), y = lerp(sy, ty, u) - Math.sin(u * Math.PI) * 70 * k;
+    const bob = u >= 1 ? Math.sin(t * 3) * 3 : 0;
+    const c = RARITY[f.type].color;
+    if (u >= 1 && (f.type === 'epic' || f.type === 'legend')) {
+      ctx.save(); ctx.translate(x, y + bob);
+      ctx.rotate(t * 0.6);
+      for (let i = 0; i < 10; i++) { ctx.rotate(6.283 / 10); ctx.fillStyle = c + '33'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-7, -72 * k); ctx.lineTo(7, -72 * k); ctx.closePath(); ctx.fill(); }
+      ctx.restore();
+    }
+    const rg = ctx.createRadialGradient(x, y + bob, 2, x, y + bob, 52 * k);
+    rg.addColorStop(0, c + '88'); rg.addColorStop(1, c + '00'); ctx.fillStyle = rg; ctx.fillRect(x - 55 * k, y + bob - 55 * k, 110 * k, 110 * k);
+    drawFishVisual(f, x, y + bob, (f.glyph ? 44 : 38 + fs.size * 28) * k, 1, t);
+    if (u >= 1) {
+      const a = clamp((el - 450) / 250, 0, 1);
+      ctx.globalAlpha = a;
+      ctx.font = `800 ${Math.round(15 * Math.max(0.9, k))}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const label = `[${RARITY[f.type].name}] ${f.name}`;
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.strokeText(label, x, y + bob - 46 * k); ctx.fillStyle = c; ctx.fillText(label, x, y + bob - 46 * k);
+      ctx.font = `700 ${Math.round(12 * Math.max(0.9, k))}px ${FONT}`;
+      const sub = `+${r.gold}G  +${r.exp}XP${r.weight ? '  ' + (r.weight < 10 ? r.weight.toFixed(1) : Math.round(r.weight)) + 'kg' : ''}`;
+      ctx.strokeText(sub, x, y + bob + 44 * k); ctx.fillStyle = '#fff'; ctx.fillText(sub, x, y + bob + 44 * k);
+      if (r.quality === 'perfect' || r.big) {
+        const tag = r.quality === 'perfect' ? 'PERFECT! ×' + r.mult.toFixed(1) : '大个头!';
+        ctx.font = `900 ${Math.round(16 * Math.max(0.9, k))}px ${FONT}`; ctx.strokeText(tag, x, y + bob + 62 * k); ctx.fillStyle = '#ffd24d'; ctx.fillText(tag, x, y + bob + 62 * k);
+      } else if (r.quality === 'great' || r.quality === 'good') {
+        ctx.font = `700 ${Math.round(12 * Math.max(0.9, k))}px ${FONT}`; const tag = (r.quality === 'great' ? 'GREAT ×' : 'GOOD ×') + r.mult.toFixed(1); ctx.strokeText(tag, x, y + bob + 62 * k); ctx.fillStyle = '#8ef0c0'; ctx.fillText(tag, x, y + bob + 62 * k);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function chip(text, x, y, align, color) {
+    ctx.font = `600 12px ${FONT}`;
+    const w = ctx.measureText(text).width + 14, h = 22;
+    const x0 = align === 'right' ? x - w : x;
+    ctx.fillStyle = 'rgba(6,20,40,0.5)'; rrect(x0, y, w, h, 11); ctx.fill();
+    ctx.fillStyle = color || '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(text, x0 + 7, y + h / 2 + 0.5);
+    return w;
+  }
+  function drawHUD(t, nowMs) {
+    const d = new Date(), E = ENV;
+    const icon = E.rain > 0.5 ? '🌧' : E.dark > 0.6 ? '🌙' : (E.hrs < 7.5 || E.hrs > 17) ? '🌇' : '☀️';
+    chip(`${icon} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`, 10, 10, 'left');
+    let rx = CW - 10;
+    const manual = gameMode === 'manual';
+    rx -= chip(manual ? '🖐 手动模式' : (isGameRunning ? '🤖 自动挂机中' : '🤖 自动（未开始）'), rx, 10, 'right', manual ? '#ffc04d' : '#8ef0c0') + 6;
+    if (Date.now() < goldenRodEndTime) { const s = Math.ceil((goldenRodEndTime - Date.now()) / 1000); rx -= chip(`🌟 金吊杆 ${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`, rx, 10, 'right', '#ffd24d') + 6; }
+    if (combo > 1) chip(`🔥 连击 ×${combo}`, 10, 38, 'left', '#ff9f6a');
+    // 状态提示
+    const s = fs.state; let msg = '';
+    if (s === 'idle') msg = manual ? '点击画面 / 按空格 抛竿' : (isGameRunning ? '准备抛竿…' : '点击「开始挂机」，或切换到手动模式');
+    else if (s === 'cast') msg = '抛竿！';
+    else if (s === 'wait') msg = manual ? '等待鱼儿上钩…（现在点击会收竿）' : '等待鱼儿上钩…';
+    else if (s === 'bite') msg = manual ? (Math.floor(nowMs / 150) % 2 ? '快！点击 / 空格 提竿！！' : '❗❗ 鱼上钩了 ❗❗') : '鱼上钩了！';
+    else if (s === 'reel') msg = '按住 鼠标 / 空格 收线，让鱼留在绿区';
+    else if (s === 'result' && fs.result && !fs.result.ok) msg = fs.result.text;
+    if (msg && !(s === 'reel')) {
+      ctx.font = `700 13px ${FONT}`; const w = ctx.measureText(msg).width + 24;
+      ctx.fillStyle = 'rgba(6,20,40,0.55)'; rrect(CW / 2 - w / 2, CH - 36, w, 26, 13); ctx.fill();
+      ctx.fillStyle = s === 'bite' ? '#ffd24d' : '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(msg, CW / 2, CH - 22.5);
+    }
+    // 手动收线条
+    if (s === 'reel' && fs.reel) {
+      const R = fs.reel, bw = Math.min(CW * 0.72, 440), bx = (CW - bw) / 2, by = CH - 62;
+      ctx.fillStyle = 'rgba(6,20,40,0.62)'; rrect(bx - 8, by - 20, bw + 16, 74, 12); ctx.fill();
+      ctx.font = `600 11px ${FONT}`; ctx.fillStyle = '#cfe8ff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText('按住收线 · 让鱼留在绿区', bx, by - 9);
+      ctx.textAlign = 'right'; ctx.fillText(`${Math.max(0, R.timeLeft).toFixed(1)}s`, bx + bw, by - 9);
+      ctx.fillStyle = 'rgba(255,255,255,0.14)'; rrect(bx, by, bw, 22, 11); ctx.fill();
+      const zx = bx + (R.zone - R.zw / 2) * bw, zw = R.zw * bw;
+      const zg = ctx.createLinearGradient(0, by, 0, by + 22);
+      zg.addColorStop(0, R.inZone ? '#6ff0a8' : '#34c58a'); zg.addColorStop(1, R.inZone ? '#1fb56d' : '#168a54');
+      ctx.fillStyle = zg; rrect(zx, by + 1, zw, 20, 10); ctx.fill();
+      if (R.inZone) { ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.5; rrect(zx, by + 1, zw, 20, 10); ctx.stroke(); }
+      const fx = bx + R.fishPos * bw, rc = RARITY[fs.fish.type].color;
+      ctx.fillStyle = rc; ctx.beginPath(); ctx.arc(fx, by + 11, 11, 0, 6.283); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.font = `13px ${EMOJI_FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(fs.fish.glyph ? fs.fish.emoji : '🐟', fx, by + 11.5);
+      // 进度
+      ctx.fillStyle = 'rgba(255,255,255,0.14)'; rrect(bx, by + 30, bw, 9, 4.5); ctx.fill();
+      const pg = ctx.createLinearGradient(bx, 0, bx + bw, 0); pg.addColorStop(0, '#ffa94d'); pg.addColorStop(1, '#6ff0a8');
+      ctx.fillStyle = pg; rrect(bx, by + 30, Math.max(6, bw * clamp(R.progress, 0, 1)), 9, 4.5); ctx.fill();
+    }
+  }
+
+  function drawParticles(dt, t) {
+    for (let i = RIPPLE.length - 1; i >= 0; i--) {
+      const r = RIPPLE[i]; r.life += dt; r.r += 36 * dt;
+      if (r.life > 1.2) { RIPPLE.splice(i, 1); continue; }
+      ctx.strokeStyle = `rgba(255,255,255,${0.5 * (1 - r.life / 1.2)})`; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.ellipse(r.x, r.y + 3, r.r, r.r * 0.3, 0, 0, 6.283); ctx.stroke();
+    }
+    for (let i = PART.length - 1; i >= 0; i--) {
+      const p = PART[i]; p.life += dt;
+      if (p.life > p.max) { PART.splice(i, 1); continue; }
+      p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      const a = 1 - p.life / p.max;
+      if (p.raw) {
+        ctx.globalAlpha = a; ctx.fillStyle = p.c;
+        if (p.star) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.life * 4); ctx.beginPath(); ctx.moveTo(0, -p.s * 1.8); ctx.lineTo(p.s * 0.6, 0); ctx.lineTo(0, p.s * 1.8); ctx.lineTo(-p.s * 0.6, 0); ctx.closePath(); ctx.fill(); ctx.restore(); }
+        else { ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 6.283); ctx.fill(); }
+        ctx.globalAlpha = 1;
+      } else { ctx.fillStyle = p.c + a + ')'; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 6.283); ctx.fill(); }
+    }
+    for (let i = FLOAT.length - 1; i >= 0; i--) {
+      const f = FLOAT[i]; f.life += dt;
+      if (f.life > f.max) { FLOAT.splice(i, 1); continue; }
+      ctx.globalAlpha = 1 - Math.max(0, (f.life / f.max - 0.6) / 0.4);
+      ctx.font = `800 ${f.size}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.strokeText(f.text, f.x, f.y - f.life * 22); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, f.y - f.life * 22);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawRain(dt) {
+    const a = ENV.rain; if (a < 0.03) return;
+    ctx.fillStyle = `rgba(20,35,60,${0.22 * a})`; ctx.fillRect(0, 0, CW, CH);
+    ctx.strokeStyle = `rgba(200,225,255,${0.45 * a})`; ctx.lineWidth = 1;
+    const n = Math.floor(SC.drops.length * a);
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const d = SC.drops[i]; d.y += d.v * dt; d.x -= 60 * dt;
+      if (d.y > CH) { d.y = -10; d.x = Math.random() * (CW + 60); if (d.y > LY.horizon && Math.random() < 0.3) RIPPLE.push({ x: d.x, y: LY.surfY + Math.random() * 40, r: 2, life: 0.5 }); }
+      ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - 3, d.y + d.l);
+    }
+    ctx.stroke();
+  }
+
+  function render(t, dt, nowMs) {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, CW, CH);
+    const d = new Date(), hrs = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+    const dark = darkness(hrs), sky = skyAt(hrs), rain = rainAmt;
+    ENV = { hrs, dark, rain, sky: { top: mixC(sky.top, [88, 98, 112], rain * 0.55), bot: mixC(sky.bot, [120, 130, 142], rain * 0.55) } };
+    computeRig(t, nowMs);
+    // 水波纹生成
+    rippleT += dt;
+    if (fs.state === 'wait' && rippleT > 1.4) { rippleT = 0; RIPPLE.push({ x: fs.castX, y: LY.surfY, r: 3, life: 0.2 }); }
+    else if (fs.state === 'bite' && rippleT > 0.22) { rippleT = 0; RIPPLE.push({ x: fs.castX, y: LY.surfY, r: 3, life: 0.1 }); }
+    drawSky(t, dt);
+    drawWater(t, dt);
+    drawHooked(t);
+    drawDock(t);
+    drawCat(t);
+    drawRodAndLine(t);
+    drawResultFish(t, nowMs);
+    drawParticles(dt, t);
+    drawRain(dt);
+    // 夜色整体压暗
+    if (ENV.dark > 0.05) { ctx.fillStyle = `rgba(4,8,30,${0.18 * ENV.dark})`; ctx.fillRect(0, 0, CW, CH); }
+    drawHUD(t, nowMs);
+  }
+
+  let lastFrame = performance.now();
+  function frame(now) {
+    requestAnimationFrame(frame);
+    const dt = Math.min(0.05, (now - lastFrame) / 1000); lastFrame = now;
+    if (document.hidden) return;
+    const wrap = $('gameWrapper');
+    if (!wrap.classList.contains('open')) return;
+    if (!cv.width) resizeCanvas();
+    render(now / 1000, dt, now);
+  }
+
+  // ---------- 输入 ----------
+  function bindInput(el) {
+    el.addEventListener('pointerdown', e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (_) {} actionPress(); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => el.addEventListener(ev, actionRelease));
+    el.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  bindInput(cv); bindInput($('btnAction'));
+  function spaceOk(e) {
+    if (e.code !== 'Space') return false;
+    if (!$('gameWrapper').classList.contains('open') || gameMode !== 'manual' || miniGameActive) return false;
+    const tg = e.target && e.target.tagName;
+    return !(tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT' || (e.target && e.target.isContentEditable));
+  }
+  document.addEventListener('keydown', e => { if (spaceOk(e)) { e.preventDefault(); if (!e.repeat) actionPress(); } });
+  document.addEventListener('keyup', e => { if (spaceOk(e)) { e.preventDefault(); actionRelease(); } });
+  window.addEventListener('blur', actionRelease);
+
+  // ---------- 初始化 ----------
+  loadLocalGame();
+  resizeCanvas();
+  if (window.ResizeObserver) new ResizeObserver(resizeCanvas).observe($('gameScene'));
+  else window.addEventListener('resize', resizeCanvas);
+  addGameLog("欢迎！挂机可获得金币与经验，也可随时切换「手动」获得更高奖励。", "common");
+  addGameLog("新增：图鉴 / 成就 / 抽卡 / 全新渔具店，别忘了领取成就奖励。", "common");
+  updateStatusDisplay();
+  refreshGameUI();
+  checkAch();
+  setInterval(gameTick, 33);
+  requestAnimationFrame(frame);
+
+  // --- 专注模式：正计时 / 倒计时 + 督促图 ---
+  let fcMode = localStorage.getItem('fcMode') === 'down' ? 'down' : 'up';
+  let fcRunning = false, fcElapsed = 0, fcLast = 0;
+  let fcTotal = (parseInt(localStorage.getItem('fcMin')) || 25) * 60;
+  const FC_TITLE = '何岩搜索站 - 尊享重制版';
+  function fcFmt(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), ss = sec % 60;
+    return (h ? h + ':' + pad2(m) : pad2(m)) + ':' + pad2(ss);
+  }
+  function fcRender() {
+    const v = fcMode === 'up' ? fcElapsed : fcTotal - fcElapsed;
+    const t = fcFmt(fcMode === 'down' ? Math.ceil(v) : v);
+    $('focusTime').innerText = t;
+    $('fcGo').innerText = fcRunning ? '暂停' : '开始';
+    if (fcRunning) document.title = t + ' · 专注中';
+  }
+  function fcSetMode(m) {
+    fcMode = m; localStorage.setItem('fcMode', m);
+    fcRunning = false; fcElapsed = 0;
+    $('fcUp').classList.toggle('on', m === 'up');
+    $('fcDown').classList.toggle('on', m === 'down');
+    $('fcMinWrap').style.display = m === 'down' ? 'inline' : 'none';
+    document.title = FC_TITLE;
+    fcRender();
+  }
+  function fcToggle() {
+    if (!fcRunning && fcMode === 'down' && fcElapsed >= fcTotal) fcElapsed = 0;
+    fcRunning = !fcRunning; fcLast = Date.now();
+    if (!fcRunning) document.title = FC_TITLE;
+    fcRender();
+  }
+  function fcReset() { fcRunning = false; fcElapsed = 0; document.title = FC_TITLE; fcRender(); }
+  function fcBeep() {
+    try {
+      const a = new (window.AudioContext || window.webkitAudioContext)();
+      [0, .35, .7].forEach(d => {
+        const o = a.createOscillator(), g = a.createGain();
+        o.connect(g); g.connect(a.destination); o.frequency.value = 880; g.gain.value = .15;
+        o.start(a.currentTime + d); o.stop(a.currentTime + d + .2);
+      });
+    } catch (e) {}
+  }
+  setInterval(() => {
+    if (!fcRunning) return;
+    const now = Date.now(); fcElapsed += (now - fcLast) / 1000; fcLast = now;
+    if (fcMode === 'down' && fcElapsed >= fcTotal) {
+      fcElapsed = fcTotal; fcRunning = false; fcRender(); fcBeep(); document.title = '⏰ 时间到！';
+      return;
+    }
+    fcRender();
+  }, 250);
+  $('fcMin').value = fcTotal / 60;
+  $('fcMin').addEventListener('change', e => {
+    const v = clamp(parseInt(e.target.value) || 25, 1, 999);
+    e.target.value = v; fcTotal = v * 60; localStorage.setItem('fcMin', v);
+    if (!fcRunning) { fcElapsed = 0; fcRender(); }
+  });
+  function fcShowImg(src) {
+    const im = $('focusImg'); im.style.display = 'block'; im.src = src; $('focusPh').style.display = 'none';
+  }
+  $('fcFile').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 480 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = img.width * k; c.height = img.height * k;
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        const url = c.toDataURL('image/jpeg', .85);
+        try { localStorage.setItem('focusImg', url); } catch (_) {}
+        fcShowImg(url);
+      };
+      img.src = rd.result;
+    };
+    rd.readAsDataURL(f); e.target.value = '';
+  });
+  { const saved = localStorage.getItem('focusImg'); if (saved) fcShowImg(saved); }
+  fcSetMode(fcMode);
+
+  // --- 侧边栏：多页轮播 ---
+  // 在这里增删页面：img=背景图，fb=图片缺失时的渐变，btn=按钮文字，
+  // type:'qr' 点按钮弹出二维码；否则 link 为跳转链接，dur=停留秒数
+  const SIDE_SLIDES = [
+    { img: 'img/side1.jpg', fb: 'linear-gradient(160deg,#1b2a6b,#0084ff)', btn: '跟大肥鱼一起玩', link: 'mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1120101347&card_type=person&source=sharecard', dur: 5 },
+    { img: 'img/side2.jpg', fb: 'linear-gradient(160deg,#0b2a45,#1fb5a8)', btn: '摄影展示', link: 'https://heyan9.github.io/photo.html', dur: 5 },
+    { img: 'img/side3.jpg', fb: 'linear-gradient(160deg,#5b2a86,#b0407a)', btn: '26版导航', link: 'https://heyan9.pages.dev/26index.html', dur: 5 },
+    { img: 'img/side4.jpg', fb: 'linear-gradient(160deg,#ee5a24,#ffb547)', btn: '何岩机场', link: 'https://heyan9.pages.dev/air.html', dur: 5 },
+    { img: 'img/side5.jpg', fb: 'linear-gradient(160deg,#134e5e,#71b280)', btn: '数码排行', link: 'https://heyan9.pages.dev/shu3.html', dur: 5 }
+  ];
+  // 图片预加载：页面一打开就在后台全部下载并解码，点开侧栏时直接秒显
+  window._spImgs = SIDE_SLIDES.map((s, i) => {
+    const im = new Image();
+    im.decoding = 'async';
+    if (i === 0) im.fetchPriority = 'high';
+    im.src = s.img;
+    if (im.decode) im.decode().catch(() => {});
+    return im;
+  });
+  let spIdx = 0;
+  const spPanel = document.getElementById('sidePanel');
+  const spSlideEls = [], spBarEls = [];
+  (function spBuild() {
+    const box = document.getElementById('spSlides'), prog = document.getElementById('spProg');
+    SIDE_SLIDES.forEach((s, i) => {
+      const sec = document.createElement('section');
+      sec.className = 'sp-slide';
+      sec.innerHTML = `<div class="sp-bg" style="--bg:url('${s.img}');--fb:${s.fb}"></div>` +
+        (s.type === 'qr' ? `<button class="sp-btn" onclick="spQr(true)">${s.btn}</button>`
+                         : `<a class="sp-btn" href="${s.link}">${s.btn}</a>`);
+      box.appendChild(sec); spSlideEls.push(sec);
+      const bar = document.createElement('button');
+      bar.className = 'sp-bar'; bar.style.setProperty('--dur', (s.dur || 5) + 's');
+      bar.setAttribute('aria-label', '第 ' + (i + 1) + ' 页');
+      bar.innerHTML = '<i></i>'; bar.onclick = () => spGo(i);
+      prog.appendChild(bar); spBarEls.push(bar);
+    });
+    // 进度条走完 → 自动翻到下一页
+    prog.addEventListener('animationend', e => { if (e.animationName === 'spFill') spGo(spIdx + 1); });
+  })();
+
+  function spGo(i) {
+    const n = SIDE_SLIDES.length;
+    spIdx = (i % n + n) % n;
+    spSlideEls.forEach((el, k) => el.classList.toggle('act', k === spIdx));
+    spBarEls.forEach((el, k) => { el.classList.remove('act'); el.classList.toggle('done', k < spIdx); });
+    void spPanel.offsetWidth; // 强制重排，让进度动画重新开始
+    spBarEls[spIdx].classList.add('act');
+  }
+  function spQr(open) { spPanel.classList.toggle('sp-qr-open', !!open); }
+
+  function toggleSide(force) {
+    const open = typeof force === 'boolean' ? force : !document.body.classList.contains('side-open');
+    document.body.classList.toggle('side-open', open);
+    if (open) spGo(0); else spQr(false);
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { if (spPanel.classList.contains('sp-qr-open')) spQr(false); else toggleSide(false); }
+    if (document.body.classList.contains('side-open')) {
+      if (e.key === 'ArrowRight') spGo(spIdx + 1);
+      if (e.key === 'ArrowLeft') spGo(spIdx - 1);
+    }
+  });
+  // 长按暂停 + 左右滑动翻页
+  let spX0 = null;
+  spPanel.addEventListener('pointerdown', () => spPanel.classList.add('sp-hold'));
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => spPanel.addEventListener(ev, () => spPanel.classList.remove('sp-hold')));
+  spPanel.addEventListener('touchstart', e => { spX0 = e.touches[0].clientX; }, { passive: true });
+  spPanel.addEventListener('touchend', e => {
+    if (spX0 === null || spPanel.classList.contains('sp-qr-open')) return;
+    const dx = e.changedTouches[0].clientX - spX0; spX0 = null;
+    if (Math.abs(dx) > 50) spGo(spIdx + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+</script>
+</body>
+</html>
