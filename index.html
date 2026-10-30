@@ -2323,10 +2323,8 @@ body.focus-mode .quick-nav { position: static; margin: 24px 0 0; }
   // type:'qr' 点按钮弹出二维码；否则 link 为跳转链接，dur=停留秒数
   const SIDE_SLIDES = [
     { img: 'img/side1.jpg', fb: 'linear-gradient(160deg,#1b2a6b,#0084ff)', btn: '跟大肥鱼一起玩', link: 'mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1120101347&card_type=person&source=sharecard', dur: 5 },
-    { img: 'img/side2.jpg', fb: 'linear-gradient(160deg, #0a0a0a 0%, #1a1a1a 35%, #c50000 70%, #ff2a2a 100%)', btn: 'F1赛事', link: 'https://heyan9.github.io/F1.html', dur: 5 },
-    { img: 'img/side3.jpg', fb: 'linear-gradient(160deg,#5b2a86,#b0407a)', btn: '26版导航', link: 'https://heyan9.pages.dev/26index.html', dur: 5 },
-    { img: 'img/side4.jpg', fb: 'linear-gradient(160deg,#ee5a24,#ffb547)', btn: '何岩机场', link: 'https://heyan9.pages.dev/air.html', dur: 5 },
-    { img: 'img/side5.jpg', fb: 'linear-gradient(160deg,#134e5e,#71b280)', btn: '数码排行', link: 'https://heyan9.pages.dev/shu3.html', dur: 5 }
+    { img: 'img/side2.jpg', fb: 'linear-gradient(160deg, #0a0a0a 0%, #1a1a1a 35%, #c50000 70%, #ff2a2a 100%)', btn: 'F1赛事', link: 'https://heyan9.github.io/F1.html', dur: 5 }
+
   ];
   // 图片预加载：页面一打开就在后台全部下载并解码，点开侧栏时直接秒显
   window._spImgs = SIDE_SLIDES.map((s, i) => {
