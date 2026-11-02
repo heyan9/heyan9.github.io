@@ -9,6 +9,12 @@
      "name": "Astrbot机器人",
      "url": "http://localhost:6185/#/",
      "note": "用来对接QQ"
+    },
+    {
+     "id": "mvyws675utkn",
+     "name": "免费Token modelscope",
+     "url": "https://modelscope.cn/magicube/usage?tab=record",
+     "note": ""
     }
    ]
   }
