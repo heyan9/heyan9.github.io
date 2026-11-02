@@ -21,6 +21,12 @@
      "name": "免费联网模型 Tavily",
      "url": "https://app.tavily.com/home",
      "note": ""
+    },
+    {
+     "id": "mvywxa9zx8u1",
+     "name": "Snowluma控制台",
+     "url": "http://127.0.0.1:5099/",
+     "note": ""
     }
    ]
   }
