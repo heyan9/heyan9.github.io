@@ -15,6 +15,12 @@
      "name": "免费Token modelscope",
      "url": "https://modelscope.cn/magicube/usage?tab=record",
      "note": ""
+    },
+    {
+     "id": "mvywt3dvqsn3",
+     "name": "免费联网模型 Tavily",
+     "url": "https://app.tavily.com/home",
+     "note": ""
     }
    ]
   }
