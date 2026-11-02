@@ -1,6 +1,19 @@
 {
  "cats": [
   {
+   "id": "mvyx08wmp4y3",
+   "name": "绘画相关",
+   "sites": [
+    {
+     "id": "mvyybl2x2gn9",
+     "name": "每天30练习line-of-action",
+     "url": "https://line-of-action.com/",
+     "note": ""
+    }
+   ],
+   "avatar": "img/study-avatar-mvyx08wmp4y3-mvyycmbp.jpg"
+  },
+  {
    "id": "mvywzn3wamwc",
    "name": "Ai工作相关",
    "sites": [
@@ -49,19 +62,6 @@
     }
    ],
    "avatar": "img/study-avatar-mvywpf62oona-mvyy5wpd.jpg"
-  },
-  {
-   "id": "mvyx08wmp4y3",
-   "name": "绘画相关",
-   "sites": [
-    {
-     "id": "mvyybl2x2gn9",
-     "name": "每天30练习line-of-action",
-     "url": "https://line-of-action.com/",
-     "note": ""
-    }
-   ],
-   "avatar": "img/study-avatar-mvyx08wmp4y3-mvyycmbp.jpg"
   }
  ]
 }
