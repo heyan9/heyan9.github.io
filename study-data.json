@@ -3,7 +3,14 @@
   {
    "id": "mvywpf62oona",
    "name": "Ai大肥鱼搭建",
-   "sites": []
+   "sites": [
+    {
+     "id": "mvywqu23qoba",
+     "name": "Astrbot机器人",
+     "url": "http://localhost:6185/#/",
+     "note": "用来对接QQ"
+    }
+   ]
   }
  ]
 }
