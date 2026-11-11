@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>奇的放大镜 · 数据面板</title>
+<style>
+:root{--b:#0084ff;--o:#ff8a2b;--t:#1f2d3d;--g:#6b7a8c;--line:#e3edf8}
+*{box-sizing:border-box}
+body{margin:0;font:13px/1.55 -apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;font-weight:400;color:var(--t);background:#fff;min-height:100vh}
+.wrap{max-width:1000px;margin:0 auto;padding:14px 12px 48px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
+h1{margin:0;font-size:18px;font-weight:400;color:var(--b)}
+#status{color:var(--g);font-size:12px;flex:1;min-width:140px}
+#status.err{color:var(--o)}
+button,select,input{font:inherit;font-weight:400}
+.btn{background:var(--b);color:#fff;border:0;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--b);border:1px solid var(--line)}
+.btn:focus-visible,select:focus-visible,input:focus-visible,.tab:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+nav,.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tab{border:1px solid var(--line);background:#fff;color:var(--b);border-radius:14px;padding:4px 12px;font-size:12px;cursor:pointer}
+.tab.on{background:var(--b);color:#fff;border-color:var(--b)}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;overflow-x:auto}
+.card h3{margin:0 0 6px;font-size:12px;font-weight:400;color:var(--g)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.tiles .card{margin:0}
+.big{font-size:28px;font-weight:400;color:var(--b);line-height:1.25}
+.sub{color:var(--g);font-size:12px}
+.warn{color:var(--o);margin-top:4px;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--g);font-weight:400;text-align:left;padding:3px 5px;white-space:nowrap}
+td{padding:4px 5px;border-top:1px solid #eef4fb}
+td.n,th.n{text-align:right;white-space:nowrap}
+.hi{color:var(--b)}.lo{color:var(--o)}
+.bar{height:6px;border-radius:3px;background:#e8f2fe;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--b)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.thumb{aspect-ratio:9/16;background:#eef4fb;border-radius:10px;overflow:hidden;cursor:zoom-in}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nav select{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 8px;color:var(--t);font-size:12px}
+pre{white-space:pre-wrap;word-break:break-word;margin:4px 0 0;font:inherit}
+.form{display:grid;gap:8px;max-width:420px}
+.form label{display:grid;gap:3px;font-size:12px;color:var(--g)}
+.form input,.form select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--t);font-size:13px}
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:9;cursor:zoom-out}
+#lb img{max-width:94vw;max-height:94vh;border-radius:8px}
+svg text{fill:#6b7a8c;font-size:11px}
+@media (max-width:600px){.wrap{padding:10px 8px 40px}.big{font-size:24px}.tiles{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>奇的放大镜</h1>
+    <span id="status">未连接</span>
+    <button class="btn ghost" id="bSet">连接设置</button>
+    <button class="btn" id="bRef">立即刷新</button>
+  </header>
+  <nav id="tabs"></nav>
+  <main id="view"></main>
+</div>
+<div id="lb"><img alt=""></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const h = (t, p = {}, ...k) => {
+  const e = document.createElement(t);
+  for (const [a, v] of Object.entries(p)) {
+    if (a === 'class') e.className = v; else if (a === 'text') e.textContent = v;
+    else if (a.startsWith('on')) e[a] = v; else e.setAttribute(a, v);
+  }
+  k.flat().filter(x => x != null && x !== false).forEach(c => e.append(c));
+  return e;
+};
+const TABS = [['overview', '概览'], ['keywords', '关键词'], ['hot', '热门截屏'], ['notes', '笔记'], ['rank', '排行榜']];
+/* 免填写：优先级 链接#参数 > 下面的 PRESET > 浏览器存储 */
+const PRESET = {};
+function loadCfg() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  if (q.get('t')) return { o: q.get('o') || '', r: q.get('r') || '', t: q.get('t'), i: +(q.get('i') || 30) };
+  if (PRESET.t) return PRESET;
+  try { return JSON.parse(localStorage.getItem('qi_cfg') || '{}'); } catch (e) { return {}; }
+}
+let cfg = loadCfg();
+let cache = {}; try { cache = JSON.parse(localStorage.getItem('qi_cache') || '{}'); } catch (e) {}
+let ui = { tab: 'overview', type: '', week: '', setup: !cfg.t };
+let branch = '', timer = null, stats = {}, rows = [], notes = {}, shots = [];
+const imgUrls = {};
+const API = () => `https://api.github.com/repos/${cfg.o}/${cfg.r}`;
+const fmt = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const toDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const monday = s => { const d = toDate(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return fmt(d); };
+const addDays = (s, n) => { const d = toDate(s); d.setDate(d.getDate() + n); return fmt(d); };
+const wlabel = w => { const a = toDate(w), b = toDate(addDays(w, 6)); return `${a.getMonth() + 1}/${a.getDate()} ~ ${b.getMonth() + 1}/${b.getDate()}`; };
+const lastDays = n => Array.from({ length: n }, (_, i) => addDays(fmt(new Date()), -i));
+const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+
+async function gh(url, accept) {
+  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + cfg.t, Accept: accept || 'application/vnd.github+json' } });
+  if (!r.ok) throw new Error(r.status + (r.status === 401 ? '（Token 无效或过期）' : r.status === 404 ? '（用户名/仓库名不对，或 Token 无权限）' : ''));
+  return r;
+}
+async function pool(items, n, fn) {
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) await fn(items[i++]); }));
+}
+function setStatus(t, err) { const s = $('#status'); s.textContent = t; s.className = err ? 'err' : ''; }
+
+async function refresh() {
+  if (!cfg.t || !cfg.o || !cfg.r) { setStatus('请先在「连接设置」填写仓库信息', true); return; }
+  setStatus('同步中…');
+  try {
+    if (!branch) branch = (await (await gh(API())).json()).default_branch;
+    const tree = (await (await gh(`${API()}/git/trees/${branch}?recursive=1`)).json()).tree;
+    const files = {}; tree.forEach(e => { if (e.type === 'blob') files[e.path] = e.sha; });
+    const want = Object.keys(files).filter(p => p === 'data/stats.json' || /^logs\/.*\.csv$/.test(p) || /^notes\/.*\.md$/.test(p));
+    await pool(want, 6, async p => {
+      if (cache[p] && cache[p].sha === files[p]) return;
+      cache[p] = { sha: files[p], txt: await (await gh(`${API()}/contents/${p}`, 'application/vnd.github.raw+json')).text() };
+    });
+    Object.keys(cache).forEach(p => { if (!(p in files)) delete cache[p]; });
+    try { localStorage.setItem('qi_cache', JSON.stringify(cache)); } catch (e) {}
+    shots = Object.keys(files).filter(p => /^screenshots\/.*\.jpg$/.test(p))
+      .map(p => ({ path: p, sha: files[p], name: p.split('/').pop() })).sort((a, b) => b.name.localeCompare(a.name));
+    parse(); render();
+    setStatus('已同步 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+  } catch (e) { setStatus('同步失败：' + e.message, true); }
+}
+
+function parse() {
+  try { stats = JSON.parse((cache['data/stats.json'] || {}).txt || '{}'); } catch (e) { stats = {}; }
+  rows = []; notes = {};
+  for (const [p, c] of Object.entries(cache)) {
+    let m;
+    if ((m = p.match(/^logs\/(.*)\.csv$/))) {
+      c.txt.split('\n').slice(1).filter(Boolean).forEach(l => {
+        const q = l.split(','); const ok = q[2] === '1';
+        let pos = '', neg = '';
+        if (q.length >= 6) { pos = q[4]; neg = q[5]; } else if (q.length === 5) { if (ok) pos = q[4]; else neg = q[4]; }
+        rows.push({ date: m[1], choice: q[1], ok, type: q[3] || '', pos: pos.split('|').filter(Boolean), neg: neg.split('|').filter(Boolean) });
+      });
+    } else if ((m = p.match(/^notes\/(.*)\.md$/))) {
+      notes[m[1]] = c.txt.replace(/^#.*\n+/, '').trim();
+    }
+  }
+}
+const rate = d => stats[d] && stats[d].total > 0 ? stats[d].correct / stats[d].total : null;
+
+/* ---------- 页面 ---------- */
+function pageOverview() {
+  const today = fmt(new Date()), t = stats[today] || { total: 0, correct: 0 };
+  const a7 = avg(lastDays(7).map(rate).filter(x => x != null));
+  const sc = avg(lastDays(15).map(d => stats[d] && stats[d].score).filter(x => x > 0));
+  const tiles = h('div', { class: 'tiles' },
+    h('div', { class: 'card' }, h('h3', { text: '近 7 日平均胜率' }), h('div', { class: 'big', text: a7 == null ? '--' : (a7 * 100).toFixed(1) + '%' })),
+    h('div', { class: 'card' }, h('h3', { text: '今日' }), h('div', { class: 'big', text: `${t.correct}/${t.total}` }), h('div', { class: 'sub', text: t.total ? `准确率 ${Math.round(t.correct / t.total * 100)}%` : '今天还没有记录' })),
+    h('div', { class: 'card' }, h('h3', { text: '近 15 日平均评分' }), h('div', { class: 'big', text: sc == null ? '--' : sc.toFixed(1) }),
+      sc != null && sc < 5 ? h('div', { class: 'warn', text: '内容创意存在严重不足，需要提高胜率以及内容敏感度' }) : null));
+  const days = Object.keys(stats).filter(d => stats[d].total > 0).sort().slice(-30);
+  const W = 640, H = 200, P = 28, X = i => days.length < 2 ? W / 2 : P + i * (W - 2 * P) / (days.length - 1), Y = v => H - P - v / 100 * (H - 2 * P);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="每日准确率走势">`;
+  [0, 50, 100].forEach(v => svg += `<line x1="${P}" x2="${W - P}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(0,132,255,.15)"/><text x="2" y="${Y(v) + 4}">${v}%</text>`);
+  if (days.length) {
+    svg += `<polyline fill="none" stroke="#0084ff" stroke-width="2.5" points="${days.map((d, i) => X(i) + ',' + Y(rate(d) * 100)).join(' ')}"/>`;
+    days.forEach((d, i) => svg += `<circle cx="${X(i)}" cy="${Y(rate(d) * 100)}" r="3.5" fill="#0084ff"><title>${d}  ${(rate(d) * 100).toFixed(1)}%  (${stats[d].correct}/${stats[d].total})</title></circle>`);
+    const sd = days.filter(d => stats[d].score > 0);
+    if (sd.length) svg += `<polyline fill="none" stroke="#ff8a2b" stroke-width="1.8" stroke-dasharray="4 3" points="${sd.map(d => X(days.indexOf(d)) + ',' + Y(stats[d].score * 10)).join(' ')}"/>`;
+    svg += `<text x="${P}" y="${H - 6}">${days[0]}</text><text x="${W - P - 56}" y="${H - 6}">${days[days.length - 1]}</text>`;
+  }
+  svg += '</svg>';
+  const chart = h('div', { class: 'card' }, h('h3', { text: '每日准确率（蓝线）与当日评分×10（橙色虚线），最近 30 天' }));
+  chart.insertAdjacentHTML('beforeend', days.length ? svg : '<div class="sub">暂无数据</div>');
+  const order = ['1', '2', '3', '4', '5', '5-8', '8-1k', '1k+', '2k+'];
+  const by = {}; rows.forEach(r => { const o = by[r.choice] = by[r.choice] || { n: 0, ok: 0 }; o.n++; if (r.ok) o.ok++; });
+  const iv = h('div', { class: 'card' }, h('h3', { text: '各区间的正确率（全部历史）' }),
+    h('table', {}, h('tr', {}, h('th', { text: '区间' }), h('th', { text: '' }), h('th', { class: 'n', text: '正确/总数' }), h('th', { class: 'n', text: '正确率' })),
+      order.filter(k => by[k]).map(k => { const o = by[k], p = Math.round(o.ok / o.n * 100);
+        return h('tr', {}, h('td', { text: k }), h('td', {}, h('div', { class: 'bar' }, h('i', { style: `width:${p}%` }))), h('td', { class: 'n', text: `${o.ok}/${o.n}` }), h('td', { class: 'n ' + (p >= 60 ? 'hi' : p < 40 ? 'lo' : ''), text: p + '%' })); })));
+  return [tiles, h('div', { style: 'height:14px' }), chart, iv];
+}
+
+function kwStats(type) {
+  const rs = rows.filter(r => (r.type || r.pos.length || r.neg.length) && (!type || r.type === type));
+  const m = { type: {}, pos: {}, neg: {} };
+  const hit = (k, w, ok) => { const o = m[k][w] = m[k][w] || { n: 0, ok: 0 }; o.n++; if (ok) o.ok++; };
+  rs.forEach(r => { if (r.type) hit('type', r.type, r.ok); r.pos.forEach(w => hit('pos', w, r.ok)); r.neg.forEach(w => hit('neg', w, r.ok)); });
+  const list = k => Object.entries(m[k]).sort((a, b) => b[1].n - a[1].n);
+  return { total: rs.length, ok: rs.filter(r => r.ok).length, type: list('type'), pos: list('pos'), neg: list('neg') };
+}
+function kwTable(title, cls, list, total) {
+  return h('div', { class: 'card' }, h('h3', { text: title }), list.length ? h('table', {},
+    h('tr', {}, h('th', { text: '关键词' }), h('th', { class: 'n', text: '次数' }), h('th', { class: 'n', text: '占比' }), h('th', { class: 'n', text: '正确率' })),
+    list.slice(0, 30).map(([w, o]) => { const p = Math.round(o.ok / o.n * 100);
+      return h('tr', {}, h('td', { class: cls, text: w }), h('td', { class: 'n', text: o.n }), h('td', { class: 'n', text: Math.round(o.n / total * 100) + '%' }), h('td', { class: 'n ' + (p >= 60 ? 'hi' : p < 40 ? 'lo' : ''), text: p + '%' })); })) : h('div', { class: 'sub', text: '暂无' }));
+}
+function pageKeywords() {
+  const all = kwStats(''), types = all.type.map(x => x[0]);
+  if (ui.type && !types.includes(ui.type)) ui.type = '';
+  const k = kwStats(ui.type);
+  return [
+    h('div', { class: 'chips' }, ['', ...types].map(t => h('button', { class: 'tab' + (ui.type === t ? ' on' : ''), text: t || '全部', onclick: () => { ui.type = t; render(); } }))),
+    h('div', { class: 'card' }, h('div', { class: 'big', style: 'font-size:26px', text: `${ui.type || '全部类型'}：${k.total} 题，正确率 ${k.total ? Math.round(k.ok / k.total * 100) : 0}%` }),
+      h('div', { class: 'sub', text: '占比 = 含该关键词的题数 ÷ 该类型总题数；正确率 = 含该关键词的题里判“对”的比例。只统计选过类型或关键词的题。' })),
+    ui.type ? null : kwTable('内容类型', '', k.type, k.total || 1),
+    kwTable('正向关键词', 'hi', k.pos, k.total || 1),
+    kwTable('反向关键词', 'lo', k.neg, k.total || 1)];
+}
+
+async function imgUrl(s) {
+  if (imgUrls[s.sha]) return imgUrls[s.sha];
+  const r = await gh(`${API()}/contents/${s.path}`, 'application/vnd.github.raw+json');
+  return imgUrls[s.sha] = URL.createObjectURL(await r.blob());
+}
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return; io.unobserve(e.target);
+  const s = shots[+e.target.dataset.i];
+  imgUrl(s).then(u => { e.target.replaceChildren(h('img', { src: u, alt: s.name, loading: 'lazy' })); e.target.onclick = () => { const l = $('#lb'); l.firstChild.src = u; l.style.display = 'flex'; }; }).catch(() => {});
+}), { rootMargin: '300px' });
+function pageHot() {
+  const thisW = monday(fmt(new Date()));
+  if (!ui.week) ui.week = thisW;
+  const wk = s => monday(s.name.slice(0, 10));
+  const ws = [...new Set([thisW, ...shots.map(wk)])].sort().reverse();
+  if (!ws.includes(ui.week)) ws.push(ui.week);
+  const list = shots.map((s, i) => [s, i]).filter(([s]) => wk(s) === ui.week);
+  const nav = h('div', { class: 'card nav' },
+    h('button', { class: 'btn ghost', text: '‹ 上一周', onclick: () => { ui.week = addDays(ui.week, -7); render(); } }),
+    h('select', { 'aria-label': '跳转到某一周', onchange: e => { ui.week = e.target.value; render(); } },
+      ws.sort().reverse().map(w => { const o = h('option', { value: w, text: `${wlabel(w)}（${shots.filter(s => wk(s) === w).length}张）${w === thisW ? ' 本周' : ''}` }); if (w === ui.week) o.selected = true; return o; })),
+    ui.week < thisW ? h('button', { class: 'btn ghost', text: '下一周 ›', onclick: () => { ui.week = addDays(ui.week, 7); render(); } }) : null,
+    h('span', { class: 'sub', text: `本周共 ${list.length} 张优质截屏，点击放大` }));
+  const grid = h('div', { class: 'grid' }, list.map(([s, i]) => { const d = h('div', { class: 'thumb', 'data-i': i }); return d; }));
+  setTimeout(() => grid.querySelectorAll('.thumb').forEach(t => io.observe(t)), 0);
+  return [nav, list.length ? grid : h('div', { class: 'sub', text: '这一周还没有截屏。在手机悬浮窗菜单点「截屏」即可保存。' })];
+}
+
+function pageNotes() {
+  const ds = Object.keys(notes).filter(d => notes[d]).sort().reverse();
+  if (!ds.length) return [h('div', { class: 'sub', text: '还没有笔记。' })];
+  return ds.map(d => h('div', { class: 'card' }, h('h3', { text: d }), h('pre', { text: notes[d] })));
+}
+function pageRank() {
+  const rs = Object.entries(stats).filter(([, v]) => v.total > 0).sort((a, b) => b[1].rate - a[1].rate || b[1].total - a[1].total);
+  return [h('div', { class: 'card' }, h('h3', { text: '按日准确率排名' }), rs.length ? h('table', {},
+    h('tr', {}, h('th', { text: '名次' }), h('th', { text: '日期' }), h('th', { class: 'n', text: '准确率' }), h('th', { class: 'n', text: '对/已做' }), h('th', { class: 'n', text: '评分' })),
+    rs.map(([d, v], i) => h('tr', {}, h('td', { text: i + 1 }), h('td', { text: d }), h('td', { class: 'n hi', text: (v.rate * 100).toFixed(1) + '%' }), h('td', { class: 'n', text: `${v.correct}/${v.total}` }), h('td', { class: 'n', text: v.score > 0 ? v.score : '-' })))) : h('div', { class: 'sub', text: '暂无数据' }))];
+}
+const saveCfg = () => { try { localStorage.setItem('qi_cfg', JSON.stringify(cfg)); } catch (e) {} };
+const cfgLink = () => location.href.split('#')[0] + '#' + new URLSearchParams({ o: cfg.o, r: cfg.r, t: cfg.t, i: cfg.i ?? 30 });
+function downloadPreset() {
+  const c = document.documentElement.cloneNode(true);
+  c.querySelector('#view').replaceChildren(); c.querySelector('#tabs').replaceChildren();
+  c.querySelector('#status').textContent = '未连接'; c.querySelector('#lb').style.display = 'none'; c.querySelector('#lb img').removeAttribute('src');
+  const sc = c.querySelector('script');
+  sc.textContent = sc.textContent.replace(/const PRESET = \{.*?\};\n/, () => 'const PRESET = ' + JSON.stringify(cfg) + ';\n');
+  const blob = new Blob(['<!DOCTYPE html>\n' + c.outerHTML], { type: 'text/html' });
+  h('a', { href: URL.createObjectURL(blob), download: 'qidi-dashboard-免填写.html' }).click();
+}
+function pageSetup() {
+  const f = (id, label, type, val) => h('label', {}, label, h('input', { id, type, value: val || '', autocomplete: 'off' }));
+  const out = [h('div', { class: 'card' }, h('h3', { text: '连接设置' }),
+    h('div', { class: 'form' },
+      f('fo', 'GitHub 用户名', 'text', cfg.o), f('fr', '数据仓库名', 'text', cfg.r), f('ft', 'Token（建议新建一个只读的）', 'password', cfg.t),
+      h('label', {}, '自动刷新', h('select', { id: 'fi' }, [[15, '每 15 秒'], [30, '每 30 秒'], [60, '每分钟'], [0, '只手动刷新']].map(([v, t]) => { const o = h('option', { value: v, text: t }); if ((cfg.i ?? 30) === v) o.selected = true; return o; }))),
+      h('button', { class: 'btn', text: '保存并连接', onclick: () => {
+        cfg = { o: $('#fo').value.trim(), r: $('#fr').value.trim(), t: $('#ft').value.trim(), i: +$('#fi').value };
+        saveCfg(); try { history.replaceState(null, '', cfgLink()); } catch (e) {}
+        branch = ''; ui.setup = false; schedule(); refresh(); render(); } }),
+      cfg.t ? h('button', { class: 'btn ghost', text: '清除登录信息和缓存', onclick: () => {
+        try { localStorage.clear(); } catch (e) {} try { history.replaceState(null, '', location.href.split('#')[0]); } catch (e) {}
+        cfg = {}; cache = {}; ui.setup = true; setStatus('未连接'); render(); } }) : null))];
+  if (cfg.t) out.push(h('div', { class: 'card' }, h('h3', { text: '免填写（浏览器清缓存也不怕）' }),
+    h('div', { class: 'sub', text: '方法一：连接后，把当前网页加入收藏夹或手机主屏幕，收藏的网址里已带上设置，下次点开直接显示。' }),
+    h('div', { class: 'sub', style: 'margin-top:6px', text: '方法二：电脑上下载「免填写版」，设置已写进文件里，双击就能看。注意不要把这个文件发给别人或传到公开网站。' }),
+    h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px' },
+      h('button', { class: 'btn ghost', text: '复制免填写链接', onclick: () => { const l = cfgLink(); (navigator.clipboard ? navigator.clipboard.writeText(l) : Promise.reject()).then(() => setStatus('链接已复制，可粘贴到收藏夹或备忘录'), () => prompt('复制这个链接：', l)); } }),
+      h('button', { class: 'btn', text: '下载免填写版', onclick: downloadPreset }))));
+  return out;
+}
+
+function render() {
+  $('#tabs').replaceChildren(...TABS.map(([k, t]) => h('button', { class: 'tab' + (!ui.setup && ui.tab === k ? ' on' : ''), text: t, onclick: () => { ui.tab = k; ui.setup = false; render(); } })));
+  const pages = { overview: pageOverview, keywords: pageKeywords, hot: pageHot, notes: pageNotes, rank: pageRank };
+  $('#view').replaceChildren(...(ui.setup ? pageSetup() : pages[ui.tab]()));
+}
+function schedule() { clearInterval(timer); const s = cfg.i ?? 30; if (s > 0) timer = setInterval(() => { if (!document.hidden) refresh(); }, s * 1000); }
+
+$('#bSet').onclick = () => { ui.setup = true; render(); };
+$('#bRef').onclick = refresh;
+$('#lb').onclick = () => { $('#lb').style.display = 'none'; };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#lb').style.display = 'none'; });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && cfg.t) refresh(); });
+parse(); render(); schedule(); if (cfg.t) refresh();
+</script>
+</body>
+</html>
